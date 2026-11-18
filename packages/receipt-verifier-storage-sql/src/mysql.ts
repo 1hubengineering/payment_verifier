@@ -2,7 +2,7 @@ import { Kysely, MysqlDialect } from 'kysely';
 import type { Pool, PoolConnection } from 'mysql2';
 import { createStorage } from './storage.ts';
 import type { SqlStorage, StorageSchema } from './index.ts';
-import type { VerificationStorage } from '@1hubengineering/receipt-verifier';
+import type { VerificationStorage } from '@1hubengineering/verifier';
 
 export function mysqlStorage(pool: Pool): SqlStorage {
   return createStorage(new Kysely<StorageSchema>({ dialect: new MysqlDialect({ pool }) }), 'mysql');

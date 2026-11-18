@@ -4,14 +4,14 @@ import {
   createPaymentExpectation,
   VerificationError,
   StorageConflict,
-} from '@1hubengineering/receipt-verifier';
+} from '@1hubengineering/verifier';
 import type {
   PaymentExpectation,
   ReceiptVerifier,
   SettlementStatus,
-} from '@1hubengineering/receipt-verifier';
-import { JobError } from '@1hubengineering/receipt-verifier/jobs';
-import type { DurableVerifier } from '@1hubengineering/receipt-verifier/jobs';
+} from '@1hubengineering/verifier';
+import { JobError } from '@1hubengineering/verifier/jobs';
+import type { DurableVerifier } from '@1hubengineering/verifier/jobs';
 
 export interface Principal {
   readonly tenantId: string;

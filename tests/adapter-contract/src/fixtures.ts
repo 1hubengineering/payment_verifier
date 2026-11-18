@@ -1,7 +1,7 @@
-import type { JobPolicy } from '@1hubengineering/receipt-verifier/jobs';
-import { createPaymentExpectation, parseEtbAmount } from '@1hubengineering/receipt-verifier';
-import type { PaymentExpectation, VerificationSubmission } from '@1hubengineering/receipt-verifier';
-import type { ProviderResult } from '@1hubengineering/receipt-verifier/providers';
+import type { JobPolicy } from '@1hubengineering/verifier/jobs';
+import { createPaymentExpectation, parseEtbAmount } from '@1hubengineering/verifier';
+import type { PaymentExpectation, VerificationSubmission } from '@1hubengineering/verifier';
+import type { ProviderResult } from '@1hubengineering/verifier/providers';
 
 export const time: number = 1_700_000_000_000;
 export function expectation(tenantId = 'tenant-a', paymentId = 'payment-a'): PaymentExpectation {

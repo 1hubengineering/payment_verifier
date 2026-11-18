@@ -33,7 +33,7 @@ its original child-process arguments to preserve the regression baseline.
 
 | Location                                                  | npm name / role                                                                        |
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `packages/receipt-verifier`                               | `@1hubengineering/receipt-verifier`: public library API and provider-neutral domain    |
+| `packages/receipt-verifier`                               | `@1hubengineering/verifier`: public library API and provider-neutral domain            |
 | `apps/cli`                                                | `@1hubengineering/receipt-verifier-cli`: private trusted operator application boundary |
 | `tests/reference-cli`                                     | Frozen synthetic source and regression evidence; never a runtime dependency            |
 | `scripts`                                                 | Workspace verification utilities                                                       |
@@ -51,12 +51,12 @@ claimed before publishing succeeds.
 
 Implemented optional integrations use a consistent product prefix:
 
-| Folder                                      | npm name                                            | Reason to split                                     |
-| ------------------------------------------- | --------------------------------------------------- | --------------------------------------------------- |
-| `packages/receipt-verifier-storage-sql`     | `@1hubengineering/receipt-verifier-storage-sql`     | SQL drivers, migrations, and connection integration |
-| `packages/receipt-verifier-adapter-drizzle` | `@1hubengineering/receipt-verifier-adapter-drizzle` | Drizzle peer/version and transaction contract       |
-| `packages/receipt-verifier-adapter-prisma`  | `@1hubengineering/receipt-verifier-adapter-prisma`  | Versioned Prisma client and transaction contract    |
-| `packages/receipt-verifier-provider-cbe`    | `@1hubengineering/receipt-verifier-provider-cbe`    | Optional browser execution dependencies             |
+| Folder                                      | npm name                           | Reason to split                                     |
+| ------------------------------------------- | ---------------------------------- | --------------------------------------------------- |
+| `packages/receipt-verifier-storage-sql`     | `@1hubengineering/storage-sql`     | SQL drivers, migrations, and connection integration |
+| `packages/receipt-verifier-adapter-drizzle` | `@1hubengineering/adapter-drizzle` | Drizzle peer/version and transaction contract       |
+| `packages/receipt-verifier-adapter-prisma`  | `@1hubengineering/adapter-prisma`  | Versioned Prisma client and transaction contract    |
+| `packages/receipt-verifier-provider-cbe`    | `@1hubengineering/provider-cbe`    | Optional browser execution dependencies             |
 
 Each of these packages now has actual implementation and installed-consumer checks. Telebirr retrieval and shared extraction use the dependency-free core `/providers`
 subpath; CBE browser execution is now implemented in its optional package.
@@ -229,7 +229,6 @@ the checkout. A stdio tools-list handshake passed; a fresh/reloaded Codex sessio
 is needed to load the new entry into the current tool catalog. No global MCP,
 trust or approval settings are modified.
 
-All package version fields remain unchanged at the user's request. The published
-0.1.0 archives/tag remain immutable and still use Drizzle 0.45.4. The upgraded
-source is recorded separately from registry publication; it cannot overwrite the
-existing package@0.1.0.
+The old 0.1.0 archives and tag still use Drizzle 0.45.4. The renamed 0.1.1
+workspace uses the tested v1 RC. An npm approval and registry verification are
+required before claiming the renamed release is live.

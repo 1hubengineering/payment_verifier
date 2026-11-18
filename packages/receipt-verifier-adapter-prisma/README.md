@@ -1,6 +1,6 @@
 # Prisma 7 receipt storage
 
-Version 0.1.0. The shared contract suite passes for Prisma CLI,
+Version 0.1.1. The shared contract suite passes for Prisma CLI,
 Client and official driver adapters **7.10.1** on PostgreSQL 18.7, MySQL 8.4.13 and
 local SQLite. No Prisma 8 prerelease, other client major or remote SQLite service
 is advertised.
@@ -37,7 +37,7 @@ is claimed as tested; one owner must manage the record tables and version metada
 Never migrate a second shadow store for verification records.
 
 ```ts
-import { prismaStorage, prismaTransaction } from '@1hubengineering/receipt-verifier-adapter-prisma';
+import { prismaStorage, prismaTransaction } from '@1hubengineering/adapter-prisma';
 
 const storage = prismaStorage(hostPrismaClient);
 // Configure the core verifier with storage and trusted provider instances.

@@ -4,8 +4,8 @@ import {
   createPaymentExpectation,
   createReceiptVerifier,
   parseEtbAmount,
-} from '@1hubengineering/receipt-verifier';
-import { sqliteStorage } from '@1hubengineering/receipt-verifier-storage-sql/sqlite';
+} from '@1hubengineering/verifier';
+import { sqliteStorage } from '@1hubengineering/storage-sql/sqlite';
 import { ENV } from '../env.ts';
 import { createCheckoutApp } from './app.ts';
 

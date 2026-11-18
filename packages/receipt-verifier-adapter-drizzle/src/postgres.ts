@@ -4,7 +4,7 @@ import { eq, like, asc, is } from 'drizzle-orm';
 import type { AnyRelations } from 'drizzle-orm/relations';
 import { pgTable, varchar, text, integer } from 'drizzle-orm/pg-core';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type { RecordTransaction, VerificationStorage } from '@1hubengineering/receipt-verifier';
+import type { RecordTransaction, VerificationStorage } from '@1hubengineering/verifier';
 import {
   drizzleStore,
   StorageDataError,

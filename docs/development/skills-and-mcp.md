@@ -49,7 +49,7 @@ official registry. Its project config is `examples/checkout-web/components.json`
 - **Server missing or disabled:** check that the project is trusted and the
   current client loads the project `.codex/config.toml`; restart after editing it.
 - **Drizzle cannot start:** ensure `pnpm` is on Codex's PATH and the frozen install
-  succeeded. Run `pnpm --filter @1hubengineering/receipt-verifier-adapter-drizzle exec drizzle-kit mcp`
+  succeeded. Run `pnpm --filter @1hubengineering/adapter-drizzle exec drizzle-kit mcp`
   from the repository root to check the launcher. It speaks MCP on stdio and
   waits for a client; silence alone does not indicate a failure.
 - **shadcn cannot find the project:** use the example directory as the server

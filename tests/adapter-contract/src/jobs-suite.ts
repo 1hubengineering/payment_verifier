@@ -1,12 +1,8 @@
 import { expect, it, vi } from 'vite-plus/test';
-import {
-  createReceiptVerifier,
-  storageKey,
-  parseEtbAmount,
-} from '@1hubengineering/receipt-verifier';
-import type { VerificationStorage } from '@1hubengineering/receipt-verifier';
-import { createDurableVerifier } from '@1hubengineering/receipt-verifier/jobs';
-import type { JobPolicy } from '@1hubengineering/receipt-verifier/jobs';
+import { createReceiptVerifier, storageKey, parseEtbAmount } from '@1hubengineering/verifier';
+import type { VerificationStorage } from '@1hubengineering/verifier';
+import { createDurableVerifier } from '@1hubengineering/verifier/jobs';
+import type { JobPolicy } from '@1hubengineering/verifier/jobs';
 import {
   expectation,
   providerResult,

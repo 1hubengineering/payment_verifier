@@ -205,15 +205,15 @@ importers:
 
   apps/cli:
     dependencies:
-      '@1hubengineering/receipt-verifier':
-        specifier: workspace:*
-        version: link:../../packages/receipt-verifier
-      '@1hubengineering/receipt-verifier-provider-cbe':
+      '@1hubengineering/provider-cbe':
         specifier: workspace:*
         version: link:../../packages/receipt-verifier-provider-cbe
-      '@1hubengineering/receipt-verifier-storage-sql':
+      '@1hubengineering/storage-sql':
         specifier: workspace:*
         version: link:../../packages/receipt-verifier-storage-sql
+      '@1hubengineering/verifier':
+        specifier: workspace:*
+        version: link:../../packages/receipt-verifier
       better-sqlite3:
         specifier: 13.2.0
         version: 13.2.0
@@ -227,12 +227,12 @@ importers:
 
   apps/worker:
     dependencies:
-      '@1hubengineering/receipt-verifier':
-        specifier: workspace:*
-        version: link:../../packages/receipt-verifier
       '@1hubengineering/receipt-verifier-cli':
         specifier: workspace:*
         version: link:../cli
+      '@1hubengineering/verifier':
+        specifier: workspace:*
+        version: link:../../packages/receipt-verifier
     devDependencies:
       varlock:
         specifier: 1.25.0
@@ -292,12 +292,12 @@ importers:
 
   examples/fastify-checkout:
     dependencies:
-      '@1hubengineering/receipt-verifier':
-        specifier: workspace:*
-        version: link:../../packages/receipt-verifier
-      '@1hubengineering/receipt-verifier-storage-sql':
+      '@1hubengineering/storage-sql':
         specifier: workspace:*
         version: link:../../packages/receipt-verifier-storage-sql
+      '@1hubengineering/verifier':
+        specifier: workspace:*
+        version: link:../../packages/receipt-verifier
       better-sqlite3:
         specifier: 13.2.0
         version: 13.2.0
@@ -316,7 +316,7 @@ importers:
 
   packages/receipt-verifier-adapter-drizzle:
     dependencies:
-      '@1hubengineering/receipt-verifier':
+      '@1hubengineering/verifier':
         specifier: workspace:*
         version: link:../receipt-verifier
     devDependencies:
@@ -341,7 +341,7 @@ importers:
 
   packages/receipt-verifier-adapter-prisma:
     dependencies:
-      '@1hubengineering/receipt-verifier':
+      '@1hubengineering/verifier':
         specifier: workspace:*
         version: link:../receipt-verifier
     devDependencies:
@@ -351,7 +351,7 @@ importers:
 
   packages/receipt-verifier-provider-cbe:
     dependencies:
-      '@1hubengineering/receipt-verifier':
+      '@1hubengineering/verifier':
         specifier: workspace:*
         version: link:../receipt-verifier
     devDependencies:
@@ -361,7 +361,7 @@ importers:
 
   packages/receipt-verifier-storage-sql:
     dependencies:
-      '@1hubengineering/receipt-verifier':
+      '@1hubengineering/verifier':
         specifier: workspace:*
         version: link:../receipt-verifier
       kysely:
@@ -386,18 +386,18 @@ importers:
 
   tests/adapter-contract:
     devDependencies:
-      '@1hubengineering/receipt-verifier':
-        specifier: workspace:*
-        version: link:../../packages/receipt-verifier
-      '@1hubengineering/receipt-verifier-adapter-drizzle':
+      '@1hubengineering/adapter-drizzle':
         specifier: workspace:*
         version: link:../../packages/receipt-verifier-adapter-drizzle
-      '@1hubengineering/receipt-verifier-adapter-prisma':
+      '@1hubengineering/adapter-prisma':
         specifier: workspace:*
         version: link:../../packages/receipt-verifier-adapter-prisma
-      '@1hubengineering/receipt-verifier-storage-sql':
+      '@1hubengineering/storage-sql':
         specifier: workspace:*
         version: link:../../packages/receipt-verifier-storage-sql
+      '@1hubengineering/verifier':
+        specifier: workspace:*
+        version: link:../../packages/receipt-verifier
       '@libsql/client':
         specifier: 0.17.4
         version: 0.17.4

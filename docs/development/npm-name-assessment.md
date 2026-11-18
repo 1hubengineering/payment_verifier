@@ -1,6 +1,7 @@
 # npm name assessment
 
-Checked on 18 November 2026. This is a proposal, not a release plan in progress.
+Initially checked on 18 November 2026. The approved 0.1.1 migration is tracked
+in [plan 015](plans/015-npm-package-rename.md).
 
 | Current name under `@1hubengineering` | Proposed name under `@1hubengineering` | Public registry |
 | ------------------------------------- | -------------------------------------- | --------------- |
@@ -19,23 +20,23 @@ reserve any name or prove that the current credentials can perform a first
 publish under npm's 2FA and staging rules. See [scope rules](https://docs.npmjs.com/about-scopes/)
 and [access checks](https://docs.npmjs.com/cli-documentation/access/).
 
-## If approved
+## Migration
 
-1. Recheck the exact names, account, and staging or publishing policy. Choose
-   a new coordinated release version and build all five artifacts from one
+1. Recheck the names, account, and staging rules. Build all five 0.1.1 artifacts from one
    reviewed commit. Update package metadata, internal dependencies, and peer ranges
    together. Keep export subpaths, runtime APIs, and schema unchanged for the rename.
 2. Validate installed consumers of the five proposed packages and test all engine
    cells before switching docs. Publish core before dependents, or stage and verify
    the whole set before promotion. Check the new registry tarballs and dist tags.
-3. Existing users can stay on their current versions without changing the
-   database. To migrate, replace the core and each installed companion together,
+3. No database migration is needed for the rename. Replace the core and each installed companion together,
    update imports including subpaths such as `/postgres` and `/jobs`, refresh the
    lockfile, and run integration tests. Avoid loading two copies of the core:
    runtime class identity matters for errors such as `StorageConflict`.
-4. Keep old versions and their tagged docs available. Announce the migration
-   before considering an explicit deprecation, with a separately approved
-   support window. Do not unpublish or silently change old version resolution.
+   Drizzle users must also update their host ORM from the old release's
+   `0.45.4` to the tested `1.0.0-rc.5`, or stay on the archived release.
+4. Keep the old GitHub tag, tarballs and docs available. The user requested npm
+   removal after replacement publication. Check npm eligibility and remove
+   dependents before the old core; installation by the old names may stop working.
 
-Private workspace package names, Git tags, and the present SDK release are
-unaffected by this assessment. No registry write was made.
+Private workspace package names and the existing GitHub v0.1.0 tag stay unchanged.
+See plan 015 for staging and publication status.

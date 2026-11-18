@@ -4,10 +4,10 @@ import {
   createPaymentExpectation,
   compareReceipt,
   VerificationError,
-} from '@1hubengineering/receipt-verifier';
-import type { VerificationSubmission, PaymentScope } from '@1hubengineering/receipt-verifier';
-import { JobError } from '@1hubengineering/receipt-verifier/jobs';
-import { parseReceiptHtml } from '@1hubengineering/receipt-verifier/providers';
+} from '@1hubengineering/verifier';
+import type { VerificationSubmission, PaymentScope } from '@1hubengineering/verifier';
+import { JobError } from '@1hubengineering/verifier/jobs';
+import { parseReceiptHtml } from '@1hubengineering/verifier/providers';
 import { openOperatorRuntime, OperatorError } from './runtime.ts';
 import type { OperatorConfiguration } from './runtime.ts';
 

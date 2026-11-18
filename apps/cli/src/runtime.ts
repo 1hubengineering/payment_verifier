@@ -1,12 +1,12 @@
 import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
-import { sqliteStorage } from '@1hubengineering/receipt-verifier-storage-sql/sqlite';
-import { createReceiptVerifier } from '@1hubengineering/receipt-verifier';
-import type { ReceiptProvider, ReceiptVerifier } from '@1hubengineering/receipt-verifier';
-import type { SqlStorage } from '@1hubengineering/receipt-verifier-storage-sql';
-import { createDurableVerifier } from '@1hubengineering/receipt-verifier/jobs';
-import type { DurableVerifier } from '@1hubengineering/receipt-verifier/jobs';
-import { retrieveTelebirr } from '@1hubengineering/receipt-verifier/providers';
+import { sqliteStorage } from '@1hubengineering/storage-sql/sqlite';
+import { createReceiptVerifier } from '@1hubengineering/verifier';
+import type { ReceiptProvider, ReceiptVerifier } from '@1hubengineering/verifier';
+import type { SqlStorage } from '@1hubengineering/storage-sql';
+import { createDurableVerifier } from '@1hubengineering/verifier/jobs';
+import type { DurableVerifier } from '@1hubengineering/verifier/jobs';
+import { retrieveTelebirr } from '@1hubengineering/verifier/providers';
 
 export interface OperatorConfiguration {
   readonly RECEIPT_TIMEOUT_MS: number;
@@ -52,7 +52,7 @@ export async function openOperatorRuntime(
       retrieve: (url, options) => retrieveTelebirr(url, { ...options, timeoutMs }),
     };
     if (config.RECEIPT_ENABLE_CBE) {
-      const { createCbeProvider } = await import('@1hubengineering/receipt-verifier-provider-cbe');
+      const { createCbeProvider } = await import('@1hubengineering/provider-cbe');
       providers.cbe = createCbeProvider({ maxConcurrency: 1 });
     }
   }

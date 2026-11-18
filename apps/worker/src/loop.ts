@@ -1,5 +1,5 @@
 import { setTimeout } from 'node:timers/promises';
-import type { DurableVerifier } from '@1hubengineering/receipt-verifier/jobs';
+import type { DurableVerifier } from '@1hubengineering/verifier/jobs';
 export async function runWorker(
   jobs: DurableVerifier,
   options: {

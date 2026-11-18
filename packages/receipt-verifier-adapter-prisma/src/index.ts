@@ -1,12 +1,12 @@
-import { StorageConflict } from '@1hubengineering/receipt-verifier';
-import type { RecordTransaction, VerificationStorage } from '@1hubengineering/receipt-verifier';
+import { StorageConflict } from '@1hubengineering/verifier';
+import type { RecordTransaction, VerificationStorage } from '@1hubengineering/verifier';
 import {
   StorageDataError,
   validateStorageKey,
   validateStorageScan,
   encodeStorageRecord,
   decodeStorageRecord,
-} from '@1hubengineering/receipt-verifier/storage';
+} from '@1hubengineering/verifier/storage';
 
 export interface PrismaRecord {
   readonly recordKey: string;

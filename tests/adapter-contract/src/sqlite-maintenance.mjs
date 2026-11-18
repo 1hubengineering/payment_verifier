@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import Database from 'better-sqlite3';
-import { sqliteStorage } from '@1hubengineering/receipt-verifier-storage-sql/sqlite';
+import { sqliteStorage } from '@1hubengineering/storage-sql/sqlite';
 
 // One native SQLite implementation per process/file. ORM callers keep theirs open.
 const [filename, operation] = process.argv.slice(2);

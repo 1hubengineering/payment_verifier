@@ -1,6 +1,6 @@
-import { createDurableVerifier } from '@1hubengineering/receipt-verifier/jobs';
+import { createDurableVerifier } from '@1hubengineering/verifier/jobs';
 import { jobTestKey, jobTestPolicy } from './fixtures.ts';
-import { createReceiptVerifier, parseEtbAmount } from '@1hubengineering/receipt-verifier';
+import { createReceiptVerifier, parseEtbAmount } from '@1hubengineering/verifier';
 
 const [engine, inputText, mode, jobTime] = process.argv.slice(2);
 const input = JSON.parse(inputText);
@@ -11,22 +11,21 @@ try {
   let host;
   if (baseEngine === 'postgres') {
     const { Pool } = await import('pg');
-    const { postgresStorage } =
-      await import('@1hubengineering/receipt-verifier-storage-sql/postgres');
+    const { postgresStorage } = await import('@1hubengineering/storage-sql/postgres');
     const pool = new Pool({ connectionString: process.env.RECEIPT_TEST_POSTGRES_URL });
     storage = postgresStorage(pool);
     host = pool;
     close = () => pool.end();
   } else if (baseEngine === 'mysql') {
     const { createPool } = await import('mysql2');
-    const { mysqlStorage } = await import('@1hubengineering/receipt-verifier-storage-sql/mysql');
+    const { mysqlStorage } = await import('@1hubengineering/storage-sql/mysql');
     const pool = createPool(process.env.RECEIPT_TEST_MYSQL_URL);
     storage = mysqlStorage(pool);
     host = pool;
     close = () => pool.promise().end();
   } else if (engine === 'sqlite') {
     const { default: Database } = await import('better-sqlite3');
-    const { sqliteStorage } = await import('@1hubengineering/receipt-verifier-storage-sql/sqlite');
+    const { sqliteStorage } = await import('@1hubengineering/storage-sql/sqlite');
     const database = new Database(process.env.RECEIPT_TEST_SQLITE_FILE, { timeout: 20 });
     storage = sqliteStorage(database);
     close = async () => database.close();
@@ -34,19 +33,16 @@ try {
   if (engine.startsWith('drizzle-')) {
     if (baseEngine === 'postgres') {
       const { drizzle } = await import('drizzle-orm/node-postgres');
-      const { drizzlePostgresStorage } =
-        await import('@1hubengineering/receipt-verifier-adapter-drizzle/postgres');
+      const { drizzlePostgresStorage } = await import('@1hubengineering/adapter-drizzle/postgres');
       storage = drizzlePostgresStorage(drizzle({ client: host }));
     } else if (baseEngine === 'mysql') {
       const { drizzle } = await import('drizzle-orm/mysql2');
-      const { drizzleMysqlStorage } =
-        await import('@1hubengineering/receipt-verifier-adapter-drizzle/mysql');
+      const { drizzleMysqlStorage } = await import('@1hubengineering/adapter-drizzle/mysql');
       storage = drizzleMysqlStorage(drizzle({ client: host.promise() }));
     } else {
       const { createClient } = await import('@libsql/client');
       const { drizzle } = await import('drizzle-orm/libsql');
-      const { drizzleSqliteStorage } =
-        await import('@1hubengineering/receipt-verifier-adapter-drizzle/sqlite');
+      const { drizzleSqliteStorage } = await import('@1hubengineering/adapter-drizzle/sqlite');
       const client = createClient({ url: 'file:' + process.env.RECEIPT_TEST_SQLITE_FILE });
       storage = drizzleSqliteStorage(drizzle({ client }));
       const originalClose = close;
@@ -57,7 +53,7 @@ try {
     }
   }
   if (engine.startsWith('prisma-')) {
-    const { prismaStorage } = await import('@1hubengineering/receipt-verifier-adapter-prisma');
+    const { prismaStorage } = await import('@1hubengineering/adapter-prisma');
     const { PrismaClient } = await import(`../generated/${baseEngine}/client.ts`);
     let adapter;
     if (baseEngine === 'postgres') {

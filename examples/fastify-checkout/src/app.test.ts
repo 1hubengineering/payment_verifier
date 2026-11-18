@@ -5,12 +5,12 @@ import {
   createReceiptVerifier,
   parseEtbAmount,
   storageKey,
-} from '@1hubengineering/receipt-verifier';
-import type { ReceiptVerifier, SettlementStatus } from '@1hubengineering/receipt-verifier';
-import type { ProviderResult } from '@1hubengineering/receipt-verifier/providers';
-import { createDurableVerifier } from '@1hubengineering/receipt-verifier/jobs';
-import { sqliteStorage } from '@1hubengineering/receipt-verifier-storage-sql/sqlite';
-import type { SqlStorage } from '@1hubengineering/receipt-verifier-storage-sql';
+} from '@1hubengineering/verifier';
+import type { ReceiptVerifier, SettlementStatus } from '@1hubengineering/verifier';
+import type { ProviderResult } from '@1hubengineering/verifier/providers';
+import { createDurableVerifier } from '@1hubengineering/verifier/jobs';
+import { sqliteStorage } from '@1hubengineering/storage-sql/sqlite';
+import type { SqlStorage } from '@1hubengineering/storage-sql';
 import { createCheckoutApp } from './app.ts';
 import type { CheckoutServices, HostOrder } from './app.ts';
 const time = 1700000000000;

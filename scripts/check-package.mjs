@@ -37,10 +37,7 @@ try {
   );
 
   const manifest = JSON.parse(
-    readFileSync(
-      join(temporary, 'node_modules/@1hubengineering/receipt-verifier/package.json'),
-      'utf8',
-    ),
+    readFileSync(join(temporary, 'node_modules/@1hubengineering/verifier/package.json'), 'utf8'),
   );
   assert.equal(
     Object.keys(manifest.dependencies ?? {}).length,
@@ -58,7 +55,7 @@ try {
     `
 import assert from 'node:assert/strict';
 globalThis.fetch = () => { throw new Error('Unexpected import-time network request'); };
-const core = await import('@1hubengineering/receipt-verifier');
+const core = await import('@1hubengineering/verifier');
 assert.deepEqual(Object.keys(core).sort(), ['StorageConflict', 'VerificationError', 'compareReceipt', 'createPaymentExpectation', 'createReceiptVerifier', 'parseEtbAmount', 'storageKey']);
 const expected = core.createPaymentExpectation({
   tenantId: 'synthetic', paymentId: 'synthetic', provider: 'telebirr', currency: 'ETB',
@@ -76,11 +73,11 @@ assert.equal(core.compareReceipt(expected, {}).verificationStatus, 'UNABLE_TO_VE
 assert.equal(core.parseEtbAmount('0.29'), 29);
 assert.equal(core.parseEtbAmount('500.00'), 50000);
 assert.throws(() => core.parseEtbAmount('0.001'));
-const jobsModule = await import('@1hubengineering/receipt-verifier/jobs');
+const jobsModule = await import('@1hubengineering/verifier/jobs');
 const noWorkStorage = { read: async () => { throw new Error('Import/construction performed I/O'); }, transaction: async () => { throw new Error('Import/construction started a transaction'); } };
 assert.equal(typeof jobsModule.createDurableVerifier({ storage: noWorkStorage, providers: {}, encryptionKey: new Uint8Array(32) }).enqueue, 'function');
 assert.throws(() => jobsModule.createDurableVerifier({ storage: { ...noWorkStorage, callerTransaction: true }, providers: {}, encryptionKey: new Uint8Array(32) }), /CONFIGURATION/);
-const providers = await import('@1hubengineering/receipt-verifier/providers');
+const providers = await import('@1hubengineering/verifier/providers');
 assert.equal(providers.normalizeReceiptLocator('telebirr', 'TEST1234AB').transactionId, 'TEST1234AB');
 const parsed = providers.parseReceiptHtml('telebirr', '<html>unsupported</html>');
 assert.equal(parsed.provenance.kind, 'SAVED_HTML');
@@ -93,10 +90,10 @@ assert.equal(providers.isPublicDestination('127.0.0.1'), false);
   writeFileSync(
     join(temporary, 'consumer.ts'),
     `
-import { parseEtbAmount, type EtbMinorUnits, type VerificationStatus, type SettlementStatus, createPaymentExpectation, compareReceipt, type ReceiptComparison, type ReceiptEvidence }  from '@1hubengineering/receipt-verifier';
-import { parseReceiptHtml, normalizeReceiptLocator, type ProviderResult } from '@1hubengineering/receipt-verifier/providers';
-import { createDurableVerifier, type VerificationJob } from '@1hubengineering/receipt-verifier/jobs';
-import type { VerificationStorage } from '@1hubengineering/receipt-verifier';
+import { parseEtbAmount, type EtbMinorUnits, type VerificationStatus, type SettlementStatus, createPaymentExpectation, compareReceipt, type ReceiptComparison, type ReceiptEvidence }  from '@1hubengineering/verifier';
+import { parseReceiptHtml, normalizeReceiptLocator, type ProviderResult } from '@1hubengineering/verifier/providers';
+import { createDurableVerifier, type VerificationJob } from '@1hubengineering/verifier/jobs';
+import type { VerificationStorage } from '@1hubengineering/verifier';
 declare const storage: VerificationStorage;
 const jobs = createDurableVerifier({storage,providers:{},encryptionKey:new Uint8Array(32)});
 const accepted: Promise<VerificationJob> = jobs.enqueue({tenantId:'synthetic',paymentId:'synthetic',idempotencyKey:'synthetic',receiptLocator:'SYNTH1234'});
@@ -168,7 +165,7 @@ void [amount, verification, settlement, invalidAmount, invalidVerification, resu
     join(temporary, 'optional.mjs'),
     `
 import assert from 'node:assert/strict';
-const { createCbeProvider } = await import('@1hubengineering/receipt-verifier-provider-cbe');
+const { createCbeProvider } = await import('@1hubengineering/provider-cbe');
 assert.deepEqual(await createCbeProvider().retrieve('http://127.0.0.1/'), { kind: 'UNAVAILABLE', code: 'INVALID_LOCATOR' });
 `,
   );
@@ -201,8 +198,8 @@ assert.deepEqual(await createCbeProvider().retrieve('http://127.0.0.1/'), { kind
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import Database from 'better-sqlite3';
-import { sqliteStorage, sqliteTransaction } from '@1hubengineering/receipt-verifier-storage-sql/sqlite';
-import { createPaymentExpectation, createReceiptVerifier, parseEtbAmount } from '@1hubengineering/receipt-verifier';
+import { sqliteStorage, sqliteTransaction } from '@1hubengineering/storage-sql/sqlite';
+import { createPaymentExpectation, createReceiptVerifier, parseEtbAmount } from '@1hubengineering/verifier';
 assert.equal(existsSync(new URL('./node_modules/pg', import.meta.url)), false);
 assert.equal(existsSync(new URL('./node_modules/mysql2', import.meta.url)), false);
 const database = new Database(':memory:');
@@ -223,7 +220,7 @@ assert.equal(first.verificationStatus, 'MATCHED_RECEIPT_ONLY');
 assert.equal(first.settlementStatus, 'UNCONFIRMED');
 assert.deepEqual(await verifier.submit(input), first);
 assert.equal((await verifier.events()).length, 1);
-const { createDurableVerifier } = await import('@1hubengineering/receipt-verifier/jobs');
+const { createDurableVerifier } = await import('@1hubengineering/verifier/jobs');
 await verifier.registerExpectation({...expectation,paymentId:'queued'});
 const jobs = createDurableVerifier({storage,providers:{},encryptionKey:new Uint8Array(32).fill(1),policy:{maxAttempts:1},now:()=>1500});
 await jobs.initialize();
@@ -241,9 +238,9 @@ database.close();
   writeFileSync(
     join(temporary, 'adapter.ts'),
     `
-import type { SqlStorage } from '@1hubengineering/receipt-verifier-storage-sql';
-import { createCbeProvider } from '@1hubengineering/receipt-verifier-provider-cbe';
-import { createReceiptVerifier, type VerificationStorage } from '@1hubengineering/receipt-verifier';
+import type { SqlStorage } from '@1hubengineering/storage-sql';
+import { createCbeProvider } from '@1hubengineering/provider-cbe';
+import { createReceiptVerifier, type VerificationStorage } from '@1hubengineering/verifier';
 const cbe = createCbeProvider();
 declare const sql: SqlStorage;
 const storage: VerificationStorage = sql;
@@ -336,7 +333,7 @@ void verifier;
     );
     const label = engine[0].toUpperCase() + engine.slice(1);
     const imports = `import { drizzle } from 'drizzle-orm/${driver}';
-import { drizzle${label}Storage, drizzle${label}Transaction, receiptVerifierRecords, receiptVerifierSchema } from '@1hubengineering/receipt-verifier-adapter-drizzle/${engine}';
+import { drizzle${label}Storage, drizzle${label}Transaction, receiptVerifierRecords, receiptVerifierSchema } from '@1hubengineering/adapter-drizzle/${engine}';
 ${setup}
 `;
     writeFileSync(
@@ -353,7 +350,7 @@ ${cleanup}
     writeFileSync(
       join(directory, 'consumer.ts'),
       `${imports}
-import type { VerificationStorage } from '@1hubengineering/receipt-verifier';
+import type { VerificationStorage } from '@1hubengineering/verifier';
 import { defineRelations } from 'drizzle-orm';
 const storage: VerificationStorage = drizzle${label}Storage(db);
 const relations = defineRelations({ receiptVerifierRecords, receiptVerifierSchema });
@@ -426,7 +423,7 @@ ${cleanup}
     join(prismaDirectory, 'consumer.mjs'),
     `
 import assert from 'node:assert/strict';
-const adapter = await import('@1hubengineering/receipt-verifier-adapter-prisma');
+const adapter = await import('@1hubengineering/adapter-prisma');
 assert.deepEqual(Object.keys(adapter).sort(), ['prismaStorage', 'prismaTransaction']);
 assert.throws(() => adapter.prismaStorage({}), /Prisma 7.10.1 receipt model/);
 `,

@@ -1,9 +1,10 @@
 ## Installation
 
-Install the core in an existing Node.js backend:
+The current workspace targets the renamed release candidate. Install these
+names after 0.1.1 is available on npm:
 
 ```sh
-npm install @1hubengineering/receipt-verifier@0.1.0
+npm install @1hubengineering/verifier@0.1.1
 ```
 
 The [core SDK quickstart](../packages/receipt-verifier/README.md) shows the imports,
@@ -30,8 +31,8 @@ independently through your host application.
   MySQL, and SQLite with explicit migrations and caller-owned connections.
 - [Drizzle](../packages/receipt-verifier-adapter-drizzle/README.md) and
   [Prisma](../packages/receipt-verifier-adapter-prisma/README.md): tested SQL
-  integrations. The published Drizzle adapter targets `0.45.4`; the development
-  branch uses a v1 release candidate. Check the matrix before installing peers.
+  integrations. The renamed Drizzle adapter targets the tested v1 release
+  candidate; the old 0.1.0 adapter targeted `0.45.4`. Check the matrix before installing peers.
 - [CBE provider](../packages/receipt-verifier-provider-cbe/README.md): optional
   browser-backed retrieval with host confinement and the Chromium sandbox.
   Do not probe live providers to test a checkout.

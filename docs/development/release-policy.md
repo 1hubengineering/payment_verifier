@@ -46,9 +46,8 @@ results, matrix, limits and npm links. Record publication in the roadmap/provena
 and release notes. Failed or partially published versions must be reported as such;
 never overwrite a published version or claim an unapproved staged version is live.
 
-The Drizzle v1 RC source upgrade keeps package versions at 0.1.0 by explicit user
-instruction. Published 0.1.0 artifacts and tag remain the original Drizzle 0.45.4
-release. npm cannot replace an existing package/version, even after unpublishing;
-source publication and registry publication must be reported separately. Do not
-increment versions, overwrite release assets or claim the new source is installed
-from npm 0.1.0. A new registry release needs a separate version decision.
+The archived 0.1.0 artifacts and tag remain the original Drizzle 0.45.4 release.
+The first release under the shorter names is 0.1.1 by user decision, with the
+Drizzle v1 RC peer change called out in the migration guide. Do not overwrite
+release assets or claim that a staged package is available from npm. Confirm
+all replacements before attempting to remove the old npm packages.

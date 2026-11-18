@@ -6,11 +6,11 @@ import {
   compareReceipt,
   createPaymentExpectation,
   parseEtbAmount,
-} from '@1hubengineering/receipt-verifier';
-import { retrieveHtml, RetrievalError } from '@1hubengineering/receipt-verifier/providers';
+} from '@1hubengineering/verifier';
+import { retrieveHtml, RetrievalError } from '@1hubengineering/verifier/providers';
 import { createCbeProvider } from './index.ts';
 
-vi.mock('@1hubengineering/receipt-verifier/providers', async (importOriginal) => ({
+vi.mock('@1hubengineering/verifier/providers', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   retrieveHtml: vi.fn(),
 }));

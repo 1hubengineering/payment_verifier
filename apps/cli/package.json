@@ -8,9 +8,9 @@
     "start": "varlock run -- node src/main.ts"
   },
   "dependencies": {
-    "@1hubengineering/receipt-verifier": "workspace:*",
-    "@1hubengineering/receipt-verifier-provider-cbe": "workspace:*",
-    "@1hubengineering/receipt-verifier-storage-sql": "workspace:*",
+    "@1hubengineering/provider-cbe": "workspace:*",
+    "@1hubengineering/storage-sql": "workspace:*",
+    "@1hubengineering/verifier": "workspace:*",
     "better-sqlite3": "13.2.0"
   },
   "devDependencies": {

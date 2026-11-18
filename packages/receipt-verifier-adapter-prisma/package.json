@@ -1,6 +1,6 @@
 {
-  "name": "@1hubengineering/receipt-verifier-adapter-prisma",
-  "version": "0.1.0",
+  "name": "@1hubengineering/adapter-prisma",
+  "version": "0.1.1",
   "private": false,
   "description": "Prisma 7.10.1 transaction integration for receipt-only verification",
   "homepage": "https://github.com/1hubengineering/payment_verifier/tree/main/packages/receipt-verifier-adapter-prisma",
@@ -37,7 +37,7 @@
     "check:package": "publint --strict"
   },
   "dependencies": {
-    "@1hubengineering/receipt-verifier": "workspace:*"
+    "@1hubengineering/verifier": "workspace:*"
   },
   "devDependencies": {
     "@prisma/client": "7.10.1"

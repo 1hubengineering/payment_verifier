@@ -52,13 +52,23 @@ try {
       if (error.code !== 'ENOENT') throw error;
     });
     if (!saved || digest(saved) !== hash) {
-      const response = await fetch(
+      const sources = [
         `https://registry.npmjs.org/@1hubengineering/${name}/-/${archiveName}`,
-        { signal: AbortSignal.timeout(45_000) },
-      );
-      if (!response.ok) throw new Error(`Cannot download ${archiveName}: HTTP ${response.status}`);
-      const bytes = Buffer.from(await response.arrayBuffer());
-      if (digest(bytes) !== hash) throw new Error(`Release checksum mismatch: ${archiveName}`);
+        `${repository}/releases/download/v${version}/1hubengineering-${archiveName}`,
+      ];
+      let bytes;
+      for (const source of sources) {
+        const response = await fetch(source, { signal: AbortSignal.timeout(30_000) }).catch(
+          () => null,
+        );
+        if (!response?.ok) continue;
+        const candidate = Buffer.from(await response.arrayBuffer());
+        if (digest(candidate) !== hash)
+          throw new Error(`Release checksum mismatch: ${archiveName}`);
+        bytes = candidate;
+        break;
+      }
+      if (!bytes) throw new Error(`Cannot download release archive ${archiveName}`);
       const pending = join(scratch, archiveName);
       await writeFile(pending, bytes);
       await rename(pending, archive);

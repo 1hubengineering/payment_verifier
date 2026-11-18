@@ -8,13 +8,13 @@ import { join } from 'node:path';
 const manifest = JSON.parse(readFileSync(process.argv[2], 'utf8'));
 assert.equal(manifest.eligibleForPublish, true);
 assert.match(manifest.version, /^\d+\.\d+\.\d+$/);
-const names = [
-  'receipt-verifier',
-  'receipt-verifier-storage-sql',
-  'receipt-verifier-adapter-drizzle',
-  'receipt-verifier-adapter-prisma',
-  'receipt-verifier-provider-cbe',
-].map((name) => '@1hubengineering/' + name);
+const legacy = manifest.version === '0.1.0';
+const scoped = (name) =>
+  '@1hubengineering/' +
+  (legacy ? `receipt-verifier${name === 'verifier' ? '' : `-${name}`}` : name);
+const names = ['verifier', 'storage-sql', 'adapter-drizzle', 'adapter-prisma', 'provider-cbe'].map(
+  scoped,
+);
 assert.deepEqual(manifest.packages.map((pkg) => pkg.name).sort(), [...names].sort());
 let drizzlePeer;
 for (const pkg of manifest.packages) {
@@ -26,7 +26,7 @@ for (const pkg of manifest.packages) {
   assert.equal(version.dist.integrity, pkg.integrity);
   assert.ok(document.maintainers.some((owner) => owner.name === '1hubengineering'));
   assert.equal(version._npmUser.name, '1hubengineering');
-  if (pkg.name.endsWith('/receipt-verifier-adapter-drizzle')) {
+  if (pkg.name === scoped('adapter-drizzle')) {
     drizzlePeer = version.peerDependencies?.['drizzle-orm'];
     assert.equal(typeof drizzlePeer, 'string');
     assert.ok(drizzlePeer.length > 0);
@@ -65,12 +65,12 @@ try {
 import assert from 'node:assert/strict';
 globalThis.fetch=()=>{throw new Error('Unexpected provider/import network');};
 import Database from 'better-sqlite3';
-const {createReceiptVerifier,createPaymentExpectation,parseEtbAmount}=await import('@1hubengineering/receipt-verifier');
-const {createDurableVerifier}=await import('@1hubengineering/receipt-verifier/jobs');
-const {sqliteStorage}=await import('@1hubengineering/receipt-verifier-storage-sql/sqlite');
-assert.equal(typeof (await import('@1hubengineering/receipt-verifier-adapter-drizzle/sqlite')).drizzleSqliteStorage,'function');
-assert.equal(typeof (await import('@1hubengineering/receipt-verifier-adapter-prisma')).prismaStorage,'function');
-assert.equal(typeof (await import('@1hubengineering/receipt-verifier-provider-cbe')).createCbeProvider,'function');
+const {createReceiptVerifier,createPaymentExpectation,parseEtbAmount}=await import('${scoped('verifier')}');
+const {createDurableVerifier}=await import('${scoped('verifier')}/jobs');
+const {sqliteStorage}=await import('${scoped('storage-sql')}/sqlite');
+assert.equal(typeof (await import('${scoped('adapter-drizzle')}/sqlite')).drizzleSqliteStorage,'function');
+assert.equal(typeof (await import('${scoped('adapter-prisma')}')).prismaStorage,'function');
+assert.equal(typeof (await import('${scoped('provider-cbe')}')).createCbeProvider,'function');
 const db=new Database(':memory:');
 try{
  const storage=sqliteStorage(db);await storage.migrate();

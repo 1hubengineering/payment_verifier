@@ -1,9 +1,3 @@
 [mcp_servers.drizzle]
 command = "pnpm"
-args = [
-  "--filter",
-  "@1hubengineering/receipt-verifier-adapter-drizzle",
-  "exec",
-  "drizzle-kit",
-  "mcp",
-]
+args = ["--filter", "@1hubengineering/adapter-drizzle", "exec", "drizzle-kit", "mcp"]

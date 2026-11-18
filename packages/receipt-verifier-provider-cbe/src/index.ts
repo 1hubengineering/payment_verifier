@@ -4,12 +4,12 @@ import {
   parseReceiptHtml,
   retrieveHtml,
   RetrievalError,
-} from '@1hubengineering/receipt-verifier/providers';
+} from '@1hubengineering/verifier/providers';
 import type {
   ProviderResult,
   RetrievalOptions,
   ReceiptLocator,
-} from '@1hubengineering/receipt-verifier/providers';
+} from '@1hubengineering/verifier/providers';
 import { renderCbeHtml } from './render.ts';
 
 export interface CbeProvider {

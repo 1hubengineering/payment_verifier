@@ -28,7 +28,7 @@ jobs:
           node-version: ${{ matrix.node }}
           run-install: false
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @1hubengineering/receipt-verifier-provider-cbe exec playwright install --with-deps chromium
+      - run: pnpm --filter @1hubengineering/provider-cbe exec playwright install --with-deps chromium
       - name: Allow namespaces for pinned Chromium executables
         run: |
           python3 - <<'PY'

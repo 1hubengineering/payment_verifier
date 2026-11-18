@@ -9,10 +9,10 @@
     "generate": "node ../../scripts/generate-prisma.mjs"
   },
   "devDependencies": {
-    "@1hubengineering/receipt-verifier": "workspace:*",
-    "@1hubengineering/receipt-verifier-adapter-drizzle": "workspace:*",
-    "@1hubengineering/receipt-verifier-adapter-prisma": "workspace:*",
-    "@1hubengineering/receipt-verifier-storage-sql": "workspace:*",
+    "@1hubengineering/adapter-drizzle": "workspace:*",
+    "@1hubengineering/adapter-prisma": "workspace:*",
+    "@1hubengineering/storage-sql": "workspace:*",
+    "@1hubengineering/verifier": "workspace:*",
     "@libsql/client": "0.17.4",
     "@prisma/adapter-better-sqlite3": "7.10.1",
     "@prisma/adapter-mariadb": "7.10.1",

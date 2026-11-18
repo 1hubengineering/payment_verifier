@@ -7,7 +7,7 @@ initialize explicitly before admission or worker execution. Every worker must us
 the same policy and 32-byte secret; initialization refuses mismatches.
 
 ```ts
-import { createDurableVerifier } from '@1hubengineering/receipt-verifier/jobs';
+import { createDurableVerifier } from '@1hubengineering/verifier/jobs';
 
 const jobs = createDurableVerifier({
   storage, // an unscoped configured adapter; host retains its connections

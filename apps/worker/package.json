@@ -8,8 +8,8 @@
     "check:env": "varlock load"
   },
   "dependencies": {
-    "@1hubengineering/receipt-verifier": "workspace:*",
-    "@1hubengineering/receipt-verifier-cli": "workspace:*"
+    "@1hubengineering/receipt-verifier-cli": "workspace:*",
+    "@1hubengineering/verifier": "workspace:*"
   },
   "devDependencies": {
     "varlock": "1.25.0"

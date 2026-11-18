@@ -19,7 +19,7 @@
     "build:site": "pnpm docs:prepare && vp run @1hubengineering/receipt-verifier-checkout-web#build",
     "docs:prepare": "node scripts/prepare-docs.mjs",
     "docs:smoke": "node scripts/check-docs-mcp.mjs",
-    "setup:browsers": "vp run @1hubengineering/receipt-verifier-provider-cbe#setup:browsers",
+    "setup:browsers": "vp run @1hubengineering/provider-cbe#setup:browsers",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
     "generate": "vp run @1hubengineering/receipt-verifier-adapter-contract#generate",
@@ -29,7 +29,7 @@
     "checkout:web": "pnpm docs:prepare && vp run @1hubengineering/receipt-verifier-checkout-web#dev",
     "release:prepare": "node scripts/prepare-release.mjs",
     "release:check": "node scripts/check-published.mjs",
-    "check:drizzle": "vp run @1hubengineering/receipt-verifier-adapter-drizzle#check:kit"
+    "check:drizzle": "vp run @1hubengineering/adapter-drizzle#check:kit"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "2.4.0",

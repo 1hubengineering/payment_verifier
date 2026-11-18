@@ -1,6 +1,6 @@
 # Direct SQL receipt storage
 
-Version 0.1.0. The shared contract suite passes on PostgreSQL 18.7
+Version 0.1.1. The shared contract suite passes on PostgreSQL 18.7
 with pg 8.23.1, MySQL 8.4.13 with mysql2 3.24.6, and SQLite 3.54.1 with
 better-sqlite3 13.2.0. Kysely 0.29.9 is an internal query/transaction boundary.
 Other versions, platforms and ORM clients are not implied by these results.
@@ -10,9 +10,9 @@ versioned; the core has no driver dependencies. Import the selected subpath:
 
 ```ts
 import { Pool } from 'pg';
-import { postgresStorage } from '@1hubengineering/receipt-verifier-storage-sql/postgres';
-import { createReceiptVerifier } from '@1hubengineering/receipt-verifier';
-import { retrieveTelebirr } from '@1hubengineering/receipt-verifier/providers';
+import { postgresStorage } from '@1hubengineering/storage-sql/postgres';
+import { createReceiptVerifier } from '@1hubengineering/verifier';
+import { retrieveTelebirr } from '@1hubengineering/verifier/providers';
 
 const pool = new Pool({ connectionString: trustedDatabaseUrl }); // host configuration
 const storage = postgresStorage(pool);
@@ -58,7 +58,7 @@ Prepare before opening the host transaction. Then bind the exact transaction
 client and complete using the opaque in-process preparation token:
 
 ```ts
-import { postgresTransaction } from '@1hubengineering/receipt-verifier-storage-sql/postgres';
+import { postgresTransaction } from '@1hubengineering/storage-sql/postgres';
 const prepared = await verifier.prepare(authorizedSubmission);
 const client = await pool.connect();
 try {

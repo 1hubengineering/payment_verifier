@@ -1,6 +1,6 @@
 {
-  "name": "@1hubengineering/receipt-verifier-storage-sql",
-  "version": "0.1.0",
+  "name": "@1hubengineering/storage-sql",
+  "version": "0.1.1",
   "private": false,
   "description": "Atomic receipt verification storage for selected SQL clients",
   "homepage": "https://github.com/1hubengineering/payment_verifier/tree/main/packages/receipt-verifier-storage-sql",
@@ -46,7 +46,7 @@
     "check:package": "publint --strict"
   },
   "dependencies": {
-    "@1hubengineering/receipt-verifier": "workspace:*",
+    "@1hubengineering/verifier": "workspace:*",
     "kysely": "0.29.9"
   },
   "devDependencies": {

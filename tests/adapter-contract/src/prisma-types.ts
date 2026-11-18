@@ -1,8 +1,8 @@
 import type { PrismaClient as PostgresClient } from '../generated/postgres/client.ts';
 import type { PrismaClient as MysqlClient } from '../generated/mysql/client.ts';
 import type { PrismaClient as SqliteClient } from '../generated/sqlite/client.ts';
-import { prismaStorage, prismaTransaction } from '@1hubengineering/receipt-verifier-adapter-prisma';
-import type { VerificationStorage } from '@1hubengineering/receipt-verifier';
+import { prismaStorage, prismaTransaction } from '@1hubengineering/adapter-prisma';
+import type { VerificationStorage } from '@1hubengineering/verifier';
 
 declare const postgres: PostgresClient;
 declare const mysql: MysqlClient;

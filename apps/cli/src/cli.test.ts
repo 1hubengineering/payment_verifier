@@ -7,13 +7,13 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vite-plus/test';
-import { retrieveTelebirr } from '@1hubengineering/receipt-verifier/providers';
+import { retrieveTelebirr } from '@1hubengineering/verifier/providers';
 import { runCli } from './cli.ts';
 import { openOperatorRuntime } from './runtime.ts';
 import type { OperatorConfiguration } from './runtime.ts';
 import { runWorker } from '../../worker/src/loop.ts';
 
-vi.mock('@1hubengineering/receipt-verifier/providers', async (original) => ({
+vi.mock('@1hubengineering/verifier/providers', async (original) => ({
   ...(await original<Record<string, unknown>>()),
   retrieveTelebirr: vi.fn(() => {
     throw new Error('Unexpected provider traffic');

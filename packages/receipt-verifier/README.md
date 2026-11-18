@@ -1,6 +1,6 @@
-# @1hubengineering/receipt-verifier
+# @1hubengineering/verifier
 
-Version 0.1.0. Exact ETB parsing, trusted expectation snapshots,
+Version 0.1.1. Exact ETB parsing, trusted expectation snapshots,
 pure receipt comparison, provider evidence and an atomic verification workflow are implemented.
 Storage is configured through separately tested adapters.
 
@@ -9,7 +9,7 @@ import {
   parseEtbAmount,
   createPaymentExpectation,
   compareReceipt,
-} from '@1hubengineering/receipt-verifier';
+} from '@1hubengineering/verifier';
 
 // Load these values from authorized host records, never receipt submissions.
 const expectation = createPaymentExpectation({
@@ -77,7 +77,7 @@ contract on PostgreSQL, MySQL and SQLite; see the adapters for exact versions.
 
 ## Provider evidence subpath
 
-`@1hubengineering/receipt-verifier/providers` exports `parseReceiptHtml`,
+`@1hubengineering/verifier/providers` exports `parseReceiptHtml`,
 `normalizeReceiptLocator`, and `retrieveTelebirr`. The root import loads no transport or browser code. Parsing saved HTML returns `SAVED_HTML` provenance and cannot prove
 authenticity. `retrieveTelebirr` returns `EVIDENCE` with `OFFICIAL_HTTPS` provenance
 (URL, time, original HTML SHA-256, parser version), or `UNAVAILABLE` with a generic

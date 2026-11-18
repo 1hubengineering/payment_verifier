@@ -23,6 +23,10 @@ your application, choose [direct SQL, Drizzle, or Prisma](https://1hubengineerin
 The published Drizzle adapter requires ORM `0.45.4`; the source tree's v1 RC changes
 are not part of npm `0.1.0`.
 
+The [0.1.1 package migration](docs/development/npm-name-assessment.md#migration)
+lists the shorter names and the Drizzle peer change. Wait for confirmed npm
+publication before switching dependencies.
+
 ## Agent tools
 
 The [agent setup guide](docs/0.1.0/agents.md) covers installation of the Payment

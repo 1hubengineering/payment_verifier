@@ -9,23 +9,14 @@ import { createPool } from 'mysql2';
 import type { PoolConnection, Pool as MysqlPool } from 'mysql2';
 import Database from 'better-sqlite3';
 import { expect } from 'vite-plus/test';
-import {
-  postgresStorage,
-  postgresTransaction,
-} from '@1hubengineering/receipt-verifier-storage-sql/postgres';
-import {
-  mysqlStorage,
-  mysqlTransaction,
-} from '@1hubengineering/receipt-verifier-storage-sql/mysql';
-import {
-  sqliteStorage,
-  sqliteTransaction,
-} from '@1hubengineering/receipt-verifier-storage-sql/sqlite';
+import { postgresStorage, postgresTransaction } from '@1hubengineering/storage-sql/postgres';
+import { mysqlStorage, mysqlTransaction } from '@1hubengineering/storage-sql/mysql';
+import { sqliteStorage, sqliteTransaction } from '@1hubengineering/storage-sql/sqlite';
 import type {
   VerificationStorage,
   VerificationSubmission,
   VerificationResult,
-} from '@1hubengineering/receipt-verifier';
+} from '@1hubengineering/verifier';
 import { ENV } from '../env.ts';
 import type { AdapterHarness } from './suite.ts';
 

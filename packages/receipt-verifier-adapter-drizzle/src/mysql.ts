@@ -8,7 +8,7 @@ import { eq, like, asc, is } from 'drizzle-orm';
 import type { AnyRelations } from 'drizzle-orm/relations';
 import { mysqlTable, varchar, text, int } from 'drizzle-orm/mysql-core';
 import type { MySql2Database } from 'drizzle-orm/mysql2';
-import type { RecordTransaction, VerificationStorage } from '@1hubengineering/receipt-verifier';
+import type { RecordTransaction, VerificationStorage } from '@1hubengineering/verifier';
 import {
   drizzleStore,
   StorageDataError,

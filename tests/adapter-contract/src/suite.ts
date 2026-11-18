@@ -10,17 +10,13 @@ import {
   it,
   vi,
 } from 'vite-plus/test';
-import {
-  createReceiptVerifier,
-  parseEtbAmount,
-  storageKey,
-} from '@1hubengineering/receipt-verifier';
+import { createReceiptVerifier, parseEtbAmount, storageKey } from '@1hubengineering/verifier';
 import type {
   VerificationStorage,
   VerificationSubmission,
   VerificationResult,
-} from '@1hubengineering/receipt-verifier';
-import type { ProviderResult } from '@1hubengineering/receipt-verifier/providers';
+} from '@1hubengineering/verifier';
+import type { ProviderResult } from '@1hubengineering/verifier/providers';
 
 export interface AdapterHarness {
   storage: VerificationStorage;

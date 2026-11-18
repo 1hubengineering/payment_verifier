@@ -1,6 +1,6 @@
 {
-  "name": "@1hubengineering/receipt-verifier-adapter-drizzle",
-  "version": "0.1.0",
+  "name": "@1hubengineering/adapter-drizzle",
+  "version": "0.1.1",
   "private": false,
   "description": "Versioned Drizzle storage integration for receipt-only verification",
   "homepage": "https://github.com/1hubengineering/payment_verifier/tree/main/packages/receipt-verifier-adapter-drizzle",
@@ -44,7 +44,7 @@
     "check:kit": "node ../../scripts/check-drizzle-kit.mjs"
   },
   "dependencies": {
-    "@1hubengineering/receipt-verifier": "workspace:*"
+    "@1hubengineering/verifier": "workspace:*"
   },
   "devDependencies": {
     "@libsql/client": "0.17.4",
