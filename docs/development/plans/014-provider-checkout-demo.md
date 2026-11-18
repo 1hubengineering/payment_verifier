@@ -41,5 +41,8 @@ keeps those fields missing. The simulated positive CBE example includes a
 synthetic date; otherwise the SMS cannot match on its own. Neither the mock
 match nor a duplicate result confirms settlement or authorizes fulfillment.
 
-The static demo is ready for GitHub Pages. It does not enable live payments,
-receipt-provider calls, or an npm release.
+The [Pages deployment](https://github.com/1hubengineering/payment_verifier/actions/runs/44416752469)
+published the [checkout demo](https://1hubengineering.github.io/payment_verifier/demo/).
+Live Chromium checks at 375px and 1440px covered both providers, all evidence
+tabs, clipboard, retries, wrong-provider URLs and duplicate handling. The public
+demo does not enable live payments, receipt-provider calls, or an npm release.
