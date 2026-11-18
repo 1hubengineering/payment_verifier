@@ -112,6 +112,37 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
       await v.acknowledgeEvent(events[0]!.key);
       expect(await v.events()).toHaveLength(0);
     });
+    it('persists only bounded normalized evidence and never plugin extras or nested invalid values', async () => {
+      const v = verifier();
+      await v.registerExpectation(expectation());
+      const first = providerResult('https://transactioninfo.ethiotelecom.et/receipt/SYNTH1234');
+      if (first.kind !== 'EVIDENCE') throw new Error('Missing synthetic evidence');
+      Object.assign(first.evidence, {
+        rawHtml: 'synthetic-private-raw-extra',
+        receiptUrl: 'synthetic-private-url-extra',
+        unknown: { data: 'synthetic-private-extra' },
+      });
+      provider.retrieve.mockResolvedValueOnce(first);
+      expect((await v.submit(submission())).verificationStatus).toBe('MATCHED_RECEIPT_ONLY');
+      const saved = await harness.storage.read(storageKey('attempt', 'tenant-a', 'key-a'));
+      expect(JSON.stringify(saved)).not.toContain('synthetic-private');
+      await v.registerExpectation(expectation('tenant-a', 'payment-b'));
+      const second = providerResult('https://transactioninfo.ethiotelecom.et/receipt/OTHER1234');
+      if (second.kind !== 'EVIDENCE') throw new Error('Missing synthetic evidence');
+      Object.assign(second.evidence, {
+        recipientName: { rawHtml: 'synthetic-private-nested' },
+        transactionAt: { raw: 'synthetic-private-timestamp' },
+      });
+      provider.retrieve.mockResolvedValueOnce(second);
+      const result = await v.submit(submission('tenant-a', 'payment-b', 'key-b', 'OTHER1234'));
+      expect(result).toMatchObject({
+        verificationStatus: 'UNABLE_TO_VERIFY',
+        checks: { recipientName: 'INVALID', transactionAt: 'INVALID' },
+      });
+      const invalid = await harness.storage.read(storageKey('attempt', 'tenant-a', 'key-b'));
+      expect(invalid).toMatchObject({ evidence: { recipientName: null, transactionAt: null } });
+      expect(JSON.stringify(invalid)).not.toContain('synthetic-private');
+    });
     it('replays identical concurrent submissions with one claim and event', async () => {
       const v = verifier();
       await v.registerExpectation(expectation());

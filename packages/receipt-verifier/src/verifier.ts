@@ -1,6 +1,11 @@
 import { createHash } from 'node:crypto';
 import { compareReceipt, createPaymentExpectation } from './comparison.ts';
-import type { PaymentExpectation, ReceiptComparison } from './comparison.ts';
+import type {
+  PaymentExpectation,
+  ReceiptComparison,
+  EvidenceField,
+  ReceiptEvidence,
+} from './comparison.ts';
 import type { ProviderId } from './types.ts';
 import type { RecordTransaction, StoredRecord, VerificationStorage } from './storage.ts';
 import { normalizeReceiptLocator } from './providers/locator.ts';
@@ -162,6 +167,50 @@ function attempt(value: unknown, tenantId: string, idempotencyKey: string): Atte
 }
 
 /** Providers are trusted host configuration. Public submissions supply only a locator and IDs. */
+/** Persist known bounded primitives only, even when a host plugin returns extra/raw fields. */
+function storedEvidence(source: ReceiptEvidence): Record<string, unknown> {
+  const input = object(source);
+  const stringFields = [
+    'currency',
+    'transactionId',
+    'recipientName',
+    'recipientAccountLast4',
+    'reference',
+    'paymentType',
+  ] as const;
+  const fields: EvidenceField[] = [
+    'provider',
+    'status',
+    'amountMinor',
+    'transactionAt',
+    ...stringFields,
+  ];
+  const evidence: Record<string, unknown> = {
+    provider: input.provider === 'telebirr' || input.provider === 'cbe' ? input.provider : null,
+    status: ['SUCCESSFUL', 'PENDING', 'FAILED', 'REVERSED', 'CANCELLED'].includes(
+      input.status as string,
+    )
+      ? input.status
+      : null,
+    ambiguousFields: Array.isArray(input.ambiguousFields)
+      ? [
+          ...new Set(
+            input.ambiguousFields.filter((value) => fields.includes(value as EvidenceField)),
+          ),
+        ]
+      : [],
+  };
+  for (const field of stringFields) {
+    const value = input[field];
+    evidence[field] = typeof value === 'string' && value.length <= 256 ? value : null;
+  }
+  for (const field of ['amountMinor', 'transactionAt']) {
+    const value = input[field];
+    evidence[field] = Number.isSafeInteger(value) && (value as number) >= 0 ? value : null;
+  }
+  return evidence;
+}
+
 export function createReceiptVerifier(config: {
   readonly storage: VerificationStorage;
   readonly providers: Readonly<Partial<Record<ProviderId, ReceiptProvider>>>;
@@ -319,7 +368,7 @@ export function createReceiptVerifier(config: {
         }
         const result: VerificationResult = { ...base, verificationStatus, checks };
         // Store normalized fields and a source hash, never raw HTML or the receipt URL.
-        const evidence = fetched?.kind === 'EVIDENCE' ? fetched.evidence : null;
+        const evidence = fetched?.kind === 'EVIDENCE' ? storedEvidence(fetched.evidence) : null;
         const provenance =
           fetched?.kind === 'EVIDENCE'
             ? {

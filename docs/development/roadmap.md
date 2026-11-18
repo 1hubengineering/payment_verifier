@@ -12,7 +12,7 @@ implementation; a target is not a supported integration until its gate passes.
 | 4. Drizzle and versioned Prisma               | Implemented; nine-cell matrix passed         | Explicit client/engine versions; all advertised engine cells pass the shared contract suite and caller transaction tests                                                             |
 | 5. CLI and optional durable worker            | Implemented; local gate passed               | Varlock at startup; durable acceptance, leases/retries, bounds, restart and crash recovery; no lost acknowledged work                                                                |
 | 6. Fastify checkout example                   | Implemented; local gate passed               | Host auth/order ownership; trusted expectation snapshot; structured outcomes; no fulfillment from receipt alone                                                                      |
-| 7. Release readiness                          | Browser process gate in progress             | All three engines and advertised ORM paths proven, migration docs, packaging, provenance/licensing, release policy                                                                   |
+| 7. Release readiness                          | Final private source gate in progress        | All three engines and advertised ORM paths proven, migration docs, packaging, provenance/licensing, release policy                                                                   |
 
 PostgreSQL, MySQL, and SQLite remain first-release requirements. Delivery can be
 incremental. Direct PostgreSQL 18.7/pg 8.23.1, MySQL 8.4.13/mysql2 3.24.6, and
@@ -118,3 +118,9 @@ Release gate reopened during final browser review: library packages remain priva
 while explicit Chromium OS sandbox/environment isolation receives hosted
 acceptance. Local `pnpm verify` passed 237 fast/provider/application cases,
 234 real-engine cases and all 11 frozen cases. Nothing is published.
+
+The sandboxed browser candidate 82514aa passed hosted Node 24/26 CI with native
+seccomp/PID namespace tests. The final evidence privacy regression raises the
+shared matrix to 27 cases per cell (243 total); local full verify passed with
+237 fast/application/provider cases and 11 frozen cases. Its exact-commit hosted
+gate remains pending before eligibility; no registry write has occurred.

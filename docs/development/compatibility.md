@@ -11,9 +11,10 @@ dependencies. All adapters receive host-owned connections and open nothing at im
 | Drizzle 0.45.4                             | 18.7 / pg 8.23.1              | 8.4.13 / mysql2 3.24.6                   | 3.45.1 / @libsql/client 0.17.4                           |
 | Prisma CLI/Client/official adapters 7.10.1 | 18.7 / adapter-pg / pg 8.23.1 | 8.4.13 / adapter-mariadb / mariadb 3.5.4 | 3.53.2 / adapter-better-sqlite3 / better-sqlite3 12.11.1 |
 
-Each of the nine cells runs the same 26 contract cases: immutable expectations,
+Each of the nine cells runs the same 27 contract cases: immutable expectations,
 exact matches, atomic evidence/claim/result/event writes, tenant/idempotency/race
-protection, actual host rollback/commit, independent processes and durable jobs.
+protection, actual host rollback/commit, independent processes, stored-evidence privacy and
+durable jobs.
 Jobs add encrypted input, bounded admission/aliases, persisted retry/circuit state,
 lease fencing, final-write fault rollback, retention and actual SIGKILL recovery.
 Installed npm consumers independently check exports/types and peer isolation.

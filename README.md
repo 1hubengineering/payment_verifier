@@ -4,7 +4,7 @@ A TypeScript workspace for embedding receipt verification into an existing backe
 Core comparison, bounded providers, nine real SQL/ORM integrations, durable jobs,
 operator apps and the checkout example are implemented and tested. Receipt results
 always retain settlement UNCONFIRMED. All five 0.1.0 library candidates remain
-private while the final browser process sandbox/environment gate is verified.
+private until the final exact-commit release gates pass.
 No registry version or release has been published.
 
 ## Develop

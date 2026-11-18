@@ -165,3 +165,27 @@ not an SDK fallback or a production system-wide policy change. Actual hosted
 results must confirm the cause and the renderer seccomp/namespace assertions.
 Sources: https://documentation.ubuntu.com/release-notes/24.04/ and
 https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md.
+
+## Stored evidence privacy boundary
+
+A host plugin could return valid required fields plus rawHtml/receiptUrl extras,
+or a malformed object in a required field. Completion previously persisted the
+whole cloned evidence object despite promising normalized fields only. Select
+known bounded string/integer fields and valid ambiguity names for storage; retain
+the original comparison diagnostics (invalid remains INVALID/UNABLE_TO_VERIFY).
+Add a regression on every real engine/ORM cell: valid extras can never enter the
+attempt record, nested malformed values become null, and neither case changes
+settlement authority. Providers remain trusted for authenticity; this enforces
+the SDK's storage privacy shape without a new dependency or public API.
+
+The evidence privacy regression passed on all nine real cells. The contract now
+has 27 cases per cell (243 total); comparison diagnostics and receipt-only
+settlement semantics stay unchanged. Full verify/hosted acceptance follows this
+small privacy fix before any eligibility or registry operation.
+
+Hosted 82514aa passed both Node 24/26 gates with the executable-scoped AppArmor
+setup and mandatory actual renderer seccomp/PID namespace assertions. Local full
+verification of the final evidence privacy fix passed 237 fast/application/provider
+cases, 243 nine-cell contract cases, 11 frozen cases and all installed consumers.
+The privacy commit's hosted checks and fresh artifacts remain the final private
+source gates; no unsafe browser fallback or global namespace disable was used.

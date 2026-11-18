@@ -1,6 +1,6 @@
 # Drizzle receipt storage
 
-Version 0.1.0. Drizzle **0.45.4** passes the same 26-case contract
+Version 0.1.0. Drizzle **0.45.4** passes the same 27-case contract
 suite on these exact integrations:
 
 | Adapter subpath | Host client                       | Engine                |

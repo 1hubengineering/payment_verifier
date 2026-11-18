@@ -77,7 +77,7 @@ idempotency, shared-store global receipt claims and atomic evidence/results/outb
 All outcomes retain settlement `UNCONFIRMED`. The host owns authentication, order
 permissions, retention, settlement, fulfillment and idempotent event consumers.
 
-Validation includes the same 26 cases as direct SQL and Drizzle: actual caller
+Validation includes the same 27 cases as direct SQL and Drizzle: actual caller
 transactions, mid-write rollback, independent clients and synchronized processes
 racing for claims, response-loss replay after restart, tenant isolation and
 cancellation/expiry. Provider evidence is deterministic synthetic data; no live

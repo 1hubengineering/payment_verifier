@@ -136,3 +136,8 @@ Every advertised storage cell runs the shared durable-job and SIGKILL recovery
 cases. See [durable job configuration](https://github.com/1hubengineering/verify_payment_v1/blob/main/docs/development/durable-jobs.md) for
 policy bounds, key handling, ownership and operational requirements. All outcomes
 retain settlement UNCONFIRMED; jobs never authorize fulfillment.
+
+Persisted attempt evidence contains only allowlisted bounded primitive fields and
+valid ambiguity names. Extra/raw plugin properties and nested invalid values are
+never stored. Comparison checks still report malformed evidence as INVALID and
+unverified; storage sanitization does not turn missing data into a match.
