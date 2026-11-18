@@ -18,7 +18,7 @@ that correction. The [compatibility matrix](compatibility.md) gives exact versio
 mandatory browser sandbox/environment isolation, bounded stored evidence, source/
 license/identity review and clean rebuilt artifacts. All ten frozen originals
 still match byte-for-byte; production audit reported zero advisories. The five
-0.1.0 npm libraries and [GitHub release](https://github.com/1hubengineering/verify_payment_v1/releases/tag/v0.1.0)
+0.1.0 npm libraries and [GitHub release](https://github.com/1hubengineering/payment_verifier/releases/tag/v0.1.0)
 are public as 1hubengineering. Registry publisher/maintainer, SHA-256/SHA-512 and
 a fresh installed receipt/idempotency/durable-job consumer passed. The tag points
 to c4464f0 and all seven public release downloads match reviewed files. Root/apps/

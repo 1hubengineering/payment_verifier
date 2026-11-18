@@ -38,7 +38,7 @@ for (let index = 0; index < folders.length; index++) {
   assert.equal(manifest.license, 'ISC');
   assert.equal(
     manifest.repository.url,
-    'git+https://github.com/1hubengineering/verify_payment_v1.git',
+    'git+https://github.com/1hubengineering/payment_verifier.git',
   );
   assert.equal(manifest.repository.directory, `packages/${folder}`);
   assert.equal(manifest.publishConfig.access, 'public');

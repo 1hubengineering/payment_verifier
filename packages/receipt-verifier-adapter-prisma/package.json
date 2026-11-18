@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "private": false,
   "description": "Prisma 7.10.1 transaction integration for receipt-only verification",
-  "homepage": "https://github.com/1hubengineering/verify_payment_v1/tree/main/packages/receipt-verifier-adapter-prisma",
+  "homepage": "https://github.com/1hubengineering/payment_verifier/tree/main/packages/receipt-verifier-adapter-prisma",
   "bugs": {
-    "url": "https://github.com/1hubengineering/verify_payment_v1/issues"
+    "url": "https://github.com/1hubengineering/payment_verifier/issues"
   },
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/1hubengineering/verify_payment_v1.git",
+    "url": "git+https://github.com/1hubengineering/payment_verifier.git",
     "directory": "packages/receipt-verifier-adapter-prisma"
   },
   "files": [

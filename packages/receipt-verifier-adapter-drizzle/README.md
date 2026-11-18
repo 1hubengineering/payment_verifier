@@ -4,7 +4,7 @@ The workspace uses `drizzle-orm@rc` and development-only `drizzle-kit@rc`, both
 resolved to **1.0.0-rc.5** in pnpm-lock.yaml. Its Drizzle paths pass the same
 27-case contract suite on the integrations below. Package versions remain 0.1.0
 at the user's request. This source upgrade is not the immutable npm 0.1.0 release,
-which still requires Drizzle 0.45.4; see the [published source](https://github.com/1hubengineering/verify_payment_v1/tree/v0.1.0/packages/receipt-verifier-adapter-drizzle).
+which still requires Drizzle 0.45.4; see the [published source](https://github.com/1hubengineering/payment_verifier/tree/v0.1.0/packages/receipt-verifier-adapter-drizzle).
 
 | Adapter subpath | Host client                       | Engine                |
 | --------------- | --------------------------------- | --------------------- |

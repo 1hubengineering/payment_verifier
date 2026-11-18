@@ -3,14 +3,14 @@
   "version": "0.1.0",
   "private": false,
   "description": "Optional isolated Chromium execution for CBE receipt evidence",
-  "homepage": "https://github.com/1hubengineering/verify_payment_v1/tree/main/packages/receipt-verifier-provider-cbe",
+  "homepage": "https://github.com/1hubengineering/payment_verifier/tree/main/packages/receipt-verifier-provider-cbe",
   "bugs": {
-    "url": "https://github.com/1hubengineering/verify_payment_v1/issues"
+    "url": "https://github.com/1hubengineering/payment_verifier/issues"
   },
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/1hubengineering/verify_payment_v1.git",
+    "url": "git+https://github.com/1hubengineering/payment_verifier.git",
     "directory": "packages/receipt-verifier-provider-cbe"
   },
   "files": [

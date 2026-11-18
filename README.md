@@ -1,74 +1,52 @@
-# Ethiopian receipt verification library
+# Payment Verifier
 
-A TypeScript workspace for embedding receipt verification into an existing backend.
-Core comparison, bounded providers, nine real SQL/ORM integrations, durable jobs,
-operator apps and the checkout example are implemented and tested. Receipt results
-always retain settlement UNCONFIRMED. All five 0.1.0 libraries are published under
-`@1hubengineering`, with local and hosted Node 24/26 acceptance, registry integrity
-checks and an installed registry consumer passing. Root, operator apps, example
-and tests remain private npm packages; their source is available in this repository.
-See [release v0.1.0](https://github.com/1hubengineering/verify_payment_v1/releases/tag/v0.1.0)
-and [release evidence](docs/development/releases/0.1.0.md).
+Embed Ethiopian payment receipt verification in your TypeScript backend. Compare
+receipt evidence with a trusted order, record claims in a shared store, and keep
+bank settlement and fulfillment under your application's control.
 
-The current source upgrades Drizzle ORM/Kit through their rc tags (locked at
-1.0.0-rc.5). Package versions stay 0.1.0 at the user's request. Published npm
-0.1.0 and tag v0.1.0 remain the earlier Drizzle 0.45.4 release; this source upgrade
-cannot overwrite those registry archives. See [plan 011](docs/development/plans/011-drizzle-v1-upgrade.md).
+**A receipt match does not confirm settlement or authorize delivery.**
+
+[Integration guide](https://1hubengineering.github.io/payment_verifier/) ·
+[Interactive checkout demo](https://1hubengineering.github.io/payment_verifier/demo/) ·
+[Release v0.1.0](https://github.com/1hubengineering/payment_verifier/releases/tag/v0.1.0)
+
+## Install
+
+```sh
+npm install @1hubengineering/receipt-verifier@0.1.0
+```
+
+Start with the [core SDK quickstart](packages/receipt-verifier/README.md) and the
+[integration guide](docs/guide.md). The core has no runtime dependencies or
+implicit configuration. Choose a storage adapter and receipt provider explicitly.
+Five npm packages are published at `0.1.0`; the source tree's Drizzle v1 RC changes
+are not part of that release. Check the [compatibility matrix](docs/development/compatibility.md)
+before selecting a driver or ORM version.
+
+## Examples
+
+- [React checkout](examples/checkout-web/README.md): reusable UI and offline
+  synthetic demo. Try a match, mismatch, or unavailable provider with retry.
+- [Fastify checkout](examples/fastify-checkout/README.md): backend example with
+  host-owned authentication and order lookup, scoped idempotency, and no live
+  providers in the local demo.
+- [Operator CLI](apps/cli/README.md) and [worker](apps/worker/README.md): private
+  runnable packages for controlled verification and durable jobs.
 
 ## Develop
 
-Install the [Vite+ CLI](https://www.viteplus.dev/guide/), then:
+Install [Vite+](https://www.viteplus.dev/guide/) and run from the checkout root:
 
 ```sh
 vp env install
 pnpm install --frozen-lockfile
-pnpm setup:browsers
-pnpm db:up
-pnpm verify
-pnpm db:down
+pnpm checkout:web
 ```
 
-`pnpm setup:browsers` installs Chromium for the optional CBE integration tests.
+Use `/demo/` in the local dev server to try checkout. For the full suite, install
+Chromium with `pnpm setup:browsers`, start the isolated SQL services with
+`pnpm db:up`, run `pnpm verify`, then stop the services with `pnpm db:down`.
+No live bank requests are required.
 
-Node **26.13.1 LTS**, pnpm **12.21.0**, Vite+ **1.7.0**, and TypeScript **7.0.2**
-are pinned. CI also validates Node **24.22.3 LTS**. The existing ISC designation is retained after the user confirmed source ownership;
-see [provenance](docs/development/provenance.md).
-
-| Location                                                                                 | Current responsibility                                                                                 |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `packages/receipt-verifier`                                                              | Exact ETB parsing, immutable expectation snapshots, pure receipt comparison; ESM and declarations      |
-| `packages/receipt-verifier-storage-sql`                                                  | Direct SQL with explicit migrations and caller-owned connections                                       |
-| `packages/receipt-verifier-adapter-drizzle` / `packages/receipt-verifier-adapter-prisma` | Versioned real-engine ORM integrations                                                                 |
-| `apps/cli`                                                                               | Trusted operator commands with app-local Varlock validation                                            |
-| `apps/worker`                                                                            | Optional bounded SQLite worker with durable recovery                                                   |
-| `examples/fastify-checkout`                                                              | Private embedded host-auth/order example; loopback demo has no providers                               |
-| `tests/reference-cli`                                                                    | Frozen 11-test offline reference, including a cross-process SQLite race                                |
-| `scripts/check-package.mjs`                                                              | Pack the library, install with npm in a temporary consumer, validate JavaScript and TypeScript exports |
-| `docs/development`                                                                       | Audit, roadmap, workflow, review criteria, and execution plans                                         |
-
-`pnpm verify` validates application configuration, generates Prisma test clients,
-builds the libraries, checks formatting/lint/types, runs fast/provider and real-engine
-contract tests, preserves the original synthetic baseline, and checks publint plus
-isolated installed packages. No bank requests are required. Chromium uses mocked provider HTML; direct storage
-tests require the isolated PostgreSQL/MySQL Compose services plus local SQLite.
-
-Use the [documentation index](docs/README.md) to find active and archived material.
-The [workspace conventions](docs/development/conventions.md) explain package naming,
-boundaries, supported runtimes, and the sources checked for tooling decisions.
-Start with [init-plan.md](docs/library-plan/init-plan.md), then the
-[audit](docs/development/workspace-audit.md), [workflow](docs/development/workflow.md),
-and [roadmap](docs/development/roadmap.md). Codex reads repository conventions from
-[AGENTS.md](AGENTS.md).
-
-Operator commands: `pnpm cli help` and `pnpm worker --help`. See the
-[CLI](apps/cli/README.md), [worker](apps/worker/README.md), and
-[durable job operations](docs/development/durable-jobs.md). Provider traffic
-defaults disabled and queue commands require an explicit encryption key.
-
-`pnpm checkout` starts the [local Fastify example](examples/fastify-checkout/README.md).
-Receipt verification and host settlement/fulfillment remain separate records and
-authority decisions. The example has no settlement or delivery write endpoint.
-
-Release references: [compatibility](docs/development/compatibility.md),
-[migrations](docs/development/migrations.md), [release policy](docs/development/release-policy.md),
-[changelog](CHANGELOG.md), and [third-party licenses](THIRD_PARTY_NOTICES.md).
+See the [documentation index](docs/README.md), [skills and MCP setup](docs/development/skills-and-mcp.md),
+[development roadmap](docs/development/roadmap.md), and [third-party notices](THIRD_PARTY_NOTICES.md).

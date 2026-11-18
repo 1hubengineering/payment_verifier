@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Try the receipt verification flow with synthetic receipts, without sending money or contacting a bank."
+    />
+    <title>Payment Verifier · Checkout Lab</title>
+    <link rel="stylesheet" href="../src/site.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <nav class="site-shell site-nav" aria-label="Main">
+        <a class="wordmark" href="../">Payment Verifier</a>
+        <div class="nav-links">
+          <a href="../">Docs</a>
+          <a href="./" aria-current="page">Checkout demo</a>
+          <a
+            href="https://github.com/1hubengineering/payment_verifier/tree/main/examples/checkout-web"
+            >Source</a
+          >
+        </div>
+      </nav>
+    </header>
+    <main id="main" class="site-shell" tabindex="-1">
+      <section class="demo-hero">
+        <p class="eyebrow">INTERACTIVE EXAMPLE</p>
+        <h1>Checkout lab</h1>
+        <p>
+          See what a receipt check can tell you. No money moves, no bank is contacted, and nothing
+          is saved.
+        </p>
+      </section>
+      <div id="checkout-root"></div>
+      <noscript
+        >The checkout demo requires JavaScript. The <a href="../">integration guide</a> does
+        not.</noscript
+      >
+    </main>
+    <footer class="site-shell site-footer">
+      Synthetic data only · Do not enter a real receipt reference.
+    </footer>
+    <script type="module" src="../src/main.tsx"></script>
+  </body>
+</html>

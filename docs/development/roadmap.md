@@ -15,18 +15,19 @@ publication. Historical examples are not additional compatibility promises.
 | 6. Fastify checkout             | Complete                             | Host auth/order/admission callbacks, strict locator-only input, scoped status, independent settlement/fulfillment                                      |
 | 7. Release readiness            | Complete; 0.1.0 published            | Five npm versions verified by publisher, both hashes and installed workflow; public GitHub tag/assets match reviewed source                            |
 | 8. Drizzle v1 RC source upgrade | Complete in source; not republished  | ORM/Kit 1.0.0-rc.5 from rc tags; full pnpm verify, all nine engine cells, installed relation-client types and local Kit checks pass; version unchanged |
+| 9. Repository and web checkout  | Implemented; static example          | Reusable React checkout, guide and contributor setup, local mock results, and GitHub Actions Pages publishing; no live backend or npm changes          |
 
 Published 0.1.0 acceptance: **237 fast/application/example/provider cases,
 243 real-engine contract cases (nine cells × 27), and 11 frozen reference cases**,
 plus environment/schema generation, five builds, formatting/lint/strict types,
 publint and isolated installed npm consumers. The release source commit
-[c4464f0](https://github.com/1hubengineering/verify_payment_v1/commit/c4464f0f26db808806d4877fc57b0254ba495c38)
+[c4464f0](https://github.com/1hubengineering/payment_verifier/commit/c4464f0f26db808806d4877fc57b0254ba495c38)
 passed full hosted CI on Node 24.22.3 and 26.13.1:
-[run 44339379792](https://github.com/1hubengineering/verify_payment_v1/actions/runs/44339379792).
+[run 44339379792](https://github.com/1hubengineering/payment_verifier/actions/runs/44339379792).
 Source and all five npm 0.1.0 implementations are public. Registry publisher and
 maintainer checks, SHA-256/SHA-512 integrity and a fresh registry-installed
 receipt/idempotency/durable-job consumer passed. Settlement remains UNCONFIRMED.
-[Release v0.1.0](https://github.com/1hubengineering/verify_payment_v1/releases/tag/v0.1.0)
+[Release v0.1.0](https://github.com/1hubengineering/payment_verifier/releases/tag/v0.1.0)
 was published as 1hubengineering at 2026-11-18 16:22:13 UTC. Its tag points to the
 reviewed source above; anonymous downloads of all seven assets match the reviewed
 files. [Release evidence](releases/0.1.0.md) includes all package links and hashes.
@@ -83,7 +84,8 @@ Implementation plans retain detailed evidence:
 [SQL](plans/004-storage-contract.md), [ORMs](plans/005-orm-adapters.md),
 [parser bounds](plans/006-parser-resource-bounds.md), [jobs](plans/007-durable-jobs.md),
 [operator apps](plans/008-cli-worker.md), [checkout](plans/009-fastify-checkout.md),
-[Drizzle v1 RC upgrade](plans/011-drizzle-v1-upgrade.md).
+[Drizzle v1 RC upgrade](plans/011-drizzle-v1-upgrade.md),
+[repository, Pages, and checkout](plans/012-repository-pages-checkout.md).
 
 The v1 RC source upgrade passed full local pnpm verify with the same 237/243/11
 case counts, plus four Kit local up/check/export checks. All 81 Drizzle cases use

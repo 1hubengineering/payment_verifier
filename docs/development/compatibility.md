@@ -1,7 +1,7 @@
 # Validated compatibility
 
 The matrix below describes the upgraded workspace. Published npm 0.1.0 uses
-Drizzle 0.45.4; its immutable [release matrix](https://github.com/1hubengineering/verify_payment_v1/blob/v0.1.0/docs/development/compatibility.md)
+Drizzle 0.45.4; its immutable [release matrix](https://github.com/1hubengineering/payment_verifier/blob/v0.1.0/docs/development/compatibility.md)
 remains the registry compatibility record. Workspace package versions stay 0.1.0
 at the user's request; the v1 RC source change has not replaced registry artifacts.
 

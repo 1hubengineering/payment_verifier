@@ -1,5 +1,12 @@
 # Documentation
 
+Start with the [integration guide](guide.md) for installation, configuration,
+supported integrations, checkout customization, testing, and deployment.
+Try the [synthetic checkout](https://1hubengineering.github.io/payment_verifier/demo/)
+or review [skills and MCP setup](development/skills-and-mcp.md) for contributor tools.
+
+## Maintainer References
+
 Read the active library documents in this order:
 
 1. [Initialization direction](library-plan/init-plan.md): requested tooling, package boundaries, and compatibility targets.
@@ -12,8 +19,9 @@ Read the active library documents in this order:
 [Durable jobs](development/durable-jobs.md) documents optional queue policy,
 encryption, leases and maintenance ownership.
 
-[Checkout example](../examples/fastify-checkout/README.md) demonstrates host
-auth/order integration while keeping settlement and fulfillment independent.
+The [React checkout](../examples/checkout-web/README.md) shows the browser API.
+The [Fastify checkout](../examples/fastify-checkout/README.md) demonstrates host
+authentication and order lookup while keeping settlement and fulfillment independent.
 
 [Compatibility](development/compatibility.md), [migrations](development/migrations.md),
 [release policy](development/release-policy.md),

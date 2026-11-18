@@ -47,3 +47,8 @@ The upstream repository's Apache-2.0 license is retained alongside those guides
 in packages/receipt-verifier-adapter-drizzle/.agents/skills/drizzle/LICENSE.
 These guides are outside the project's ISC grant and all npm library archives.
 No Drizzle Kit code or dependencies are bundled into the SDK.
+
+The separate static React example includes MIT-licensed shadcn/ui primitives.
+The [upstream notice](examples/checkout-web/public/shadcn-ui-LICENSE.txt) is
+preserved in the example and copied to its build output, alongside the bundled
+dependency licenses. No Shadcnblocks Pro source or assets are included.

@@ -133,7 +133,7 @@ idempotency aliases before acknowledgment. Persisted leases, fenced completion,
 bounded retries/backoff/provider pauses and explicit retention survive process
 restarts. Completion joins the same atomic claim/evidence/result/outbox transaction.
 Every advertised storage cell runs the shared durable-job and SIGKILL recovery
-cases. See [durable job configuration](https://github.com/1hubengineering/verify_payment_v1/blob/main/docs/development/durable-jobs.md) for
+cases. See [durable job configuration](https://github.com/1hubengineering/payment_verifier/blob/main/docs/development/durable-jobs.md) for
 policy bounds, key handling, ownership and operational requirements. All outcomes
 retain settlement UNCONFIRMED; jobs never authorize fulfillment.
 

@@ -26,7 +26,8 @@ After the user's token refresh, GitHub GET /user/emails confirmed the primary
 uses that name/email and preserves the unrelated global Git settings. These checks
 establish commit attribution, not signed-commit status or npm rights.
 
-The repository was created private as `1hubengineering/verify_payment_v1`. The
+The repository was created private as `1hubengineering/verify_payment_v1` and
+renamed in place to `1hubengineering/payment_verifier`. The
 user explicitly authorized repository/package publishing and releases in the goal.
 Final private source d60786a passed both hosted minimum runtimes, including native
 browser sandbox/environment isolation, stored-evidence privacy and the nine-cell
@@ -35,7 +36,7 @@ Root/apps/examples/tests remain private npm packages. Final eligible source
 c4464f0 passed both runtimes in run 44339379792 before public distribution.
 
 The repository and five npm 0.1.0 implementations are now public. The
-[GitHub release](https://github.com/1hubengineering/verify_payment_v1/releases/tag/v0.1.0)
+[GitHub release](https://github.com/1hubengineering/payment_verifier/releases/tag/v0.1.0)
 was published by 1hubengineering on 18 November 2026 at 16:22:13 UTC; tag v0.1.0
 points to c4464f0f26db808806d4877fc57b0254ba495c38. All seven public release assets
 match the reviewed files when downloaded anonymously. Later documentation commits

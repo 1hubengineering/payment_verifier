@@ -1,0 +1,32 @@
+{
+  "name": "@1hubengineering/receipt-verifier-checkout-web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vp dev",
+    "build": "vp build",
+    "preview": "vp preview",
+    "test": "vp test run"
+  },
+  "dependencies": {
+    "@radix-ui/react-label": "2.1.17",
+    "@radix-ui/react-separator": "1.2.0",
+    "@radix-ui/react-slot": "1.5.0",
+    "class-variance-authority": "0.7.1",
+    "cn": "0.5.2",
+    "lucide-react": "1.74.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.5",
+    "@testing-library/react": "16.3.3",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "jsdom": "31.0.1",
+    "marked": "18.2.1",
+    "postcss": "8.5.33",
+    "tailwindcss": "4.3.5"
+  }
+}

@@ -13,13 +13,13 @@ Final private source commit d60786a passed full local and hosted Node 24.22.3 /
 26.13.1 acceptance: 237 fast/application/example/provider cases, 243 shared cases
 on nine real engine/ORM cells, all 11 frozen cases, schema/config generation,
 five builds, formatting/lint/strict types, publint and isolated npm consumers.
-Hosted [run 44337692743](https://github.com/1hubengineering/verify_payment_v1/actions/runs/44337692743)
+Hosted [run 44337692743](https://github.com/1hubengineering/payment_verifier/actions/runs/44337692743)
 is green on both runtimes. Earlier source commits and discoveries remain in their
 slice plans/Git history. Final eligible source c4464f0 passed the same full local checks and hosted
-[run 44339379792](https://github.com/1hubengineering/verify_payment_v1/actions/runs/44339379792)
+[run 44339379792](https://github.com/1hubengineering/payment_verifier/actions/runs/44339379792)
 on both runtimes. All five 0.1.0 registry versions are now public. Publisher,
 maintainer, SHA-256/SHA-512 and installed registry receipt/job checks passed.
-[Release v0.1.0](https://github.com/1hubengineering/verify_payment_v1/releases/tag/v0.1.0)
+[Release v0.1.0](https://github.com/1hubengineering/payment_verifier/releases/tag/v0.1.0)
 was published as 1hubengineering at 2026-11-18 16:22:13 UTC. Its tag points to
 c4464f0 and all seven public assets match the reviewed files.
 

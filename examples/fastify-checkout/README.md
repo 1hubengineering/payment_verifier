@@ -5,6 +5,9 @@ host-owned authentication, orders, admission and independent settlement state.
 It opens no connection or server and does not load environment configuration.
 The runnable local demo owns its separate Varlock schema and SQLite handle.
 
+For a browser UI, see the [React checkout](../checkout-web/README.md). Its public
+demo uses local mocks and is not connected to this server.
+
 ```sh
 pnpm checkout
 ```
