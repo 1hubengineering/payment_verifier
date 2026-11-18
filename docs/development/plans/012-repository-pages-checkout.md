@@ -31,7 +31,7 @@ example separate from the Fastify host example and all published libraries. Keep
       shadcn/ui primitives. Configure Pages to upload only the static build.
 - [x] Exercise receipt states, retry/deduplication, accessible form controls, and
       the checkout subpath. Run `pnpm verify` before committing.
-- [ ] Commit and push as `1hubengineering`, confirm Pages works, and set the website.
+- [x] Commit and push as `1hubengineering`, confirm Pages works, and set the website.
 
 ## Validation
 
@@ -57,6 +57,14 @@ cases, and 11 frozen reference cases, plus package and static site builds.
 Sandboxed Chromium exercised the built project subpath at 320px and 1280px:
 keyboard validation/focus, radio selection, pending, unavailable/retry and
 match without settlement, with no external requests or horizontal overflow.
-The local registry credential was absent from the built files. Drizzle and
-shadcn MCP each initialized and listed seven tools. Public deployment still
-requires a successful GitHub Actions run.
+The local registry credential was absent from the staged patch and static files.
+Drizzle and shadcn MCP each initialized and listed seven tools.
+
+GitHub attributed the [implementation commit](https://github.com/1hubengineering/payment_verifier/commit/9f4a43c4a717017d41a44f8b8d784997345ecd3e)
+to `1hubengineering`. [Pages run 44378376392](https://github.com/1hubengineering/payment_verifier/actions/runs/44378376392)
+built and deployed the [docs](https://1hubengineering.github.io/payment_verifier/)
+and [demo](https://1hubengineering.github.io/payment_verifier/demo/). GitHub's
+website field points to the docs. A public Chromium smoke test verified the
+guide, contributor setup, and the demo's mismatch and unavailable/retry/match
+flows with no external requests. `v0.1.0` still points to the original release
+commit; no npm artifacts were republished.

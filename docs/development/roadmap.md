@@ -15,7 +15,7 @@ publication. Historical examples are not additional compatibility promises.
 | 6. Fastify checkout             | Complete                             | Host auth/order/admission callbacks, strict locator-only input, scoped status, independent settlement/fulfillment                                      |
 | 7. Release readiness            | Complete; 0.1.0 published            | Five npm versions verified by publisher, both hashes and installed workflow; public GitHub tag/assets match reviewed source                            |
 | 8. Drizzle v1 RC source upgrade | Complete in source; not republished  | ORM/Kit 1.0.0-rc.5 from rc tags; full pnpm verify, all nine engine cells, installed relation-client types and local Kit checks pass; version unchanged |
-| 9. Repository and web checkout  | Implemented; static example          | Reusable React checkout, guide and contributor setup, local mock results, and GitHub Actions Pages publishing; no live backend or npm changes          |
+| 9. Repository and web checkout  | Complete; static Pages deployed      | Reusable React checkout, guide and contributor setup, synthetic results, and verified Pages deployment; no live backend or npm changes                 |
 
 Published 0.1.0 acceptance: **237 fast/application/example/provider cases,
 243 real-engine contract cases (nine cells × 27), and 11 frozen reference cases**,
@@ -68,6 +68,11 @@ The private [CLI](../../apps/cli/README.md), [worker](../../apps/worker/README.m
 and [checkout example](../../examples/fastify-checkout/README.md) demonstrate actual
 SDK use. Traffic defaults disabled; saved HTML diagnostics cannot claim. The
 loopback example has no providers and no settlement/delivery write endpoint.
+
+The [GitHub Pages guide](https://1hubengineering.github.io/payment_verifier/) and
+[React checkout demo](https://1hubengineering.github.io/payment_verifier/demo/)
+are deployed separately from that loopback backend. The demo uses local mock
+responses and does not confirm settlement or authorize fulfillment.
 
 Release identity is independently verified: GitHub 1hubengineering with its
 verified primary commit email; npm 1hubengineering with verified email and 2FA,
