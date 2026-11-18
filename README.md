@@ -3,12 +3,12 @@
 A TypeScript workspace for embedding receipt verification into an existing backend.
 Core comparison, bounded providers, nine real SQL/ORM integrations, durable jobs,
 operator apps and the checkout example are implemented and tested. Receipt results
-always retain settlement UNCONFIRMED. All five 0.1.0 libraries passed final local
-and hosted Node 24/26 checks. Source is public; the reviewed npm implementations
-remain staged. The user reports approval, but registry publication is unconfirmed.
-Public 0.0.0-stage placeholders contain
-no SDK implementation. The GitHub release is a draft. Root, operator apps, example
-and tests stay private. See [release evidence](docs/development/releases/0.1.0.md).
+always retain settlement UNCONFIRMED. All five 0.1.0 libraries are published under
+`@1hubengineering`, with local and hosted Node 24/26 acceptance, registry integrity
+checks and an installed registry consumer passing. Root, operator apps, example
+and tests remain private npm packages; their source is available in this repository.
+See [release v0.1.0](https://github.com/1hubengineering/verify_payment_v1/releases/tag/v0.1.0)
+and [release evidence](docs/development/releases/0.1.0.md).
 
 ## Develop
 

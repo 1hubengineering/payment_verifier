@@ -17,9 +17,11 @@ Hosted [run 44337692743](https://github.com/1hubengineering/verify_payment_v1/ac
 is green on both runtimes. Earlier source commits and discoveries remain in their
 slice plans/Git history. Final eligible source c4464f0 passed the same full local checks and hosted
 [run 44339379792](https://github.com/1hubengineering/verify_payment_v1/actions/runs/44339379792)
-on both runtimes. Source is public. All five SDK archives are staged and ready
-for publication; no 0.1.0 implementation is observable in the registry. The user
-reports completing approval, but fresh registry/stage lookups have not reflected it.
+on both runtimes. All five 0.1.0 registry versions are now public. Publisher,
+maintainer, SHA-256/SHA-512 and installed registry receipt/job checks passed.
+[Release v0.1.0](https://github.com/1hubengineering/verify_payment_v1/releases/tag/v0.1.0)
+was published as 1hubengineering at 2026-11-18 16:22:13 UTC. Its tag points to
+c4464f0 and all seven public assets match the reviewed files.
 
 ## Steps
 
@@ -30,10 +32,10 @@ reports completing approval, but fresh registry/stage lookups have not reflected
 - [x] Verify private source, review installed artifacts, commit and pass both hosted runtimes.
 - [x] Remove private only from eligible libraries; verify/commit and pass exact-head CI.
 - [x] Recheck identities/scope, publish repository and stage reviewed artifacts.
-- [ ] Resolve npm approval/publication discrepancy and observe all five registry versions.
-- [ ] Verify registry owners/integrity and installed registry consumer; create release.
+- [x] Resolve npm approval/publication discrepancy and observe all five registry versions.
+- [x] Verify registry owners/integrity and installed registry consumer; create release.
 - [x] Reconcile roadmap/provenance/release evidence with staged status and concrete blocker.
-- [ ] Reconcile again after registry verification and public release.
+- [x] Reconcile roadmap/provenance/release evidence with verified public release.
 
 ## Validation
 
@@ -105,25 +107,28 @@ npm omitted files. GitHub login/verified primary email and npm login/verified em
 auth-and-writes 2FA were independently rechecked; all five names initially returned
 404, which is no reservation or publication proof.
 
-Implementation, final eligibility metadata, clean rebuilt artifacts and exact-head
-hosted checks are complete. Actual registry approval/verification remains. The user
-reports approving all five packages, but fresh authenticated stage lookups still
-return staged and all five exact-version requests return 404. Both npm 11.20.0
-and isolated stable 12.2.3 approval attempts return E404 for a stage that remains
-readable. The account owns the core placeholder and has read-write access to all
-five names. npm's status page reports operational/no unresolved incident. The
-registry checker fails at the first missing 0.1.0 version before installation.
-The user has been asked whether npm displayed publication success or an error;
-no factors or credentials were requested. Resolve this external discrepancy before
-marking publication complete. No organization/new account or scope change is needed.
+Implementation, final eligibility metadata, clean rebuilt artifacts, exact-head
+hosted checks and publication are complete. Earlier npm lookups briefly remained
+staged/404 after the user reported approval; CLI approval also returned E404 for a
+readable stage. These observations were not treated as successful publication.
+Subsequent fresh lookups exposed all five versions, the user confirmed website
+success, and the registry checker passed before the GitHub draft was published.
+No stage was deleted/restaged and no security setting was weakened.
 
-Final eligibility metadata passed local pnpm verify with 237 fast/provider/app
-cases, all 243 real-engine cases, 11 frozen cases and installed consumers. Only
-the five libraries have private=false. Preparation now rebuilds from clean HEAD
-and refuses tracked changes, binding packed output to current reviewed source.
-The eligibility commit c4464f0 passed both hosted runtimes. Its clean preparation,
-repeated packing and npm dry runs produced identical bytes; downloaded stages
-match both SHA-256 and SHA-512 for all five packages. Source publication is verified
-anonymously. The draft GitHub release holds all seven reviewed assets and remains
-a draft until registry checks pass. [Release evidence](../releases/0.1.0.md)
-records the exact source, hashes, stage IDs and remaining checks.
+`pnpm release:check artifacts/v0.1.0-c4464f0f26db/manifest.json` verified all five
+actual registry versions, 1hubengineering publisher/maintainer, both archive hashes
+and an isolated registry-installed receipt/idempotency/durable-job workflow.
+All latest tags are 0.1.0 and npm stage list is empty. Public release v0.1.0 is
+at c4464f0f26db808806d4877fc57b0254ba495c38 with author 1hubengineering. Anonymous
+downloads of all seven assets match the reviewed archives/checksum/source manifest.
+
+Only the five libraries have private=false. Root/apps/examples/tests stay private
+npm packages. The release source passed local pnpm verify and both hosted minimums
+with 237 fast/provider/app cases, 243 real-engine cases and 11 frozen cases plus
+builds/types/lint/publint and isolated installed consumers. Documentation-only
+handoff commits preserve the immutable release source and tarballs. Final
+pnpm verify is required before the publication-reconciliation commit; hosted CI
+runs the same checks. No required access or material decision remains.
+
+[Release evidence](../releases/0.1.0.md) records the actual package/release links,
+source commit, exact matrix boundaries, hashes and validation commands.

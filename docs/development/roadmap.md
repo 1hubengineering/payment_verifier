@@ -13,7 +13,7 @@ publication. Historical examples are not additional compatibility promises.
 | 4. Drizzle and Prisma        | Complete                             | Native ORM queries/transactions; all nine direct/ORM cells pass the same 27 cases                                                 |
 | 5. CLI and durable worker    | Complete                             | Encrypted committed acceptance, bounds, retries/leases/fencing, actual crash/restart recovery, Varlock apps and graceful shutdown |
 | 6. Fastify checkout          | Complete                             | Host auth/order/admission callbacks, strict locator-only input, scoped status, independent settlement/fulfillment                 |
-| 7. Release readiness         | Implemented; npm publication blocked | Source public; user reports approval, but registry still shows staged archives and 404 for 0.1.0                                  |
+| 7. Release readiness         | Complete; 0.1.0 published            | Five npm versions verified by publisher, both hashes and installed workflow; public GitHub tag/assets match reviewed source       |
 
 Current source acceptance: **237 fast/application/example/provider cases,
 243 real-engine contract cases (nine cells × 27), and 11 frozen reference cases**,
@@ -22,15 +22,14 @@ publint and isolated installed npm consumers. The release source commit
 [c4464f0](https://github.com/1hubengineering/verify_payment_v1/commit/c4464f0f26db808806d4877fc57b0254ba495c38)
 passed full hosted CI on Node 24.22.3 and 26.13.1:
 [run 44339379792](https://github.com/1hubengineering/verify_payment_v1/actions/runs/44339379792).
-Source is public. All five 0.1.0 implementation archives are staged and ready for
-npm publication; their downloaded bytes match the reviewed checksums. The user
-reports approving all five, but fresh registry and authenticated stage lookups
-still show no published 0.1.0 versions. CLI approval returns E404 with npm 11.20.0
-and isolated stable 12.2.3 despite confirmed package ownership/read-write access.
-npm
-0.0.0-stage placeholders are public, but the implementations are not published.
-The GitHub release remains a draft. [Release evidence](releases/0.1.0.md) records
-artifact hashes, stage IDs and the remaining authentication/verification gate.
+Source and all five npm 0.1.0 implementations are public. Registry publisher and
+maintainer checks, SHA-256/SHA-512 integrity and a fresh registry-installed
+receipt/idempotency/durable-job consumer passed. Settlement remains UNCONFIRMED.
+[Release v0.1.0](https://github.com/1hubengineering/verify_payment_v1/releases/tag/v0.1.0)
+was published as 1hubengineering at 2026-11-18 16:22:13 UTC. Its tag points to the
+reviewed source above; anonymous downloads of all seven assets match the reviewed
+files. [Release evidence](releases/0.1.0.md) includes all package links and hashes.
+All roadmap slices are complete; no release blocker remains.
 
 The [compatibility matrix](compatibility.md) lists exact engine/client versions.
 Direct Kysely, Drizzle 0.45.4 and Prisma 7.10.1 each cover PostgreSQL, MySQL and
@@ -70,9 +69,9 @@ using the user's selected personal @1hubengineering namespace. Source ownership
 and ISC are recorded in [provenance](provenance.md); external grants are in
 [third-party notices](../../THIRD_PARTY_NOTICES.md). All ten frozen originals
 still match the ignored ZIP byte-for-byte. Production audit found zero advisories.
-Only the five eligible libraries lose private flags; root/apps/examples/tests stay
+Only the five released libraries have private=false; root/apps/examples/tests stay
 private. [Release policy](release-policy.md) and [plan 010](plans/010-release-readiness.md)
-record clean-commit checksums, final npm authentication and actual publication.
+record clean-commit checksums, independent authentication and verified publication.
 
 Implementation plans retain detailed evidence:
 [domain](plans/002-domain-comparison.md), [providers](plans/003-provider-evidence.md),

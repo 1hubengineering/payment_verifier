@@ -28,35 +28,39 @@ establish commit attribution, not signed-commit status or npm rights.
 
 The repository was created private as `1hubengineering/verify_payment_v1`. The
 user explicitly authorized repository/package publishing and releases in the goal.
-The five 0.1.0 libraries passed final private source gates at d60786a, including
-mandatory browser OS sandbox/environment isolation, stored-evidence privacy and
-the full nine-cell matrix on both hosted minimum runtimes. Their private flags
-are removed for publication eligibility. Root/apps/examples/tests remain private.
-Final eligible source c4464f0 passed both hosted runtimes in run 44339379792.
-The repository is now public. Five reviewed 0.1.0 archives are staged as
-1hubengineering; downloading each stage reproduces its source-bound hashes.
-Validation is complete. The user reports approving all five packages; fresh
-registry and stage checks still show them staged, with 404 for version 0.1.0.
-CLI approval also returns E404 on npm 11.20.0 and isolated stable 12.2.3 while
-the same stage remains readable. All five package names have confirmed read-write
-access and the core maintainer is 1hubengineering. Only npm
-0.0.0-stage placeholders are public; no SDK implementation or GitHub release
-is published yet. The draft carries the exact five archives, checksum file
-and source manifest. See [release evidence](releases/0.1.0.md).
+Final private source d60786a passed both hosted minimum runtimes, including native
+browser sandbox/environment isolation, stored-evidence privacy and the nine-cell
+matrix. Only the five libraries became eligible at c4464f0 after these gates.
+Root/apps/examples/tests remain private npm packages. Final eligible source
+c4464f0 passed both runtimes in run 44339379792 before public distribution.
 
-npm independently authenticates 1hubengineering with verified email and
-auth-and-writes 2FA. The user found andhub unavailable and selected the matching
-personal @1hubengineering namespace, which needs no organization. These rights
-are independent of GitHub access. All five names returned registry 404 before
-publication; that is not a name reservation. Successful staging establishes write
-access for these names. Observable approval/publication,
-registry ownership/integrity and installed registry checks remain publication gates.
+The repository and five npm 0.1.0 implementations are now public. The
+[GitHub release](https://github.com/1hubengineering/verify_payment_v1/releases/tag/v0.1.0)
+was published by 1hubengineering on 18 November 2026 at 16:22:13 UTC; tag v0.1.0
+points to c4464f0f26db808806d4877fc57b0254ba495c38. All seven public release assets
+match the reviewed files when downloaded anonymously. Later documentation commits
+do not change the reviewed package archives or release source tag.
+
+npm independently authenticated 1hubengineering with verified email and
+auth-and-writes 2FA. The user selected the personal @1hubengineering scope after
+finding andhub unavailable; no organization or new account was needed. Read-write
+access for all five names and actual registry publisher/maintainer identity were
+verified independently of GitHub. After the user's approval, all five 0.1.0 versions
+became publicly available with latest=0.1.0 and no remaining staged records.
+
+`pnpm release:check artifacts/v0.1.0-c4464f0f26db/manifest.json` passed. Each registry
+archive matches the reviewed SHA-256 and SHA-512 integrity. An isolated npm consumer
+installed the five actual registry versions, imported them and passed SQLite
+receipt/idempotency and durable-job workflows, retaining settlement UNCONFIRMED.
+The full exact compatibility matrix is established by pre-release source/tarball
+acceptance; no live-provider traffic or npm OIDC provenance attestation is claimed.
+See [release evidence](releases/0.1.0.md) for package links and artifact hashes.
 
 The ten original source/test/fixture files were again compared byte-for-byte to
 the ignored archive during release audit. Selected external license boundaries
 are recorded in THIRD_PARTY_NOTICES.md, including the host-selected LGPL MariaDB
 connector. Production dependency audit reported zero advisories across 67 total
-dependencies. Clean-commit private artifacts passed content/schema/export checks
-and repeated packing produced identical checksums. Final eligible artifacts were
-rebuilt from clean c4464f0, passed npm dry runs and matched staged downloads.
-Actual registry-installed checks still require publication of version 0.1.0.
+dependencies. Clean preparation rebuilt c4464f0 before packing; repeated packing,
+npm dry runs, staged downloads, registry downloads and public release downloads
+all matched the same source-bound archives. Licensing, identity, namespace access,
+local/hosted acceptance and registry-installed checks are separately recorded gates.
