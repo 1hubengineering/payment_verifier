@@ -35,7 +35,11 @@ are removed for publication eligibility. Root/apps/examples/tests remain private
 Final eligible source c4464f0 passed both hosted runtimes in run 44339379792.
 The repository is now public. Five reviewed 0.1.0 archives are staged as
 1hubengineering; downloading each stage reproduces its source-bound hashes.
-Validation is complete, but mandatory npm 2FA approval remains. Only npm
+Validation is complete. The user reports approving all five packages; fresh
+registry and stage checks still show them staged, with 404 for version 0.1.0.
+CLI approval also returns E404 on npm 11.20.0 and isolated stable 12.2.3 while
+the same stage remains readable. All five package names have confirmed read-write
+access and the core maintainer is 1hubengineering. Only npm
 0.0.0-stage placeholders are public; no SDK implementation or GitHub release
 is published yet. The draft carries the exact five archives, checksum file
 and source manifest. See [release evidence](releases/0.1.0.md).
@@ -44,7 +48,8 @@ npm independently authenticates 1hubengineering with verified email and
 auth-and-writes 2FA. The user found andhub unavailable and selected the matching
 personal @1hubengineering namespace, which needs no organization. These rights
 are independent of GitHub access. All five names returned registry 404 before
-publication; that is not a name reservation. Successful staging establishes write access for these names. Final 2FA approval,
+publication; that is not a name reservation. Successful staging establishes write
+access for these names. Observable approval/publication,
 registry ownership/integrity and installed registry checks remain publication gates.
 
 The ten original source/test/fixture files were again compared byte-for-byte to
@@ -54,4 +59,4 @@ connector. Production dependency audit reported zero advisories across 67 total
 dependencies. Clean-commit private artifacts passed content/schema/export checks
 and repeated packing produced identical checksums. Final eligible artifacts were
 rebuilt from clean c4464f0, passed npm dry runs and matched staged downloads.
-Actual registry-installed checks still require approval of version 0.1.0.
+Actual registry-installed checks still require publication of version 0.1.0.

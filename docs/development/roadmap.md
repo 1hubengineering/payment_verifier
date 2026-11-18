@@ -13,7 +13,7 @@ publication. Historical examples are not additional compatibility promises.
 | 4. Drizzle and Prisma        | Complete                             | Native ORM queries/transactions; all nine direct/ORM cells pass the same 27 cases                                                 |
 | 5. CLI and durable worker    | Complete                             | Encrypted committed acceptance, bounds, retries/leases/fencing, actual crash/restart recovery, Varlock apps and graceful shutdown |
 | 6. Fastify checkout          | Complete                             | Host auth/order/admission callbacks, strict locator-only input, scoped status, independent settlement/fulfillment                 |
-| 7. Release readiness         | Implemented; npm approval pending    | Source public; reviewed 0.1.0 artifacts staged; npm 2FA approval and registry/release verification remain                         |
+| 7. Release readiness         | Implemented; npm publication blocked | Source public; user reports approval, but registry still shows staged archives and 404 for 0.1.0                                  |
 
 Current source acceptance: **237 fast/application/example/provider cases,
 243 real-engine contract cases (nine cells × 27), and 11 frozen reference cases**,
@@ -23,7 +23,11 @@ publint and isolated installed npm consumers. The release source commit
 passed full hosted CI on Node 24.22.3 and 26.13.1:
 [run 44339379792](https://github.com/1hubengineering/verify_payment_v1/actions/runs/44339379792).
 Source is public. All five 0.1.0 implementation archives are staged and ready for
-npm 2FA approval; their downloaded bytes match the reviewed checksums. npm
+npm publication; their downloaded bytes match the reviewed checksums. The user
+reports approving all five, but fresh registry and authenticated stage lookups
+still show no published 0.1.0 versions. CLI approval returns E404 with npm 11.20.0
+and isolated stable 12.2.3 despite confirmed package ownership/read-write access.
+npm
 0.0.0-stage placeholders are public, but the implementations are not published.
 The GitHub release remains a draft. [Release evidence](releases/0.1.0.md) records
 artifact hashes, stage IDs and the remaining authentication/verification gate.

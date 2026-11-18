@@ -18,7 +18,8 @@ is green on both runtimes. Earlier source commits and discoveries remain in thei
 slice plans/Git history. Final eligible source c4464f0 passed the same full local checks and hosted
 [run 44339379792](https://github.com/1hubengineering/verify_payment_v1/actions/runs/44339379792)
 on both runtimes. Source is public. All five SDK archives are staged and ready
-for mandatory npm 2FA approval; no 0.1.0 implementation is published.
+for publication; no 0.1.0 implementation is observable in the registry. The user
+reports completing approval, but fresh registry/stage lookups have not reflected it.
 
 ## Steps
 
@@ -29,7 +30,7 @@ for mandatory npm 2FA approval; no 0.1.0 implementation is published.
 - [x] Verify private source, review installed artifacts, commit and pass both hosted runtimes.
 - [x] Remove private only from eligible libraries; verify/commit and pass exact-head CI.
 - [x] Recheck identities/scope, publish repository and stage reviewed artifacts.
-- [ ] Complete mandatory npm 2FA approval of all five staged 0.1.0 packages.
+- [ ] Resolve npm approval/publication discrepancy and observe all five registry versions.
 - [ ] Verify registry owners/integrity and installed registry consumer; create release.
 - [x] Reconcile roadmap/provenance/release evidence with staged status and concrete blocker.
 - [ ] Reconcile again after registry verification and public release.
@@ -106,9 +107,15 @@ auth-and-writes 2FA were independently rechecked; all five names initially retur
 
 Implementation, final eligibility metadata, clean rebuilt artifacts and exact-head
 hosted checks are complete. Actual registry approval/verification remains. The user
-has been asked to complete only npm's mandatory 2FA factor in Staged Packages; no
-organization or new account is needed. All five stages now have status staged,
-so npm validation is complete. Do not infer approval from elapsed time.
+reports approving all five packages, but fresh authenticated stage lookups still
+return staged and all five exact-version requests return 404. Both npm 11.20.0
+and isolated stable 12.2.3 approval attempts return E404 for a stage that remains
+readable. The account owns the core placeholder and has read-write access to all
+five names. npm's status page reports operational/no unresolved incident. The
+registry checker fails at the first missing 0.1.0 version before installation.
+The user has been asked whether npm displayed publication success or an error;
+no factors or credentials were requested. Resolve this external discrepancy before
+marking publication complete. No organization/new account or scope change is needed.
 
 Final eligibility metadata passed local pnpm verify with 237 fast/provider/app
 cases, all 243 real-engine cases, 11 frozen cases and installed consumers. Only
