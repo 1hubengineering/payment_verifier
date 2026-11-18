@@ -8,15 +8,17 @@
   "scripts": {
     "check": "vp check",
     "check:fix": "vp check --fix",
-    "check:env": "vp run @andhub/receipt-verifier-cli#check:env",
+    "check:env": "vp run @andhub/receipt-verifier-cli#check:env && vp run @andhub/receipt-verifier-adapter-contract#check:env",
     "check:package": "vp run --filter \"./packages/*\" --fail-if-no-match check:package && node scripts/check-package.mjs",
-    "typecheck": "tsc --noEmit && tsc --noEmit --project packages/receipt-verifier/tsconfig.json && tsc --noEmit --project packages/receipt-verifier-provider-cbe/tsconfig.json",
-    "test": "vp test run",
+    "typecheck": "tsc --noEmit && tsc --noEmit --project packages/receipt-verifier/tsconfig.json && tsc --noEmit --project packages/receipt-verifier-provider-cbe/tsconfig.json && tsc --noEmit --project packages/receipt-verifier-storage-sql/tsconfig.json",
+    "test": "vp test run && vp run @andhub/receipt-verifier-adapter-contract#test",
     "test:watch": "vp test",
     "test:reference": "node --test tests/reference-cli/tests/verify.test.ts",
     "build": "vp run --filter \"./packages/*\" --fail-if-no-match build",
     "verify": "vp run check:env && vp run build && vp run check && vp run typecheck && vp run test && vp run test:reference && vp run check:package",
-    "setup:browsers": "vp run @andhub/receipt-verifier-provider-cbe#setup:browsers"
+    "setup:browsers": "vp run @andhub/receipt-verifier-provider-cbe#setup:browsers",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

@@ -9,3 +9,14 @@ export type {
   EvidenceField,
   FieldCheck,
 } from './comparison.ts';
+export { StorageConflict } from './storage.ts';
+export type { RecordTransaction, StoredRecord, VerificationStorage } from './storage.ts';
+export { createReceiptVerifier, storageKey, VerificationError } from './verifier.ts';
+export type {
+  PaymentScope,
+  VerificationSubmission,
+  ReceiptProvider,
+  VerificationResult,
+  PreparedVerification,
+  ReceiptVerifier,
+} from './verifier.ts';

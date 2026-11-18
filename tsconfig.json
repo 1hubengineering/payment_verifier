@@ -17,6 +17,11 @@
     "isolatedModules": true,
     "skipLibCheck": true
   },
-  "include": ["vite.config.ts", "packages/**/*.ts", "apps/**/*.ts"],
+  "include": [
+    "vite.config.ts",
+    "packages/**/*.ts",
+    "apps/**/*.ts",
+    "tests/adapter-contract/**/*.ts"
+  ],
   "exclude": ["**/node_modules", "**/dist", "tests/reference-cli"]
 }

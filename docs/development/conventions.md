@@ -111,3 +111,26 @@ dependency ordering (confirmed by task-plan JSON); recursive and filter flags
 cannot be combined. Packed checks first install the core alone offline, then
 install the CBE tarball with its exact Playwright peer from npm. No workspace
 aliases or symlinks are used by the installed consumer.
+
+## Direct storage compatibility
+
+The direct adapter uses Kysely 0.29.9 with optional exact driver peers pg 8.23.1,
+mysql2 3.24.6 and better-sqlite3 13.2.0. Real-engine shared tests use PostgreSQL
+18.7, MySQL 8.4.13 and bundled SQLite 3.54.1, selected from stable releases and
+verified engine output. No ORM versions or other engine/client combinations are
+implied. PostgreSQL 19 remained a release candidate and was not selected.
+Sources: [PostgreSQL release](https://www.postgresql.org/about/news/postgresql-187-1712-1616-1520-1425-and-19-rc-2-released-3442/),
+[MySQL 8.4 release notes](https://dev.mysql.com/doc/relnotes/mysql/8.4/en/), official
+npm registry stable tags, and installed driver manifests.
+
+`pnpm db:up` starts the isolated synthetic test Compose project; `pnpm db:down`
+stops it. Data is disposable tmpfs, ports bind loopback, and no existing Docker
+application resources are touched. Integration configuration lives in the private
+`tests/adapter-contract` package with its own Varlock schema and generated local
+types. Its runner refuses non-loopback databases or any database name other than
+`receipt_test`. `pnpm verify` runs both fast/provider tests and the real-engine
+contract suite. CI starts the same pinned services and stops them on completion.
+
+Storage uses one versioned typed record schema, not separate ORM-owned shadow
+stores. A single migration owner maintains its primary keys and version metadata.
+Hosts retain all connection, transaction, settlement and fulfillment ownership.

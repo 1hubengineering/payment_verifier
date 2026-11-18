@@ -1,0 +1,42 @@
+# Isolated synthetic adapter tests only; never point these services at application data.
+name: receipt-verifier-tests
+services:
+  postgres:
+    image: postgres:18.7-bookworm
+    environment:
+      POSTGRES_DB: receipt_test
+      POSTGRES_USER: receipt_test
+      POSTGRES_PASSWORD: ${RECEIPT_TEST_DB_PASSWORD:-synthetic-local-only}
+    ports:
+      - '127.0.0.1:55432:5432'
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U receipt_test -d receipt_test']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+    mem_limit: 512m
+  mysql:
+    image: mysql:8.4.13
+    environment:
+      MYSQL_DATABASE: receipt_test
+      MYSQL_USER: receipt_test
+      MYSQL_PASSWORD: ${RECEIPT_TEST_DB_PASSWORD:-synthetic-local-only}
+      MYSQL_ROOT_PASSWORD: ${RECEIPT_TEST_DB_PASSWORD:-synthetic-local-only}
+    ports:
+      - '127.0.0.1:53306:3306'
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'MYSQL_PWD="$${MYSQL_PASSWORD}" mysql -h 127.0.0.1 -u receipt_test -D receipt_test -e "SELECT 1" >/dev/null',
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+      start_period: 20s
+    mem_limit: 768m

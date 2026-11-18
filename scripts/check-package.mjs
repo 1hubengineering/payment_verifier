@@ -48,7 +48,7 @@ try {
 import assert from 'node:assert/strict';
 globalThis.fetch = () => { throw new Error('Unexpected import-time network request'); };
 const core = await import('@andhub/receipt-verifier');
-assert.deepEqual(Object.keys(core).sort(), ['compareReceipt', 'createPaymentExpectation', 'parseEtbAmount']);
+assert.deepEqual(Object.keys(core).sort(), ['StorageConflict', 'VerificationError', 'compareReceipt', 'createPaymentExpectation', 'createReceiptVerifier', 'parseEtbAmount', 'storageKey']);
 const expected = core.createPaymentExpectation({
   tenantId: 'synthetic', paymentId: 'synthetic', provider: 'telebirr', currency: 'ETB',
   amountMinor: core.parseEtbAmount('0.29'), recipientName: 'Synthetic Merchant',
@@ -150,6 +150,88 @@ assert.deepEqual(await createCbeProvider().retrieve('http://127.0.0.1/'), { kind
 `,
   );
   run(process.execPath, ['optional.mjs'], temporary);
+  run(
+    'pnpm',
+    ['pack', '--pack-destination', temporary],
+    join(root, 'packages/receipt-verifier-storage-sql'),
+  );
+  const sqlArchive = readdirSync(temporary).find(
+    (file) => file.includes('storage-sql') && file.endsWith('.tgz'),
+  );
+  assert.ok(sqlArchive);
+  run(
+    'npm',
+    [
+      'install',
+      '--ignore-scripts',
+      '--no-audit',
+      '--no-fund',
+      '--package-lock=false',
+      resolve(temporary, sqlArchive),
+      'better-sqlite3@13.2.0',
+    ],
+    temporary,
+  );
+  writeFileSync(
+    join(temporary, 'storage.mjs'),
+    `
+import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
+import Database from 'better-sqlite3';
+import { sqliteStorage } from '@andhub/receipt-verifier-storage-sql/sqlite';
+import { createPaymentExpectation, createReceiptVerifier, parseEtbAmount } from '@andhub/receipt-verifier';
+assert.equal(existsSync(new URL('./node_modules/pg', import.meta.url)), false);
+assert.equal(existsSync(new URL('./node_modules/mysql2', import.meta.url)), false);
+const database = new Database(':memory:');
+const storage = sqliteStorage(database);
+await storage.migrate();
+const expectation = createPaymentExpectation({ tenantId: 'synthetic', paymentId: 'synthetic', provider: 'telebirr', currency: 'ETB', amountMinor: parseEtbAmount('0.29'), recipientName: 'Synthetic Merchant', recipientAccountLast4: '1234', reference: 'ORDER_1234', validFrom: 1000, validUntil: 2000 });
+const verifier = createReceiptVerifier({ storage, now: () => 1500, providers: { telebirr: { async retrieve(url) { return { kind: 'EVIDENCE', provenance: { kind: 'OFFICIAL_HTTPS', url, retrievedAt: 1500, sha256: 'a'.repeat(64), parserVersion: '1' }, evidence: { provider: 'telebirr', currency: 'ETB', transactionId: 'SYNTH1234', status: 'SUCCESSFUL', amountMinor: parseEtbAmount('0.29'), recipientName: 'Synthetic Merchant', recipientAccountLast4: '1234', reference: 'ORDER_1234', transactionAt: 1500, paymentType: null, ambiguousFields: [] } }; } } } });
+await verifier.registerExpectation(expectation);
+const input = { tenantId: 'synthetic', paymentId: 'synthetic', idempotencyKey: 'synthetic', receiptLocator: 'SYNTH1234' };
+const first = await verifier.submit(input);
+assert.equal(first.verificationStatus, 'MATCHED_RECEIPT_ONLY');
+assert.equal(first.settlementStatus, 'UNCONFIRMED');
+assert.deepEqual(await verifier.submit(input), first);
+assert.equal((await verifier.events()).length, 1);
+assert.equal(database.open, true);
+database.close();
+`,
+  );
+  run(process.execPath, ['storage.mjs'], temporary);
+  writeFileSync(
+    join(temporary, 'adapter.ts'),
+    `
+import type { SqlStorage } from '@andhub/receipt-verifier-storage-sql';
+import { createCbeProvider } from '@andhub/receipt-verifier-provider-cbe';
+import { createReceiptVerifier, type VerificationStorage } from '@andhub/receipt-verifier';
+const cbe = createCbeProvider();
+declare const sql: SqlStorage;
+const storage: VerificationStorage = sql;
+const verifier = createReceiptVerifier({ storage, providers: { cbe } });
+void verifier;
+`,
+  );
+  run(
+    process.execPath,
+    [
+      join(root, 'node_modules/typescript/bin/tsc'),
+      '--noEmit',
+      '--strict',
+      '--target',
+      'ES2023',
+      '--module',
+      'NodeNext',
+      '--moduleResolution',
+      'NodeNext',
+      '--types',
+      'node',
+      '--typeRoots',
+      join(root, 'node_modules/@types'),
+      join(temporary, 'adapter.ts'),
+    ],
+    temporary,
+  );
   console.log(
     'Packed npm consumer: ESM comparison, exact money, declarations, and dependency boundary passed.',
   );

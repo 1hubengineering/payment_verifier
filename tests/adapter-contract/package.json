@@ -1,0 +1,21 @@
+{
+  "name": "@andhub/receipt-verifier-adapter-contract",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:env": "varlock load",
+    "test": "varlock run -- vp test run"
+  },
+  "devDependencies": {
+    "@andhub/receipt-verifier": "workspace:*",
+    "@andhub/receipt-verifier-storage-sql": "workspace:*",
+    "@types/better-sqlite3": "9.6.0",
+    "@types/pg": "8.23.1",
+    "better-sqlite3": "13.2.0",
+    "kysely": "0.29.9",
+    "mysql2": "3.24.6",
+    "pg": "8.23.1",
+    "varlock": "1.25.0"
+  }
+}

@@ -19,3 +19,6 @@ coverage/
 reference/*.zip
 # Generated app-local Varlock types.
 apps/*/env.ts
+
+# Generated integration-test environment types.
+tests/adapter-contract/env.ts

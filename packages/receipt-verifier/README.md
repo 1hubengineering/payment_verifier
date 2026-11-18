@@ -1,7 +1,8 @@
 # @andhub/receipt-verifier
 
 Private development preview. Exact ETB parsing, trusted expectation snapshots,
-and pure receipt comparison are implemented. Retrieval and storage remain planned.
+pure receipt comparison, provider evidence and an atomic verification workflow are implemented.
+Storage is configured through separately tested adapters.
 
 ```ts
 import { parseEtbAmount, createPaymentExpectation, compareReceipt } from '@andhub/receipt-verifier';
@@ -72,8 +73,7 @@ minimums. Development uses Node 26 LTS. Database and ORM compatibility is planne
 ## Provider evidence subpath
 
 `@andhub/receipt-verifier/providers` exports `parseReceiptHtml`,
-`normalizeReceiptLocator`, and `retrieveTelebirr`. The root import remains free of
-provider code. Parsing saved HTML returns `SAVED_HTML` provenance and cannot prove
+`normalizeReceiptLocator`, and `retrieveTelebirr`. The root import loads no transport or browser code. Parsing saved HTML returns `SAVED_HTML` provenance and cannot prove
 authenticity. `retrieveTelebirr` returns `EVIDENCE` with `OFFICIAL_HTTPS` provenance
 (URL, time, original HTML SHA-256, parser version), or `UNAVAILABLE` with a generic
 error code. Never interpret `EVIDENCE` as a match without comparison.
@@ -97,4 +97,17 @@ bounded. Retrieval accepts an abort signal. Timeouts remain unavailable.
 
 CBE extraction is also available through `parseReceiptHtml('cbe', html)`; actual
 browser execution belongs to the optional CBE package. Neither provider performs
-storage writes or authorizes settlement or fulfillment.
+storage writes or authorizes settlement or fulfillment. The configured verifier
+workflow records atomic receipt-only claims through a separately supplied storage adapter.
+
+## Configured verifier
+
+`createReceiptVerifier({ storage, providers })` adds `registerExpectation`,
+`prepare`, `complete` and `submit`. Hosts authorize tenant/payment access and pass
+expectations from trusted records. Submissions supply a locator and idempotency
+key only. `prepare` retrieves outside transactions and returns an opaque in-process
+token; `complete` rechecks current immutable expectations/state and performs atomic
+storage work. `submit` combines those steps. A caller-owned transaction may complete
+a previously prepared token but cannot prepare provider work inside that transaction.
+The SQL package documents connection ownership, replay, migrations and durable events.
+No receipt-only result authorizes settlement, credit or fulfillment.

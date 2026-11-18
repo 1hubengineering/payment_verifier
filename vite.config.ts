@@ -9,6 +9,7 @@ export default defineConfig({
       'docs/library-plan/library-plan.md',
       'docs/archive/**',
       'apps/*/env.ts',
+      'tests/adapter-contract/env.ts',
     ],
   },
   fmt: {
@@ -19,6 +20,7 @@ export default defineConfig({
       'docs/library-plan/library-plan.md',
       'docs/archive/**',
       'apps/*/env.ts',
+      'tests/adapter-contract/env.ts',
     ],
   },
   test: {

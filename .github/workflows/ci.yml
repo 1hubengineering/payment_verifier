@@ -29,4 +29,7 @@ jobs:
           run-install: false
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @andhub/receipt-verifier-provider-cbe exec playwright install --with-deps chromium
+      - run: pnpm db:up
       - run: pnpm verify
+      - if: always()
+        run: pnpm db:down

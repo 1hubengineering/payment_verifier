@@ -2,7 +2,7 @@
 
 A TypeScript library workspace for embedding receipt verification into an
 existing backend. Receipt comparison and bounded provider evidence retrieval are implemented with
-synthetic/local validation; database adapters are still planned. A receipt match will remain distinct from settlement.
+synthetic/local validation. Direct SQL adapters pass the shared real-engine matrix on Node 24 and 26; ORMs and durable execution remain planned. A receipt match will remain distinct from settlement.
 
 ## Develop
 
@@ -11,14 +11,17 @@ Install the [Vite+ CLI](https://www.viteplus.dev/guide/), then:
 ```sh
 vp env install
 pnpm install --frozen-lockfile
+pnpm setup:browsers
+pnpm db:up
 pnpm verify
+pnpm db:down
 ```
 
 `pnpm setup:browsers` installs Chromium for the optional CBE integration tests.
 
 Node **26.13.1 LTS**, pnpm **12.21.0**, Vite+ **1.7.0**, and TypeScript **7.0.2**
-are pinned. CI also validates Node **24.22.3 LTS**. The original ISC manifest designation is
-preserved; public licensing and reference provenance are release decisions.
+are pinned. CI also validates Node **24.22.3 LTS**. The existing ISC designation is retained after the user confirmed source ownership;
+see [provenance](docs/development/provenance.md).
 
 | Location                    | Current responsibility                                                                                 |
 | --------------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -30,7 +33,8 @@ preserved; public licensing and reference provenance are release decisions.
 
 `pnpm verify` validates app configuration first, then runs formatting/lint/type checks, core tests, the original synthetic
 baseline, application configuration validation, library build, publint, and the
-installed-package checks. No bank requests or database services are required. Chromium tests use local mocks.
+installed-package checks. No bank requests are required. Chromium uses mocked provider HTML; direct storage
+tests require the isolated PostgreSQL/MySQL Compose services plus local SQLite.
 
 Use the [documentation index](docs/README.md) to find active and archived material.
 The [workspace conventions](docs/development/conventions.md) explain package naming,
