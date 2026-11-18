@@ -1,126 +1,73 @@
 # Library roadmap
 
-`docs/library-plan/init-plan.md` is the starting direction. This document tracks
-implementation; a target is not a supported integration until its gate passes.
+The [initial direction](../library-plan/init-plan.md) defines the embedded-library
+target. This roadmap records implemented and validated support separately from
+publication. Historical examples are not additional compatibility promises.
 
-| Slice                                         | State                                        | Acceptance gate                                                                                                                                                                      |
-| --------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0. Audit and development foundation           | Complete; verified locally on Node 24 and 26 | Pinned workspace, offline baseline, Codex instructions, CI definition, and packed consumer                                                                                           |
-| 1. Provider-neutral domain and compare engine | Implemented; local gate passed               | Trusted immutable expectations; exact minor units; explicit field checks; missing/ambiguous evidence fails closed; separate settlement states                                        |
-| 2. Provider extraction and retrieval          | Implemented; synthetic/local gate passed     | Port Telebirr v5 synthetic regression behavior; provider-neutral errors and provenance; bounded allowlisted HTTP; separately packaged CBE browser execution with local failure tests |
-| 3. Storage contract and direct SQL            | Implemented; direct matrix gate passed       | Prototype Kysely; shared real PostgreSQL/MySQL/SQLite tests; atomic claims/evidence/results/outbox; idempotency and rollback; caller-owned connections                               |
-| 4. Drizzle and versioned Prisma               | Implemented; nine-cell matrix passed         | Explicit client/engine versions; all advertised engine cells pass the shared contract suite and caller transaction tests                                                             |
-| 5. CLI and optional durable worker            | Implemented; local gate passed               | Varlock at startup; durable acceptance, leases/retries, bounds, restart and crash recovery; no lost acknowledged work                                                                |
-| 6. Fastify checkout example                   | Implemented; local gate passed               | Host auth/order ownership; trusted expectation snapshot; structured outcomes; no fulfillment from receipt alone                                                                      |
-| 7. Release readiness                          | Final private source gate in progress        | All three engines and advertised ORM paths proven, migration docs, packaging, provenance/licensing, release policy                                                                   |
+| Slice                        | State                                | Evidence                                                                                                                          |
+| ---------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| 0. Audit and foundation      | Complete                             | Pinned Node/pnpm/Vite+, Varlock startup schemas, frozen baseline, CI and installed consumers                                      |
+| 1. Domain and compare engine | Complete                             | Immutable host expectations, exact integer ETB, explicit fail-closed checks; settlement always UNCONFIRMED                        |
+| 2. Provider evidence         | Complete; synthetic/local validation | Bounded allowlisted IPv4/TLS, linear bounded extraction, isolated CBE inline rendering; no live-provider claim                    |
+| 3. Storage and direct SQL    | Complete                             | Atomic claims/evidence/results/outbox, idempotency, rollback and process races on three real engines                              |
+| 4. Drizzle and Prisma        | Complete                             | Native ORM queries/transactions; all nine direct/ORM cells pass the same 27 cases                                                 |
+| 5. CLI and durable worker    | Complete                             | Encrypted committed acceptance, bounds, retries/leases/fencing, actual crash/restart recovery, Varlock apps and graceful shutdown |
+| 6. Fastify checkout          | Complete                             | Host auth/order/admission callbacks, strict locator-only input, scoped status, independent settlement/fulfillment                 |
+| 7. Release readiness         | Eligible; final publication pending  | Source/licensing/identity/matrix gates passed; final eligible artifacts, registry approval and release verification remain        |
 
-PostgreSQL, MySQL, and SQLite remain first-release requirements. Delivery can be
-incremental. Direct PostgreSQL 18.7/pg 8.23.1, MySQL 8.4.13/mysql2 3.24.6, and
-SQLite 3.54.1/better-sqlite3 13.2.0 now pass the same 15-case contract suite
-through Kysely 0.29.9. Drizzle 0.45.4 now passes all three engine cells with the exact clients in its
-README. Prisma CLI/Client and official adapters 7.10.1 pass PostgreSQL/MySQL and
-SQLite 3.53.2 (better-sqlite3 12.11.1). The frozen SQLite test
-continues to prove only the old CLI behavior. Prisma 8 and other versions are not advertised; assertions in the initial research
-about future major versions are not adopted as a compatibility guarantee.
+Current source acceptance: **237 fast/application/example/provider cases,
+243 real-engine contract cases (nine cells × 27), and 11 frozen reference cases**,
+plus environment/schema generation, five builds, formatting/lint/strict types,
+publint and isolated installed npm consumers. Commit d60786a passed full hosted
+CI on Node 24.22.3 and 26.13.1:
+[run 44337692743](https://github.com/1hubengineering/verify_payment_v1/actions/runs/44337692743).
+The final metadata/artifact commit requires its own exact-head gates before a
+registry write. No npm implementation or GitHub release is published yet.
 
-Create `packages/receipt-verifier-storage-sql`, `packages/receipt-verifier-adapter-drizzle`,
-`packages/receipt-verifier-adapter-prisma`, `packages/receipt-verifier-provider-cbe`, `apps/worker`,
-`examples/fastify-checkout`, and `tests/adapter-contract` as their slices begin.
-Do not publish empty packages or install every optional driver into the core.
+The [compatibility matrix](compatibility.md) lists exact engine/client versions.
+Direct Kysely, Drizzle 0.45.4 and Prisma 7.10.1 each cover PostgreSQL, MySQL and
+local SQLite. Real host transaction commit/rollback, independent clients/processes,
+claim races, response-loss replay and durable SIGKILL recovery run on every cell.
+Different SQLite native implementations must not hold one file in the same
+process; the ORM migration/reset owner runs in a separate process. Three repeated
+SQLite ORM runs followed that harness correction. libSQL 0.18.0, Prisma 8,
+remote SQLite and other untested combinations remain outside the release promise.
 
-Slice 1 is implemented in `packages/receipt-verifier/src/comparison.ts`; its
-[execution plan](plans/002-domain-comparison.md) records the contract and evidence.
-The core now validates frozen host expectation snapshots, compares exact integer
-ETB evidence with explicit inclusive time bounds, and reports field checks.
-Missing, malformed and ambiguous required evidence remains unable to verify.
-All comparison results retain settlement `UNCONFIRMED`. Provider extraction and bounded retrieval are implemented in the provider
-subpath and optional CBE package; atomic storage claims are implemented through
-the configured verifier and direct SQL adapters. The 0.1.0 API remains unpublished; release status is tracked below.
+Provider tests use synthetic HTML and local mocks. CBE requires its explicit
+Playwright peer/matching Chromium, an unprivileged host supporting OS sandboxing,
+and host worker confinement. Tests inspect actual renderer seccomp/PID namespaces
+and exclude inherited host secrets; failed sandbox launch never falls back to an
+unsafe browser. Ubuntu CI grants namespaces only to two pinned browser executables,
+keeps its global restriction enabled and removes temporary profiles afterward.
+External assets, IPv6, redirects, compressed bodies and unsupported layouts fail
+closed. No bank transfer or live provider probe was used.
 
-Slice 2's [execution plan](plans/003-provider-evidence.md) records synthetic
-Telebirr/CBE parsing, bounded IPv4/TLS retrieval, explicit provenance and real
-Chromium failure tests against mocked provider HTML. No live provider validation
-is claimed. CBE blocks all external assets and permits only inline rendering;
-unsupported layouts remain unavailable. Root imports still have no dependencies
-or provider I/O. Chromium installation is required only for the optional package
-and workspace browser tests. `pnpm setup:browsers` installs its matching browser.
+[Durable jobs](durable-jobs.md) share the configured store and atomically finish
+with verification effects. They bound admission/aliases/retention and provider
+work, encrypt locators/primary keys, fence stale workers, preserve accepted work
+across crashes, and prune only completed jobs with acknowledged events. Claims and
+committed results remain. Hosts own authentication, orders, expected values,
+independent settlement, fulfillment, backups and repeat-safe event delivery.
+Stored evidence contains only known bounded primitives; raw plugin extras and
+nested malformed values cannot enter attempts or turn into matches.
 
-The [parser resource review](plans/006-parser-resource-bounds.md) reproduced
-quadratic work on malformed maximum-size inputs and replaced structural regexes
-with a monotonic scanner and explicit complexity limits. Single-pass entity
-decoding, Unicode offsets and infinite inline-script cleanup have regressions.
-Unsupported HTML fails closed; provider parser failures remain unavailable.
+The private [CLI](../../apps/cli/README.md), [worker](../../apps/worker/README.md)
+and [checkout example](../../examples/fastify-checkout/README.md) demonstrate actual
+SDK use. Traffic defaults disabled; saved HTML diagnostics cannot claim. The
+loopback example has no providers and no settlement/delivery write endpoint.
 
-Slice 3's [execution plan](plans/004-storage-contract.md) records atomic claims,
-normalized evidence, idempotent results and durable events, with caller-owned
-transaction commit/rollback, rollback fault injection, synchronized process races
-and fresh-process replay on all three engines. The core retrieves before locks
-and rejects preparation on caller-scoped adapters. Migrations are explicit,
-repeatable and reject incompatible versions or missing uniqueness constraints.
-Installed SQLite-only consumers need neither pg nor mysql2. Shared-store claims
-coordinate every tenant; independent stores do not coordinate receipt reuse.
+Release identity is independently verified: GitHub 1hubengineering with its
+verified primary commit email; npm 1hubengineering with verified email and 2FA,
+using the user's selected personal @1hubengineering namespace. Source ownership
+and ISC are recorded in [provenance](provenance.md); external grants are in
+[third-party notices](../../THIRD_PARTY_NOTICES.md). All ten frozen originals
+still match the ignored ZIP byte-for-byte. Production audit found zero advisories.
+Only the five eligible libraries lose private flags; root/apps/examples/tests stay
+private. [Release policy](release-policy.md) and [plan 010](plans/010-release-readiness.md)
+record clean-commit checksums, final npm authentication and actual publication.
 
-Slice 4's [execution plan](plans/005-orm-adapters.md) records the Drizzle matrix
-and the rejected libSQL 0.18.0 concurrency regression. Tested Drizzle SQLite uses
-local-file @libsql/client 0.17.4 / SQLite 3.45.1; better-sqlite3's synchronous
-Drizzle transaction callback is not advertised. Each of the nine direct/Drizzle/Prisma
-cells passes the same 15 contract cases, including actual host ORM transactions.
-Isolated installed ORM consumers use the workspace's skipLibCheck policy for
-Drizzle's upstream TypeScript declarations; strict API/negative type checks pass.
-Prisma uses actual generated clients and native delegates, with explicit
-Serializable caller transaction policy and full installed declaration checking.
-The nine-cell matrix and package checks passed locally on Node 26 and hosted CI
-on both Node 24 and 26 (commit 342dbb5). No public release is claimed yet.
-
-Slice 5's [durable API plan](plans/007-durable-jobs.md) implements encrypted
-committed acceptance, bounded aliases/quotas, shared-store leases and provider
-pauses, stale-owner fencing, retry rollback, atomic terminal jobs and explicit
-retention. The shared matrix now passes 234 cases (26 per cell), including actual
-SIGKILL recovery and repeated crash exhaustion. Full `pnpm verify` and installed-package acceptance passed on Node 26;
-CLI/worker applications pass six offline cases and full `pnpm verify` on Node 26,
-including actual process handoff and graceful SIGTERM exit. Hosted CI passed that commit (6d1ced9) on Node 24 and 26. See [operations](durable-jobs.md) and the
-[operator application plan](plans/008-cli-worker.md).
-
-Slice 6's [checkout plan](plans/009-fastify-checkout.md) implements injected host
-authentication, tenant/order ownership and admission, strict locator-only bodies,
-trusted immutable snapshots and separately read host settlement/fulfillment.
-Seventeen local tests pass, including actual SQLite-backed injected requests,
-durable admission/status and a real loopback Varlock demo with no providers.
-Full `pnpm verify` passed on Node 26 with 234 fast/application cases and
-234 real-engine cases after isolating native SQLite implementations per process.
-The ORM suites additionally passed three repeated SQLite crash/transaction runs.
-Hosted CI passed both minimum runtimes at 2c9b626; no public deployment is claimed.
-
-Slice 7's [release plan](plans/010-release-readiness.md) records the private
-0.1.0 candidate, compatibility/migration/release policy and artifact checksums.
-The release audit verified all ten frozen originals, tracked-data hygiene and
-selected external licenses; production dependency audit found zero advisories.
-SQLite caller scopes now reject inactive/ended transactions. The private 0.1.0 candidate passed full local `pnpm verify`, including
-installed inactive/ended SQLite scope regressions. Clean-commit artifact preparation passed for all five libraries; a repeated
-pack produced identical checksums. Commit 991ee9f passed both hosted runtimes.
-The final browser review reopened OS sandbox/environment requirements; the five
-libraries remain private until new local and hosted gates pass. Registry
-publication is pending. Root/apps/example/tests stay private.
-
-Execution access findings (18 November 2026): GitHub CLI and connector confirm
-`1hubengineering`. After the user refreshed token permissions, `GET /user/emails`
-confirmed its primary `andhubengineering@gmail.com` address is verified. Commits
-use that account's identity in repository-local Git configuration. `npm whoami` separately confirms `1hubengineering` with verified email. The user
-selected its personal `@1hubengineering` namespace after finding `andhub`
-unavailable; no npm organization is needed. The user confirmed original code ownership; the existing ISC designation is retained
-in root/package license files and the provenance record. These are separate release gates;
-no package or release is published.
-
-Current naming and runtime decisions are recorded in [workspace conventions](conventions.md).
-The original initialization plan contains historical package-path examples.
-
-Release gate reopened during final browser review: library packages remain private
-while explicit Chromium OS sandbox/environment isolation receives hosted
-acceptance. Local `pnpm verify` passed 237 fast/provider/application cases,
-234 real-engine cases and all 11 frozen cases. Nothing is published.
-
-The sandboxed browser candidate 82514aa passed hosted Node 24/26 CI with native
-seccomp/PID namespace tests. The final evidence privacy regression raises the
-shared matrix to 27 cases per cell (243 total); local full verify passed with
-237 fast/application/provider cases and 11 frozen cases. Its exact-commit hosted
-gate remains pending before eligibility; no registry write has occurred.
+Implementation plans retain detailed evidence:
+[domain](plans/002-domain-comparison.md), [providers](plans/003-provider-evidence.md),
+[SQL](plans/004-storage-contract.md), [ORMs](plans/005-orm-adapters.md),
+[parser bounds](plans/006-parser-resource-bounds.md), [jobs](plans/007-durable-jobs.md),
+[operator apps](plans/008-cli-worker.md), [checkout](plans/009-fastify-checkout.md).

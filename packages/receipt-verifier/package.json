@@ -1,7 +1,7 @@
 {
   "name": "@1hubengineering/receipt-verifier",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "description": "Receipt-only comparison and exact ETB domain primitives",
   "homepage": "https://github.com/1hubengineering/verify_payment_v1/tree/main/packages/receipt-verifier",
   "bugs": {

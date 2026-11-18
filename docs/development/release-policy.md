@@ -16,7 +16,7 @@ metadata records the actual repository; npm maintainers come from registry ident
 never invented addresses or inferred GitHub rights. Use the verified GitHub account
 and verified commit email, and independently confirm npm account/email/scope/2FA.
 
-`pnpm release:prepare` packs only those five libraries from a clean checkout into
+`pnpm release:prepare` rebuilds and packs only those five libraries from a clean checkout into
 an ignored artifacts directory named by version and commit. It validates tar paths,
 licenses, exports and rewritten internal versions, then writes SHA-256/SHA-512 and
 integrity metadata plus SHA256SUMS. It never publishes. Private candidate artifacts

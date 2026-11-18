@@ -1,7 +1,7 @@
 {
   "name": "@1hubengineering/receipt-verifier-adapter-drizzle",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "description": "Versioned Drizzle storage integration for receipt-only verification",
   "homepage": "https://github.com/1hubengineering/verify_payment_v1/tree/main/packages/receipt-verifier-adapter-drizzle",
   "bugs": {

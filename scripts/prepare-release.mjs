@@ -12,6 +12,8 @@ assert.equal(
   '',
   'Release artifacts require a clean reviewed checkout',
 );
+execFileSync('pnpm', ['build'], { cwd: root, stdio: 'pipe' });
+assert.equal(git('status', '--porcelain'), '', 'Release build changed tracked source');
 const commit = git('rev-parse', 'HEAD');
 const folders = [
   'receipt-verifier',

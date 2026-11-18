@@ -26,20 +26,25 @@ After the user's token refresh, GitHub GET /user/emails confirmed the primary
 uses that name/email and preserves the unrelated global Git settings. These checks
 establish commit attribution, not signed-commit status or npm rights.
 
-The repository was created private as `1hubengineering/verify_payment_v1`. The five library packages passed private-candidate gates at 991ee9f; all five remain private while the additional browser process gate is checked. No release has been published. npm now separately authenticates `1hubengineering` with email_verified true and
-2FA enabled. The user found `andhub` unavailable and explicitly selected the
-matching personal `@1hubengineering` scope, which needs no organization. Namespace
-rights follow the verified npm account, independently of GitHub access. No package
-has been published. The full nine-cell matrix and hosted minimum-runtime gates
-passed at implementation commit 2c9b626. The ten original source/test/fixture
-files were again compared byte-for-byte to the ignored archive during release
-audit. Dependency notices are recorded in THIRD_PARTY_NOTICES.md; production
-audit reported zero advisories (67 dependencies including optional packages).
-Private candidate commit 991ee9f passed Node 24/26 hosted CI and clean-commit
-artifact validation; a repeated pack produced identical checksums. Registry
-publication remains pending browser sandbox/environment acceptance, final
-eligible artifacts and npm authentication.
+The repository was created private as `1hubengineering/verify_payment_v1`. The
+user explicitly authorized repository/package publishing and releases in the goal.
+The five 0.1.0 libraries passed final private source gates at d60786a, including
+mandatory browser OS sandbox/environment isolation, stored-evidence privacy and
+the full nine-cell matrix on both hosted minimum runtimes. Their private flags
+are removed for publication eligibility. Root/apps/examples/tests remain private.
+No package implementation or GitHub release has been published yet.
 
-Release gate reopened during final browser review: library packages remain private
-while explicit Chromium OS sandbox/environment isolation is validated. Nothing
-is published; the release plan records this new gate and its evidence.
+npm independently authenticates 1hubengineering with verified email and
+auth-and-writes 2FA. The user found andhub unavailable and selected the matching
+personal @1hubengineering namespace, which needs no organization. These rights
+are independent of GitHub access. All five names returned registry 404 before
+publication; that is not a name reservation. Final write/2FA and registry integrity
+remain separate publication gates.
+
+The ten original source/test/fixture files were again compared byte-for-byte to
+the ignored archive during release audit. Selected external license boundaries
+are recorded in THIRD_PARTY_NOTICES.md, including the host-selected LGPL MariaDB
+connector. Production dependency audit reported zero advisories across 67 total
+dependencies. Clean-commit private artifacts passed content/schema/export checks
+and repeated packing produced identical checksums; final eligible artifacts must
+be rebuilt from their actual source commit and checked after registry approval.
