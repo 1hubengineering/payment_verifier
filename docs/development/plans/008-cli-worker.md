@@ -1,5 +1,9 @@
 # Operator CLI and optional worker process
 
+This slice is complete and included in [0.1.0](../releases/0.1.0.md). The acceptance
+counts and next steps below record its original handoff; see the
+[roadmap](../roadmap.md) for current scope.
+
 ## Outcome and scope
 
 Provide private runnable applications using Varlock at startup and the proven

@@ -1,5 +1,9 @@
 # Bound unsupported provider HTML
 
+This slice is complete and included in [0.1.0](../releases/0.1.0.md). The acceptance
+counts and next steps below record its original handoff; see the
+[roadmap](../roadmap.md) for current scope.
+
 ## Outcome and scope
 
 Malformed maximum-size HTML must fail closed with bounded parser work. Preserve

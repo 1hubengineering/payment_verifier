@@ -1,5 +1,9 @@
 # Provider-neutral comparison
 
+This slice is complete and included in [0.1.0](../releases/0.1.0.md). The acceptance
+counts and next steps below record its original handoff; see the
+[roadmap](../roadmap.md) for current scope.
+
 ## Outcome and scope
 
 Slice 1 adds immutable, runtime-validated trusted payment expectations and a pure

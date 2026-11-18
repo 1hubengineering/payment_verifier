@@ -1,5 +1,9 @@
 # Initialize the library development workflow
 
+This slice is complete and included in [0.1.0](../releases/0.1.0.md). The acceptance
+counts and next steps below record its original handoff; see the
+[roadmap](../roadmap.md) for current scope.
+
 Historical initialization record. Current commands and paths are documented in
 [workspace conventions](../conventions.md) and the
 [modernization plan](001-modernize-workspace-conventions.md).

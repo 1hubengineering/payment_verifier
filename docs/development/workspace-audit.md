@@ -7,18 +7,23 @@ follow-up changes and validation.
 
 ## Current implementation and release review
 
-Slices 0–6 are implemented. Commit 2c9b626 passed the full suite locally on Node
-26 and hosted on Node 24/26: 234 fast/application/example/provider cases, 234
-real-engine contract cases across nine cells, 11 frozen cases and installed
-consumers. The SQLite ORM harness now separates native implementations per file
-and process; three repeated 52-case runs followed that correction. The supported
-boundary is explicit in the compatibility document.
+Slices 0–7 are complete. Release source c4464f0 passed pnpm verify locally and
+on hosted Node 24.22.3/26.13.1: 237 fast/application/example/provider cases,
+243 real-engine contract cases across nine cells, all 11 frozen cases, builds,
+types/lint/publint and installed consumers. The SQLite ORM harness separates
+native implementations per file and process; three repeated 52-case runs followed
+that correction. The [compatibility matrix](compatibility.md) gives exact versions.
 
-Release review is tracked in [plan 010](plans/010-release-readiness.md). It adds
-active/ended SQLite scope checks, confirms all ten frozen originals still match,
-checks source/data and external license boundaries, and prepares private 0.1.0
-artifacts. Production audit reports zero advisories. Registry publication and
-release eligibility are still pending; see the roadmap for their current evidence.
+[Plan 010](plans/010-release-readiness.md) records active/ended SQLite scope checks,
+mandatory browser sandbox/environment isolation, bounded stored evidence, source/
+license/identity review and clean rebuilt artifacts. All ten frozen originals
+still match byte-for-byte; production audit reported zero advisories. The five
+0.1.0 npm libraries and [GitHub release](https://github.com/1hubengineering/verify_payment_v1/releases/tag/v0.1.0)
+are public as 1hubengineering. Registry publisher/maintainer, SHA-256/SHA-512 and
+a fresh installed receipt/idempotency/durable-job consumer passed. The tag points
+to c4464f0 and all seven public release downloads match reviewed files. Root/apps/
+examples/tests remain private npm packages. No release blocker remains; see the
+[roadmap](roadmap.md) and [release evidence](releases/0.1.0.md).
 Earlier audit sections below remain the initialization record rather than current
 claims about missing implementation.
 
