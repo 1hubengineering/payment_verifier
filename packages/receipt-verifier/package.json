@@ -18,6 +18,10 @@
     "./providers": {
       "types": "./dist/providers/index.d.mts",
       "import": "./dist/providers/index.mjs"
+    },
+    "./storage": {
+      "types": "./dist/storage.d.mts",
+      "import": "./dist/storage.mjs"
     }
   },
   "scripts": {

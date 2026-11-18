@@ -9,7 +9,7 @@ implementation; a target is not a supported integration until its gate passes.
 | 1. Provider-neutral domain and compare engine | Implemented; local gate passed               | Trusted immutable expectations; exact minor units; explicit field checks; missing/ambiguous evidence fails closed; separate settlement states                                        |
 | 2. Provider extraction and retrieval          | Implemented; synthetic/local gate passed     | Port Telebirr v5 synthetic regression behavior; provider-neutral errors and provenance; bounded allowlisted HTTP; separately packaged CBE browser execution with local failure tests |
 | 3. Storage contract and direct SQL            | Implemented; direct matrix gate passed       | Prototype Kysely; shared real PostgreSQL/MySQL/SQLite tests; atomic claims/evidence/results/outbox; idempotency and rollback; caller-owned connections                               |
-| 4. Drizzle and versioned Prisma               | Next                                         | Explicit client/engine versions; all advertised engine cells pass the shared contract suite and caller transaction tests                                                             |
+| 4. Drizzle and versioned Prisma               | Drizzle matrix passed; Prisma next           | Explicit client/engine versions; all advertised engine cells pass the shared contract suite and caller transaction tests                                                             |
 | 5. CLI and optional durable worker            | Planned                                      | Varlock at startup; durable acceptance, leases/retries, bounds, restart and crash recovery; no lost acknowledged work                                                                |
 | 6. Fastify checkout example                   | Planned                                      | Host auth/order ownership; trusted expectation snapshot; structured outcomes; no fulfillment from receipt alone                                                                      |
 | 7. Release readiness                          | Planned                                      | All three engines and advertised ORM paths proven, migration docs, packaging, provenance/licensing, release policy                                                                   |
@@ -17,7 +17,8 @@ implementation; a target is not a supported integration until its gate passes.
 PostgreSQL, MySQL, and SQLite remain first-release requirements. Delivery can be
 incremental. Direct PostgreSQL 18.7/pg 8.23.1, MySQL 8.4.13/mysql2 3.24.6, and
 SQLite 3.54.1/better-sqlite3 13.2.0 now pass the same 15-case contract suite
-through Kysely 0.29.9. ORM paths remain unimplemented. The frozen SQLite test
+through Kysely 0.29.9. Drizzle 0.45.4 now passes all three engine cells with the exact clients in its
+README; Prisma remains unimplemented. The frozen SQLite test
 continues to prove only the old CLI behavior. Prisma versions must be selected
 and verified when the adapter is implemented; assertions in the initial research
 about future major versions are not adopted as a compatibility guarantee.
@@ -52,6 +53,15 @@ and rejects preparation on caller-scoped adapters. Migrations are explicit,
 repeatable and reject incompatible versions or missing uniqueness constraints.
 Installed SQLite-only consumers need neither pg nor mysql2. Shared-store claims
 coordinate every tenant; independent stores do not coordinate receipt reuse.
+
+Slice 4's [execution plan](plans/005-orm-adapters.md) records the Drizzle matrix
+and the rejected libSQL 0.18.0 concurrency regression. Tested Drizzle SQLite uses
+local-file @libsql/client 0.17.4 / SQLite 3.45.1; better-sqlite3's synchronous
+Drizzle transaction callback is not advertised. Each of the six direct/Drizzle
+cells passes the same 15 contract cases, including actual host ORM transactions.
+Isolated installed ORM consumers use the workspace's skipLibCheck policy for
+Drizzle's upstream TypeScript declarations; strict API/negative type checks pass.
+No Prisma compatibility or public release is claimed yet.
 
 Execution access findings (18 November 2026): GitHub CLI and connector confirm
 `1hubengineering`. After the user refreshed token permissions, `GET /user/emails`

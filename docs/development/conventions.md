@@ -134,3 +134,22 @@ contract suite. CI starts the same pinned services and stops them on completion.
 Storage uses one versioned typed record schema, not separate ORM-owned shadow
 stores. A single migration owner maintains its primary keys and version metadata.
 Hosts retain all connection, transaction, settlement and fulfillment ownership.
+
+## ORM compatibility under validation
+
+Drizzle 0.45.4 is now tested with pg 8.23.1/PostgreSQL 18.7, mysql2
+3.24.6/MySQL 8.4.13 and @libsql/client 0.17.4/local SQLite 3.45.1. libSQL 0.18.0
+is excluded after reproducible concurrency failures; the exact optional peer
+constraint records that measured boundary. The synchronous better-sqlite3 Drizzle
+transaction callback is not advertised for this asynchronous workflow.
+
+The core `/storage` subpath supplies bounded JSON codecs, key/scan validation and
+the custom transaction contract without driver dependencies. ORM adapters reuse
+that schema protocol. Drizzle consumers follow the existing skipLibCheck policy
+because its upstream declarations fail full TypeScript 7 vendor checking. Strict
+API usage and negative transaction typing still pass in isolated installations;
+core and direct-SQL declarations pass full checking.
+
+Registry latest for Prisma CLI pointed to 8.0.0-rc.34 while Prisma Client latest was
+stable 7.10.1. The next integration selects matching stable CLI/client 7.10.1;
+no Prisma compatibility is claimed until its own engine matrix passes.

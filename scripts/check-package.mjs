@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -232,6 +232,112 @@ void verifier;
     ],
     temporary,
   );
+  run(
+    'pnpm',
+    ['pack', '--pack-destination', temporary],
+    join(root, 'packages/receipt-verifier-adapter-drizzle'),
+  );
+  const drizzleArchive = readdirSync(temporary).find(
+    (file) => file.includes('adapter-drizzle') && file.endsWith('.tgz'),
+  );
+  assert.ok(drizzleArchive);
+  const drizzleConsumers = [
+    {
+      engine: 'postgres',
+      driver: 'node-postgres',
+      setup: "import { Pool } from 'pg'; const client = new Pool(); const db = drizzle(client);",
+      cleanup: 'await client.end();',
+      peers: ['pg@8.23.1', '@types/pg@8.23.1'],
+    },
+    {
+      engine: 'mysql',
+      driver: 'mysql2',
+      setup:
+        "import { createPool } from 'mysql2/promise'; const client = createPool({host:'127.0.0.1'}); const db = drizzle(client);",
+      cleanup: 'await client.end();',
+      peers: ['mysql2@3.24.6'],
+    },
+    {
+      engine: 'sqlite',
+      driver: 'libsql',
+      setup:
+        "import { createClient } from '@libsql/client'; const client = createClient({url:'file::memory:'}); const db = drizzle(client);",
+      cleanup: 'client.close();',
+      peers: ['@libsql/client@0.17.4'],
+    },
+  ];
+  for (const { engine, driver, setup, cleanup, peers } of drizzleConsumers) {
+    const directory = join(temporary, `drizzle-${engine}`);
+    mkdirSync(directory);
+    writeFileSync(
+      join(directory, 'package.json'),
+      JSON.stringify({ private: true, type: 'module' }),
+    );
+    run(
+      'npm',
+      [
+        'install',
+        '--ignore-scripts',
+        '--no-audit',
+        '--no-fund',
+        '--package-lock=false',
+        resolve(temporary, archives[0]),
+        resolve(temporary, drizzleArchive),
+        'drizzle-orm@0.45.4',
+        ...peers,
+      ],
+      directory,
+    );
+    const label = engine[0].toUpperCase() + engine.slice(1);
+    const imports = `import { drizzle } from 'drizzle-orm/${driver}';
+import { drizzle${label}Storage, drizzle${label}Transaction, receiptVerifierRecords, receiptVerifierSchema } from '@andhub/receipt-verifier-adapter-drizzle/${engine}';
+${setup}
+`;
+    writeFileSync(
+      join(directory, 'consumer.mjs'),
+      `import assert from 'node:assert/strict';
+${imports}
+assert.equal(drizzle${label}Storage(db).callerTransaction, false);
+assert.throws(() => drizzle${label}Transaction(db), /caller-owned Drizzle transaction/);
+assert.ok(receiptVerifierRecords); assert.ok(receiptVerifierSchema);
+${cleanup}
+`,
+    );
+    run(process.execPath, ['consumer.mjs'], directory);
+    writeFileSync(
+      join(directory, 'consumer.ts'),
+      `${imports}
+import type { VerificationStorage } from '@andhub/receipt-verifier';
+const storage: VerificationStorage = drizzle${label}Storage(db);
+await db.transaction(async (tx) => { const scoped: VerificationStorage = drizzle${label}Transaction(tx); void scoped; });
+// @ts-expect-error A plain ORM handle is not a caller-owned transaction.
+drizzle${label}Transaction(db);
+void [storage, receiptVerifierRecords, receiptVerifierSchema];
+${cleanup}
+`,
+    );
+    run(
+      process.execPath,
+      [
+        join(root, 'node_modules/typescript/bin/tsc'),
+        '--noEmit',
+        '--strict',
+        '--skipLibCheck',
+        '--target',
+        'ES2023',
+        '--module',
+        'NodeNext',
+        '--moduleResolution',
+        'NodeNext',
+        '--types',
+        'node',
+        '--typeRoots',
+        join(root, 'node_modules/@types'),
+        join(directory, 'consumer.ts'),
+      ],
+      directory,
+    );
+  }
   console.log(
     'Packed npm consumer: ESM comparison, exact money, declarations, and dependency boundary passed.',
   );

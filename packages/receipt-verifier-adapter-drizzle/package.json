@@ -1,0 +1,62 @@
+{
+  "name": "@andhub/receipt-verifier-adapter-drizzle",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Versioned Drizzle storage integration for receipt-only verification",
+  "license": "ISC",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./postgres": {
+      "types": "./dist/postgres.d.mts",
+      "import": "./dist/postgres.mjs"
+    },
+    "./mysql": {
+      "types": "./dist/mysql.d.mts",
+      "import": "./dist/mysql.mjs"
+    },
+    "./sqlite": {
+      "types": "./dist/sqlite.d.mts",
+      "import": "./dist/sqlite.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "check:package": "publint --strict"
+  },
+  "dependencies": {
+    "@andhub/receipt-verifier": "workspace:*"
+  },
+  "devDependencies": {
+    "@libsql/client": "0.17.4",
+    "@types/pg": "8.23.1",
+    "drizzle-orm": "0.45.4",
+    "mysql2": "3.24.6",
+    "pg": "8.23.1"
+  },
+  "peerDependencies": {
+    "@libsql/client": "0.17.4",
+    "drizzle-orm": "0.45.4",
+    "mysql2": "3.24.6",
+    "pg": "8.23.1"
+  },
+  "peerDependenciesMeta": {
+    "pg": {
+      "optional": true
+    },
+    "mysql2": {
+      "optional": true
+    },
+    "@libsql/client": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": "^24.22.3 || ^26.13.1"
+  }
+}

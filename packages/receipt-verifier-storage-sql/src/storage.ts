@@ -1,3 +1,11 @@
+import {
+  StorageDataError,
+  validateStorageKey as validateKey,
+  validateStorageScan,
+  encodeStorageRecord as encode,
+  decodeStorageRecord as decode,
+} from '@andhub/receipt-verifier/storage';
+export { StorageDataError } from '@andhub/receipt-verifier/storage';
 import type { Kysely } from 'kysely';
 import { StorageConflict } from '@andhub/receipt-verifier';
 import type {
@@ -16,30 +24,6 @@ export interface SqlStorage extends VerificationStorage {
   migrate(): Promise<void>;
   /** Use the caller's actual Kysely transaction; caller owns commit, rollback and retry. */
   withTransaction(transaction: Kysely<StorageSchema>): VerificationStorage;
-}
-export class StorageDataError extends Error {
-  constructor() {
-    super('Invalid receipt storage data or schema');
-    this.name = 'StorageDataError';
-  }
-}
-function validateKey(key: string): void {
-  if (!/^rv1:[a-z]{1,12}:[a-f0-9]{64}$/.test(key)) throw new StorageDataError();
-}
-function encode(value: unknown): string {
-  const payload = JSON.stringify(value);
-  if (typeof payload !== 'string' || Buffer.byteLength(payload) > 32_000)
-    throw new StorageDataError();
-  return payload;
-}
-function decode(payload: string | undefined): unknown {
-  if (payload === undefined) return undefined;
-  if (Buffer.byteLength(payload) > 32_000) throw new StorageDataError();
-  try {
-    return JSON.parse(payload) as unknown;
-  } catch {
-    throw new StorageDataError();
-  }
 }
 export function isSqlConflict(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
@@ -93,13 +77,7 @@ function transactionRecords(db: Kysely<StorageSchema>, engine: SqlEngine): Recor
       await db.deleteFrom('receipt_verifier_records').where('record_key', '=', key).execute();
     },
     async scan(prefix, limit): Promise<readonly StoredRecord[]> {
-      if (
-        !/^rv1:[a-z]{1,12}:$/.test(prefix) ||
-        !Number.isSafeInteger(limit) ||
-        limit < 1 ||
-        limit > 1000
-      )
-        throw new StorageDataError();
+      validateStorageScan(prefix, limit);
       let query = db
         .selectFrom('receipt_verifier_records')
         .selectAll()

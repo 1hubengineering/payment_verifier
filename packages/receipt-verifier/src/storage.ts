@@ -24,3 +24,10 @@ export class StorageConflict extends Error {
     this.name = 'StorageConflict';
   }
 }
+export {
+  StorageDataError,
+  validateStorageKey,
+  validateStorageScan,
+  encodeStorageRecord,
+  decodeStorageRecord,
+} from './record-codec.ts';
