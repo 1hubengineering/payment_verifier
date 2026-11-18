@@ -72,7 +72,8 @@ unchecked claim API.
 
 The core has no runtime dependencies and performs no import-time I/O. ESM only.
 Supported runtime ranges are `^24.22.3 || ^26.13.1`; CI is configured for both
-minimums. Development uses Node 26 LTS. Database and ORM compatibility is planned.
+minimums. Development uses Node 26 LTS. Direct SQL, Drizzle and Prisma 7 integrations each pass the same real-engine
+contract on PostgreSQL, MySQL and SQLite; see the adapters for exact versions.
 
 ## Provider evidence subpath
 

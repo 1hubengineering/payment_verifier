@@ -1,6 +1,6 @@
 # Drizzle receipt storage
 
-Private development preview. Drizzle **0.45.4** passes the same 15-case contract
+Private development preview. Drizzle **0.45.4** passes the same 26-case contract
 suite on these exact integrations:
 
 | Adapter subpath | Host client                       | Engine                |
@@ -76,3 +76,7 @@ when checked in full by this compiler; no full vendor-declaration compatibility
 is claimed. Strict API assignments and negative caller-transaction checks pass
 with only the selected engine's peers installed. Core/direct-SQL consumers also
 pass full declaration checking without that option.
+
+The shared suite also tests encrypted durable acceptance, queue/alias bounds,
+retry rollback, persisted provider pause, lease fencing, atomic job completion,
+retention and actual SIGKILL recovery/exhaustion on this integration.

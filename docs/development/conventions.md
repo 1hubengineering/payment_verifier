@@ -31,14 +31,14 @@ its original child-process arguments to preserve the regression baseline.
 
 ## Names and package boundaries
 
-| Location                                                  | npm name / role                                                                                                |
-| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `packages/receipt-verifier`                               | `@1hubengineering/receipt-verifier`: public library API and provider-neutral domain                            |
-| `apps/cli`                                                | `@1hubengineering/receipt-verifier-cli`: private executable application boundary; currently configuration only |
-| `tests/reference-cli`                                     | Frozen synthetic source and regression evidence; never a runtime dependency                                    |
-| `scripts`                                                 | Workspace verification utilities                                                                               |
-| `examples/<framework>-<scenario>`                         | Consumer applications when implemented, such as `fastify-checkout`                                             |
-| `docs/library-plan` / `docs/development` / `docs/archive` | Original direction / current workflow and execution plans / historical requirements                            |
+| Location                                                  | npm name / role                                                                        |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `packages/receipt-verifier`                               | `@1hubengineering/receipt-verifier`: public library API and provider-neutral domain    |
+| `apps/cli`                                                | `@1hubengineering/receipt-verifier-cli`: private trusted operator application boundary |
+| `tests/reference-cli`                                     | Frozen synthetic source and regression evidence; never a runtime dependency            |
+| `scripts`                                                 | Workspace verification utilities                                                       |
+| `examples/<framework>-<scenario>`                         | Consumer applications when implemented, such as `fastify-checkout`                     |
+| `docs/library-plan` / `docs/development` / `docs/archive` | Original direction / current workflow and execution plans / historical requirements    |
 
 Use lowercase, descriptive, hyphenated npm names, as recommended by
 [npm package metadata guidance](https://docs.npmjs.com/cli/v11/configuring-npm/package-json/#name).
@@ -49,20 +49,20 @@ scope after finding the provisional `@andhub` name unavailable. All packages rem
 private until release gates pass; no registry publication or name reservation is
 claimed before publishing succeeds.
 
-For future independently installed integrations, use a consistent product prefix:
+Implemented optional integrations use a consistent product prefix:
 
-| Planned folder                              | Planned npm name                                    | Reason to split                                     |
+| Folder                                      | npm name                                            | Reason to split                                     |
 | ------------------------------------------- | --------------------------------------------------- | --------------------------------------------------- |
 | `packages/receipt-verifier-storage-sql`     | `@1hubengineering/receipt-verifier-storage-sql`     | SQL drivers, migrations, and connection integration |
 | `packages/receipt-verifier-adapter-drizzle` | `@1hubengineering/receipt-verifier-adapter-drizzle` | Drizzle peer/version and transaction contract       |
 | `packages/receipt-verifier-adapter-prisma`  | `@1hubengineering/receipt-verifier-adapter-prisma`  | Versioned Prisma client and transaction contract    |
 | `packages/receipt-verifier-provider-cbe`    | `@1hubengineering/receipt-verifier-provider-cbe`    | Optional browser execution dependencies             |
 
-Create these only with actual implementation. Telebirr retrieval and shared extraction use the dependency-free core `/providers`
+Each of these packages now has actual implementation and installed-consumer checks. Telebirr retrieval and shared extraction use the dependency-free core `/providers`
 subpath; CBE browser execution is now implemented in its optional package.
 Small providers may remain core
 subpath exports when their dependencies and release needs do not justify a new
-package. A future worker belongs in `apps/worker`, not a published provider package.
+package. The private worker lives in `apps/worker`, outside published provider packages.
 Use actual workspace dependencies with `workspace:*` when implementation needs
 them. Never put host frameworks, environment loaders, ORM clients, database
 drivers, or Chromium dependencies into the provider-neutral core.
@@ -157,10 +157,20 @@ core and direct-SQL declarations pass full checking.
 
 Registry latest for Prisma CLI pointed to 8.0.0-rc.34 while Prisma Client latest was
 stable 7.10.1. The integration selects matching stable CLI/client and official driver adapters
-7.10.1. All three cells pass the shared 15-case suite on Node 26: pg 8.23.1 /
+7.10.1. All three cells pass the shared contract suite on Node 26: pg 8.23.1 /
 PostgreSQL 18.7, mariadb 3.5.4 / MySQL 8.4.13, better-sqlite3 12.11.1 /
 SQLite 3.53.2. Generated clients match distributed model snippets. Actual
 Serializable caller transactions and installed declarations are tested. Prisma
 8 and other combinations remain unsupported. Hosted CI passed on both Node 24 and 26 for commit 342dbb5, building the native
 dependency for each runtime. The subsequent parser review commit also passed
 both hosted runtime gates.
+
+## Operator applications
+
+`pnpm cli` and `pnpm worker` run private TypeScript entry points through each
+application's Varlock startup schema. Their selected store is local SQLite WAL
+with better-sqlite3 13.2.0; the SDK's wider nine-cell matrix is independent. Both
+apps share the workspace SQLite default, explicit queue key and timeout-derived
+lease policy. Traffic defaults disabled, and CBE requires a second opt-in. CLI
+saved-HTML diagnosis opens no database and cannot claim. The worker emits safe
+outcome classes and handles SIGINT/SIGTERM with abort and owned-handle cleanup.

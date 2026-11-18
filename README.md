@@ -5,7 +5,8 @@ existing backend. Receipt comparison and bounded provider evidence retrieval are
 synthetic/local validation. Direct SQL, Drizzle and Prisma 7 adapters pass the real-engine PostgreSQL/MySQL/SQLite
 matrix. Optional durable jobs add bounded encrypted acceptance and crash recovery.
 All receipt results retain settlement UNCONFIRMED. Packages remain private; the
-CLI/worker applications and checkout example are the next slices.
+CLI and optional worker are implemented as trusted operator tools; the checkout
+example and release gates remain.
 
 ## Develop
 
@@ -31,7 +32,8 @@ see [provenance](docs/development/provenance.md).
 | `packages/receipt-verifier`                                                              | Exact ETB parsing, immutable expectation snapshots, pure receipt comparison; ESM and declarations      |
 | `packages/receipt-verifier-storage-sql`                                                  | Direct SQL with explicit migrations and caller-owned connections                                       |
 | `packages/receipt-verifier-adapter-drizzle` / `packages/receipt-verifier-adapter-prisma` | Versioned real-engine ORM integrations                                                                 |
-| `apps/cli`                                                                               | App-local Varlock schema validation; CLI implementation is pending                                     |
+| `apps/cli`                                                                               | Trusted operator commands with app-local Varlock validation                                            |
+| `apps/worker`                                                                            | Optional bounded SQLite worker with durable recovery                                                   |
 | `tests/reference-cli`                                                                    | Frozen 11-test offline reference, including a cross-process SQLite race                                |
 | `scripts/check-package.mjs`                                                              | Pack the library, install with npm in a temporary consumer, validate JavaScript and TypeScript exports |
 | `docs/development`                                                                       | Audit, roadmap, workflow, review criteria, and execution plans                                         |
@@ -49,3 +51,8 @@ Start with [init-plan.md](docs/library-plan/init-plan.md), then the
 [audit](docs/development/workspace-audit.md), [workflow](docs/development/workflow.md),
 and [roadmap](docs/development/roadmap.md). Codex reads repository conventions from
 [AGENTS.md](AGENTS.md).
+
+Operator commands: `pnpm cli help` and `pnpm worker --help`. See the
+[CLI](apps/cli/README.md), [worker](apps/worker/README.md), and
+[durable job operations](docs/development/durable-jobs.md). Provider traffic
+defaults disabled and queue commands require an explicit encryption key.

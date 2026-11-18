@@ -116,8 +116,12 @@ credentials through the environment when needed. `pnpm db:down` stops only that
 Compose project. Never use application database URLs for the contract suite; its
 runner refuses any host/database other than loopback `receipt_test`.
 
-The same 15-case suite runs on every engine, including independent connections
+The same 26-case suite runs on every engine, including independent connections
 and child processes racing at the commit boundary, caller rollback/commit,
 mid-write failure, tenant isolation, response-loss replay after process restart,
 immutable snapshots, missing/fabricated evidence and schema-version/constraint
 checks. No live financial data or provider calls are used.
+
+The shared suite also tests encrypted durable acceptance, queue/alias bounds,
+retry rollback, persisted provider pause, lease fencing, atomic job completion,
+retention and actual SIGKILL recovery/exhaustion on this integration.

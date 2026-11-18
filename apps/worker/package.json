@@ -1,0 +1,17 @@
+{
+  "name": "@1hubengineering/receipt-verifier-worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "varlock run -- node src/main.ts",
+    "check:env": "varlock load"
+  },
+  "dependencies": {
+    "@1hubengineering/receipt-verifier": "workspace:*",
+    "@1hubengineering/receipt-verifier-cli": "workspace:*"
+  },
+  "devDependencies": {
+    "varlock": "1.25.0"
+  }
+}

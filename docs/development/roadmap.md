@@ -10,7 +10,7 @@ implementation; a target is not a supported integration until its gate passes.
 | 2. Provider extraction and retrieval          | Implemented; synthetic/local gate passed     | Port Telebirr v5 synthetic regression behavior; provider-neutral errors and provenance; bounded allowlisted HTTP; separately packaged CBE browser execution with local failure tests |
 | 3. Storage contract and direct SQL            | Implemented; direct matrix gate passed       | Prototype Kysely; shared real PostgreSQL/MySQL/SQLite tests; atomic claims/evidence/results/outbox; idempotency and rollback; caller-owned connections                               |
 | 4. Drizzle and versioned Prisma               | Implemented; nine-cell matrix passed         | Explicit client/engine versions; all advertised engine cells pass the shared contract suite and caller transaction tests                                                             |
-| 5. CLI and optional durable worker            | Durable API implemented; apps next           | Varlock at startup; durable acceptance, leases/retries, bounds, restart and crash recovery; no lost acknowledged work                                                                |
+| 5. CLI and optional durable worker            | Implemented; local gate passed               | Varlock at startup; durable acceptance, leases/retries, bounds, restart and crash recovery; no lost acknowledged work                                                                |
 | 6. Fastify checkout example                   | Planned                                      | Host auth/order ownership; trusted expectation snapshot; structured outcomes; no fulfillment from receipt alone                                                                      |
 | 7. Release readiness                          | Planned                                      | All three engines and advertised ORM paths proven, migration docs, packaging, provenance/licensing, release policy                                                                   |
 
@@ -77,7 +77,10 @@ committed acceptance, bounded aliases/quotas, shared-store leases and provider
 pauses, stale-owner fencing, retry rollback, atomic terminal jobs and explicit
 retention. The shared matrix now passes 234 cases (26 per cell), including actual
 SIGKILL recovery and repeated crash exhaustion. Full `pnpm verify` and installed-package acceptance passed on Node 26;
-CLI/worker applications are next. See [operations](durable-jobs.md).
+CLI/worker applications pass six offline cases and full `pnpm verify` on Node 26,
+including actual process handoff and graceful SIGTERM exit. Hosted acceptance
+for that commit is pending. See [operations](durable-jobs.md) and the
+[operator application plan](plans/008-cli-worker.md).
 
 Execution access findings (18 November 2026): GitHub CLI and connector confirm
 `1hubengineering`. After the user refreshed token permissions, `GET /user/emails`
