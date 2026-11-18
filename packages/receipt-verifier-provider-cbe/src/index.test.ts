@@ -163,7 +163,10 @@ describe('optional CBE execution with real Chromium and mocked provider transpor
     let launchFailure: unknown;
     const spy = vi.spyOn(chromium, 'launch').mockImplementation(async (options) => {
       const before = children();
-      const browser = await original(options);
+      const browser = await original(options).catch((error) => {
+        launchFailure = error;
+        throw error;
+      });
       try {
         const pid = [...children()].find((id) => !before.has(id));
         expect(pid).toBeDefined();

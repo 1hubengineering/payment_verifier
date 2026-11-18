@@ -29,7 +29,34 @@ jobs:
           run-install: false
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @1hubengineering/receipt-verifier-provider-cbe exec playwright install --with-deps chromium
+      - name: Allow namespaces for pinned Chromium executables
+        run: |
+          python3 - <<'PY'
+          import os
+          import subprocess
+          from pathlib import Path
+          setting = Path('/proc/sys/kernel/apparmor_restrict_unprivileged_userns')
+          if setting.exists() and setting.read_text().strip() == '1':
+              cache = Path.home() / '.cache/ms-playwright'
+              roots = [cache / 'chromium-1255', cache / 'chromium_headless_shell-1255']
+              browsers = sorted(p.resolve() for root in roots for p in root.rglob('*') if p.is_file() and p.name in {'chrome', 'headless_shell', 'chrome-headless-shell'} and os.access(p, os.X_OK))
+              if not browsers:
+                  raise RuntimeError('Pinned Chromium executables not found')
+              profile = Path(os.environ['RUNNER_TEMP']) / 'receipt-chromium.apparmor'
+              blocks = [f'profile receipt-verifier-chromium-{i} "{p}" flags=(unconfined) {{\n  userns,\n}}' for i, p in enumerate(browsers)]
+              profile.write_text('abi <abi/4.0>,\ninclude <tunables/global>\n\n' + '\n\n'.join(blocks) + '\n')
+              subprocess.run(['sudo', 'apparmor_parser', '-r', str(profile)], check=True)
+              print(f'Allowed namespaces for {len(browsers)} pinned browser executables; global restriction stays enabled')
+          else:
+              print('No AppArmor user-namespace restriction to adjust')
+          PY
       - run: pnpm db:up
       - run: pnpm verify
       - if: always()
         run: pnpm db:down
+      - name: Remove disposable browser namespace profiles
+        if: always()
+        run: |
+          if [ -f "$RUNNER_TEMP/receipt-chromium.apparmor" ]; then
+            sudo apparmor_parser -R "$RUNNER_TEMP/receipt-chromium.apparmor"
+          fi

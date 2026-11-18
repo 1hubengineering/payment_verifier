@@ -198,3 +198,10 @@ maintenance in separate short-lived processes. ORM race/replay/crash children op
 only their selected client, not a parallel direct-SQL handle. Public connection
 ownership is unchanged; hosts using a different migration driver should likewise
 run that migration owner as a separate process. Local files only are tested.
+
+Chromium OS sandboxing is mandatory for CBE. Ubuntu hosted runners with AppArmor
+user-namespace restrictions load a temporary executable-scoped permission profile
+for the pinned Playwright browser binaries, then remove it during cleanup. The
+global namespace restriction stays enabled; renderer seccomp and PID namespace
+assertions still run. Production hosts must supply appropriate unprivileged
+sandbox/worker confinement; the SDK has no unsafe sandbox bypass.

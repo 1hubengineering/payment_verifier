@@ -153,3 +153,15 @@ cases include native Linux isolation, no-unsafe-fallback recovery and explicit
 Ethiopian date rendering. The source remains private pending hosted sandbox
 acceptance and fresh eligible artifacts. The registry integrity/owner/consumer
 checker is ready but will only run against approved published versions.
+
+Hosted c7ae3ed failed both runtime gates because browser launches were unavailable
+on Ubuntu runners once native sandboxing was required. Local sandboxed tests
+passed. Improve the test's launch-error diagnostic (without exposing browser
+environment), and add the vendor-documented executable-scoped AppArmor userns
+profile when the runner's namespace restriction is enabled. Keep the global
+restriction enabled, target only the downloaded pinned Chromium binaries, and
+unload those temporary profiles in workflow cleanup. This is disposable CI setup,
+not an SDK fallback or a production system-wide policy change. Actual hosted
+results must confirm the cause and the renderer seccomp/namespace assertions.
+Sources: https://documentation.ubuntu.com/release-notes/24.04/ and
+https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md.
