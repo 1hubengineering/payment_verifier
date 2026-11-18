@@ -12,7 +12,7 @@ frozen source/test/synthetic-fixture files were compared byte-for-byte to its
 entries during initialization and slice 1. Archive SHA-256 and scope are recorded
 in `tests/reference-cli/README.md`. No archived node_modules, real order files,
 databases, credentials, historical diagnostic bypass or original ZIP is published.
-The private GitHub repository contains only reviewed synthetic regression material.
+The public GitHub repository contains only reviewed synthetic regression material.
 
 Provider extraction is derived from this user-owned reference behavior. Third-party
 libraries and tools retain their respective licenses; the project's ISC grant does
@@ -32,19 +32,26 @@ The five 0.1.0 libraries passed final private source gates at d60786a, including
 mandatory browser OS sandbox/environment isolation, stored-evidence privacy and
 the full nine-cell matrix on both hosted minimum runtimes. Their private flags
 are removed for publication eligibility. Root/apps/examples/tests remain private.
-No package implementation or GitHub release has been published yet.
+Final eligible source c4464f0 passed both hosted runtimes in run 44339379792.
+The repository is now public. Five reviewed 0.1.0 archives are staged as
+1hubengineering; downloading each stage reproduces its source-bound hashes.
+Validation is complete, but mandatory npm 2FA approval remains. Only npm
+0.0.0-stage placeholders are public; no SDK implementation or GitHub release
+is published yet. The draft carries the exact five archives, checksum file
+and source manifest. See [release evidence](releases/0.1.0.md).
 
 npm independently authenticates 1hubengineering with verified email and
 auth-and-writes 2FA. The user found andhub unavailable and selected the matching
 personal @1hubengineering namespace, which needs no organization. These rights
 are independent of GitHub access. All five names returned registry 404 before
-publication; that is not a name reservation. Final write/2FA and registry integrity
-remain separate publication gates.
+publication; that is not a name reservation. Successful staging establishes write access for these names. Final 2FA approval,
+registry ownership/integrity and installed registry checks remain publication gates.
 
 The ten original source/test/fixture files were again compared byte-for-byte to
 the ignored archive during release audit. Selected external license boundaries
 are recorded in THIRD_PARTY_NOTICES.md, including the host-selected LGPL MariaDB
 connector. Production dependency audit reported zero advisories across 67 total
 dependencies. Clean-commit private artifacts passed content/schema/export checks
-and repeated packing produced identical checksums; final eligible artifacts must
-be rebuilt from their actual source commit and checked after registry approval.
+and repeated packing produced identical checksums. Final eligible artifacts were
+rebuilt from clean c4464f0, passed npm dry runs and matched staged downloads.
+Actual registry-installed checks still require approval of version 0.1.0.

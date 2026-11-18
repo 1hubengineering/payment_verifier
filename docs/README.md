@@ -16,7 +16,8 @@ encryption, leases and maintenance ownership.
 auth/order integration while keeping settlement and fulfillment independent.
 
 [Compatibility](development/compatibility.md), [migrations](development/migrations.md),
-[release policy](development/release-policy.md), and
+[release policy](development/release-policy.md),
+[0.1.0 release evidence](development/releases/0.1.0.md), and
 [third-party notices](../THIRD_PARTY_NOTICES.md) define release boundaries.
 
 [Execution plans](development/plans/) record substantial implementation work.

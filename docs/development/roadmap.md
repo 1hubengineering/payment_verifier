@@ -13,16 +13,20 @@ publication. Historical examples are not additional compatibility promises.
 | 4. Drizzle and Prisma        | Complete                             | Native ORM queries/transactions; all nine direct/ORM cells pass the same 27 cases                                                 |
 | 5. CLI and durable worker    | Complete                             | Encrypted committed acceptance, bounds, retries/leases/fencing, actual crash/restart recovery, Varlock apps and graceful shutdown |
 | 6. Fastify checkout          | Complete                             | Host auth/order/admission callbacks, strict locator-only input, scoped status, independent settlement/fulfillment                 |
-| 7. Release readiness         | Eligible; final publication pending  | Source/licensing/identity/matrix gates passed; final eligible artifacts, registry approval and release verification remain        |
+| 7. Release readiness         | Implemented; npm approval pending    | Source public; reviewed 0.1.0 artifacts staged; npm 2FA approval and registry/release verification remain                         |
 
 Current source acceptance: **237 fast/application/example/provider cases,
 243 real-engine contract cases (nine cells × 27), and 11 frozen reference cases**,
 plus environment/schema generation, five builds, formatting/lint/strict types,
-publint and isolated installed npm consumers. Commit d60786a passed full hosted
-CI on Node 24.22.3 and 26.13.1:
-[run 44337692743](https://github.com/1hubengineering/verify_payment_v1/actions/runs/44337692743).
-The final metadata/artifact commit requires its own exact-head gates before a
-registry write. No npm implementation or GitHub release is published yet.
+publint and isolated installed npm consumers. The release source commit
+[c4464f0](https://github.com/1hubengineering/verify_payment_v1/commit/c4464f0f26db808806d4877fc57b0254ba495c38)
+passed full hosted CI on Node 24.22.3 and 26.13.1:
+[run 44339379792](https://github.com/1hubengineering/verify_payment_v1/actions/runs/44339379792).
+Source is public. All five 0.1.0 implementation archives are staged and ready for
+npm 2FA approval; their downloaded bytes match the reviewed checksums. npm
+0.0.0-stage placeholders are public, but the implementations are not published.
+The GitHub release remains a draft. [Release evidence](releases/0.1.0.md) records
+artifact hashes, stage IDs and the remaining authentication/verification gate.
 
 The [compatibility matrix](compatibility.md) lists exact engine/client versions.
 Direct Kysely, Drizzle 0.45.4 and Prisma 7.10.1 each cover PostgreSQL, MySQL and

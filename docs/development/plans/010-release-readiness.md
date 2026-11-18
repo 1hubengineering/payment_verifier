@@ -15,8 +15,10 @@ on nine real engine/ORM cells, all 11 frozen cases, schema/config generation,
 five builds, formatting/lint/strict types, publint and isolated npm consumers.
 Hosted [run 44337692743](https://github.com/1hubengineering/verify_payment_v1/actions/runs/44337692743)
 is green on both runtimes. Earlier source commits and discoveries remain in their
-slice plans/Git history. All packages are unpublished; final metadata/artifact
-checks and registry approval follow the private source gate.
+slice plans/Git history. Final eligible source c4464f0 passed the same full local checks and hosted
+[run 44339379792](https://github.com/1hubengineering/verify_payment_v1/actions/runs/44339379792)
+on both runtimes. Source is public. All five SDK archives are staged and ready
+for mandatory npm 2FA approval; no 0.1.0 implementation is published.
 
 ## Steps
 
@@ -25,10 +27,12 @@ checks and registry approval follow the private source gate.
 - [x] Document exact compatibility, migrations, retention and release policy.
 - [x] Prepare version metadata and clean-commit artifact/checksum tooling.
 - [x] Verify private source, review installed artifacts, commit and pass both hosted runtimes.
-- [ ] Remove private only from eligible libraries; verify/commit and pass exact-head CI.
-- [ ] Recheck identities/scope, publish repository and stage/publish reviewed artifacts.
+- [x] Remove private only from eligible libraries; verify/commit and pass exact-head CI.
+- [x] Recheck identities/scope, publish repository and stage reviewed artifacts.
+- [ ] Complete mandatory npm 2FA approval of all five staged 0.1.0 packages.
 - [ ] Verify registry owners/integrity and installed registry consumer; create release.
-- [ ] Reconcile roadmap/provenance/release evidence and report actual publication or blockers.
+- [x] Reconcile roadmap/provenance/release evidence with staged status and concrete blocker.
+- [ ] Reconcile again after registry verification and public release.
 
 ## Validation
 
@@ -100,13 +104,19 @@ npm omitted files. GitHub login/verified primary email and npm login/verified em
 auth-and-writes 2FA were independently rechecked; all five names initially returned
 404, which is no reservation or publication proof.
 
-Implementation and private source gates are complete. Final eligibility metadata,
-clean rebuilt artifacts, exact-head hosted checks and actual registry approval/
-verification remain. If npm's final factor requires the user, first finish all
-reviewable artifacts and independent work, then request only that authentication.
+Implementation, final eligibility metadata, clean rebuilt artifacts and exact-head
+hosted checks are complete. Actual registry approval/verification remains. The user
+has been asked to complete only npm's mandatory 2FA factor in Staged Packages; no
+organization or new account is needed. All five stages now have status staged,
+so npm validation is complete. Do not infer approval from elapsed time.
 
 Final eligibility metadata passed local pnpm verify with 237 fast/provider/app
 cases, all 243 real-engine cases, 11 frozen cases and installed consumers. Only
 the five libraries have private=false. Preparation now rebuilds from clean HEAD
 and refuses tracked changes, binding packed output to current reviewed source.
-The eligibility commit's hosted checks and rebuilt checksum manifest are next.
+The eligibility commit c4464f0 passed both hosted runtimes. Its clean preparation,
+repeated packing and npm dry runs produced identical bytes; downloaded stages
+match both SHA-256 and SHA-512 for all five packages. Source publication is verified
+anonymously. The draft GitHub release holds all seven reviewed assets and remains
+a draft until registry checks pass. [Release evidence](../releases/0.1.0.md)
+records the exact source, hashes, stage IDs and remaining checks.

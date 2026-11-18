@@ -3,10 +3,11 @@
 A TypeScript workspace for embedding receipt verification into an existing backend.
 Core comparison, bounded providers, nine real SQL/ORM integrations, durable jobs,
 operator apps and the checkout example are implemented and tested. Receipt results
-always retain settlement UNCONFIRMED. All five 0.1.0 libraries passed the private source gates on Node 24/26 and are
-eligible for publication after final artifact/metadata validation. Root, operator
-apps, example and tests stay private.
-No registry version or release has been published.
+always retain settlement UNCONFIRMED. All five 0.1.0 libraries passed final local
+and hosted Node 24/26 checks. Source is public; the reviewed npm implementations
+are staged, awaiting account 2FA approval. Public 0.0.0-stage placeholders contain
+no SDK implementation. The GitHub release is a draft. Root, operator apps, example
+and tests stay private. See [release evidence](docs/development/releases/0.1.0.md).
 
 ## Develop
 
