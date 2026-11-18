@@ -1,5 +1,9 @@
 # Project skills and MCP
 
+For help using the SDK in another application, see the
+[Payment Verifier skills and documentation MCP](../0.1.0/agents.md).
+This page covers contributor tools for working on the repository itself.
+
 Neither skills nor MCP are required to install the SDK, run its tests, or build
 the static documentation and demo. They are local contributor tools.
 

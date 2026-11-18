@@ -5,44 +5,90 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Integrate Ethiopian receipt verification into your TypeScript backend."
+      content="Verify Ethiopian payment receipts from your Node.js backend."
     />
-    <title>Payment Verifier · Integration Guide</title>
+    <title>Payment Verifier · Receipt verification for Node.js</title>
     <link rel="stylesheet" href="./src/site.css" />
   </head>
-  <body>
-    <a class="skip-link" href="#main">Skip to content</a>
-    <header class="site-header">
-      <nav class="site-shell site-nav" aria-label="Main">
-        <a class="wordmark" href="./" aria-current="page">Payment Verifier</a>
-        <div class="nav-links">
-          <a href="#contributor-setup">Contributor setup</a>
-          <a href="./demo/">Checkout demo</a>
-          <a href="https://github.com/1hubengineering/payment_verifier">GitHub</a>
+  <body class="developer-site">
+    <!-- developer-nav -->
+    <main id="main" tabindex="-1">
+      <!-- Adapted from the free Shadcnblocks Hero 1 for this documentation site. -->
+      <section class="site-shell developer-hero">
+        <div class="hero-copy">
+          <p class="release-label"><span aria-hidden="true"></span> TYPESCRIPT SDK · V0.1.0</p>
+          <h1>Verify Ethiopian payment receipts.</h1>
+          <p>
+            Check Telebirr and CBE receipt evidence against your own orders. Keep settlement and
+            delivery decisions in your backend.
+          </p>
+          <div class="hero-actions">
+            <a class="primary-cta" href="./docs/#quickstart"
+              >Run the quickstart <span aria-hidden="true">↗</span></a
+            >
+            <a class="secondary-cta" href="./demo/">Try the checkout demo</a>
+          </div>
+          <code class="install-line">npm install @1hubengineering/receipt-verifier@0.1.0</code>
         </div>
-      </nav>
-    </header>
-    <main id="main" class="site-shell" tabindex="-1">
-      <section class="guide-hero">
-        <p class="eyebrow">TYPESCRIPT SDK · ETHIOPIA</p>
-        <h1>Verify receipts.<br />Keep settlement separate.</h1>
-        <p>
-          Embed receipt checks in your backend while keeping orders, bank settlement, and
-          fulfillment under your control.
-        </p>
-        <a class="site-cta" href="./demo/"
-          >Try the synthetic checkout <span aria-hidden="true">→</span></a
+        <div class="receipt-illustration" aria-label="Example receipt verification output">
+          <div class="illustration-top"><span>RECEIPT CHECK</span><span>01 / 01</span></div>
+          <div class="illustration-content">
+            <p class="illustration-kicker">SYNTHETIC ORDER #1234</p>
+            <p class="illustration-total">ETB 500.00</p>
+            <dl>
+              <div>
+                <dt>Receipt details</dt>
+                <dd>Match</dd>
+              </div>
+              <div>
+                <dt>Settlement</dt>
+                <dd>Unconfirmed</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </section>
+      <section class="site-shell developer-path" aria-labelledby="path-title">
+        <p class="section-kicker">DEVELOPER GUIDE</p>
+        <h2 id="path-title">From install to integration</h2>
+        <div class="path-grid">
+          <a href="./docs/#quickstart"
+            ><span>01</span>
+            <h3>Run an example</h3>
+            <p>Compare a synthetic receipt in Node.js. No bank or database required.</p></a
+          >
+          <a href="./docs/#storage"
+            ><span>02</span>
+            <h3>Choose an adapter</h3>
+            <p>
+              Connect PostgreSQL, MySQL, or local SQLite through direct SQL, Drizzle, or Prisma.
+            </p></a
+          >
+          <a href="./api/"
+            ><span>03</span>
+            <h3>Look up an export</h3>
+            <p>Search the types and functions shipped in release 0.1.0.</p></a
+          >
+        </div>
+      </section>
+      <section class="site-shell agent-banner">
+        <div>
+          <p class="section-kicker">AGENT TOOLING</p>
+          <h2>Bring the docs into your editor</h2>
+          <p>
+            Install a setup or troubleshooting skill. Connect the read-only documentation MCP server
+            when you need exact types or examples.
+          </p>
+        </div>
+        <a class="secondary-cta" href="./docs/#agents"
+          >Set up agent tools <span aria-hidden="true">↗</span></a
         >
       </section>
-      <article class="guide" aria-label="Integration guide">
-        <!-- integration-guide -->
-      </article>
-      <article id="contributor-setup" class="guide" aria-label="Contributor setup">
-        <!-- contributor-setup -->
-      </article>
     </main>
     <footer class="site-shell site-footer">
-      Payment Verifier · <a href="./shadcn-ui-LICENSE.txt">UI license</a> ·
+      <a href="https://github.com/1hubengineering/payment_verifier">Source and issues</a> ·
+      <a href="https://www.shadcnblocks.com/block/hero1">Hero adapted from Shadcnblocks</a> ·
+      <a href="./shadcn-ui-LICENSE.txt">UI license</a> ·
       <a href="./dependency-licenses.md">Bundled dependency licenses</a>
     </footer>
   </body>

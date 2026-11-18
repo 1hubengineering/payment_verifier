@@ -15,8 +15,10 @@
     "test:watch": "vp test",
     "test:reference": "node --test tests/reference-cli/tests/verify.test.ts",
     "build": "vp run --filter \"./packages/*\" --fail-if-no-match build",
-    "verify": "vp run check:env && vp run generate && vp run build && vp run check:drizzle && vp run check && vp run typecheck && vp run test && vp run test:reference && vp run check:package && vp run build:site",
-    "build:site": "vp run @1hubengineering/receipt-verifier-checkout-web#build",
+    "verify": "vp run check:env && vp run generate && vp run build && vp run check:drizzle && vp run check && vp run typecheck && vp run test && vp run test:reference && vp run check:package && vp run build:site && vp run docs:smoke",
+    "build:site": "pnpm docs:prepare && vp run @1hubengineering/receipt-verifier-checkout-web#build",
+    "docs:prepare": "node scripts/prepare-docs.mjs",
+    "docs:smoke": "node scripts/check-docs-mcp.mjs",
     "setup:browsers": "vp run @1hubengineering/receipt-verifier-provider-cbe#setup:browsers",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
@@ -24,17 +26,21 @@
     "cli": "vp run @1hubengineering/receipt-verifier-cli#start",
     "worker": "vp run @1hubengineering/receipt-verifier-worker#start",
     "checkout": "vp run @1hubengineering/receipt-verifier-fastify-checkout#start",
-    "checkout:web": "vp run @1hubengineering/receipt-verifier-checkout-web#dev",
+    "checkout:web": "pnpm docs:prepare && vp run @1hubengineering/receipt-verifier-checkout-web#dev",
     "release:prepare": "node scripts/prepare-release.mjs",
     "release:check": "node scripts/check-published.mjs",
     "check:drizzle": "vp run @1hubengineering/receipt-verifier-adapter-drizzle#check:kit"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "2.4.0",
+    "@modelcontextprotocol/server": "2.4.0",
     "@types/node": "24.19.2",
     "node-gyp": "13.1.0",
     "publint": "0.3.25",
     "typescript": "7.0.2",
-    "vite-plus": "1.7.0"
+    "typescript-docs-parser": "npm:typescript@6.0.3",
+    "vite-plus": "1.7.0",
+    "zod": "4.6.7"
   },
   "engines": {
     "node": "^24.22.3 || ^26.13.1"

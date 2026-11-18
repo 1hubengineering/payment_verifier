@@ -1,12 +1,13 @@
 # Payment Verifier
 
-Embed Ethiopian payment receipt verification in your TypeScript backend. Compare
-receipt evidence with a trusted order, record claims in a shared store, and keep
-bank settlement and fulfillment under your application's control.
+Check Telebirr and CBE receipt evidence against orders in your Node.js backend.
+Payment Verifier compares the details and can record a claim in a shared SQL store
+to prevent receipt reuse. Your app decides when a payment has settled and when to deliver.
 
 **A receipt match does not confirm settlement or authorize delivery.**
 
-[Integration guide](https://1hubengineering.github.io/payment_verifier/) ·
+[Developer guide](https://1hubengineering.github.io/payment_verifier/docs/) ·
+[API reference](https://1hubengineering.github.io/payment_verifier/api/) ·
 [Interactive checkout demo](https://1hubengineering.github.io/payment_verifier/demo/) ·
 [Release v0.1.0](https://github.com/1hubengineering/payment_verifier/releases/tag/v0.1.0)
 
@@ -16,12 +17,17 @@ bank settlement and fulfillment under your application's control.
 npm install @1hubengineering/receipt-verifier@0.1.0
 ```
 
-Start with the [core SDK quickstart](packages/receipt-verifier/README.md) and the
-[integration guide](docs/guide.md). The core has no runtime dependencies or
-implicit configuration. Choose a storage adapter and receipt provider explicitly.
-Five npm packages are published at `0.1.0`; the source tree's Drizzle v1 RC changes
-are not part of that release. Check the [compatibility matrix](docs/development/compatibility.md)
-before selecting a driver or ORM version.
+Run the [0.1.0 quickstart](https://1hubengineering.github.io/payment_verifier/docs/#quickstart)
+to compare two synthetic records without a bank connection or database. To wire up
+your application, choose [direct SQL, Drizzle, or Prisma](https://1hubengineering.github.io/payment_verifier/docs/#storage).
+The published Drizzle adapter requires ORM `0.45.4`; the source tree's v1 RC changes
+are not part of npm `0.1.0`.
+
+## Agent tools
+
+The [agent setup guide](docs/0.1.0/agents.md) covers installation of the Payment
+Verifier skills and a local MCP server that searches the 0.1.0 guides, examples,
+and public TypeScript exports.
 
 ## Examples
 

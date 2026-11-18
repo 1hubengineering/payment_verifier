@@ -52,3 +52,10 @@ The separate static React example includes MIT-licensed shadcn/ui primitives.
 The [upstream notice](examples/checkout-web/public/shadcn-ui-LICENSE.txt) is
 preserved in the example and copied to its build output, alongside the bundled
 dependency licenses. No Shadcnblocks Pro source or assets are included.
+
+The public documentation site adapts the free [Shadcnblocks Hero 1](https://www.shadcnblocks.com/block/hero1)
+as part of the finished site under the [Free Blocks end-product terms](https://www.shadcnblocks.com/terms#free-blocks).
+The adaptation is only in the homepage, outside SDK packages, reusable checkout components,
+skills, and example source offered through MCP. No registry files or upstream images ship.
+Shadcnblocks retains its rights; this project's ISC license does not license that adaptation
+for extraction into a template or library.
