@@ -5,7 +5,11 @@ import {
   retrieveHtml,
   RetrievalError,
 } from '@1hubengineering/receipt-verifier/providers';
-import type { ProviderResult, RetrievalOptions } from '@1hubengineering/receipt-verifier/providers';
+import type {
+  ProviderResult,
+  RetrievalOptions,
+  ReceiptLocator,
+} from '@1hubengineering/receipt-verifier/providers';
 import { renderCbeHtml } from './render.ts';
 
 export interface CbeProvider {
@@ -27,7 +31,12 @@ export function createCbeProvider(options: { readonly maxConcurrency?: number } 
       active++;
       const started = Date.now();
       try {
-        const locator = normalizeReceiptLocator('cbe', input);
+        let locator: ReceiptLocator;
+        try {
+          locator = normalizeReceiptLocator('cbe', input);
+        } catch {
+          return { kind: 'UNAVAILABLE', code: 'INVALID_LOCATOR' };
+        }
         const retrieved = await retrieveHtml(locator, bounds);
         const remaining = (bounds.timeoutMs ?? 15_000) - (Date.now() - started);
         if (remaining <= 0) throw new RetrievalError('TIMEOUT');
@@ -49,7 +58,6 @@ export function createCbeProvider(options: { readonly maxConcurrency?: number } 
         };
       } catch (error) {
         if (error instanceof RetrievalError) return { kind: 'UNAVAILABLE', code: error.code };
-        if (error instanceof TypeError) return { kind: 'UNAVAILABLE', code: 'INVALID_LOCATOR' };
         if (error instanceof Error && error.name === 'TimeoutError')
           return { kind: 'UNAVAILABLE', code: 'TIMEOUT' };
         return { kind: 'UNAVAILABLE', code: 'PROVIDER_UNAVAILABLE' };

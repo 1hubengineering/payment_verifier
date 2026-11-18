@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { ReceiptEvidence } from '../comparison.ts';
 import { parseReceiptHtml } from './extraction.ts';
 import { normalizeReceiptLocator } from './locator.ts';
+import type { ReceiptLocator } from './locator.ts';
 import { retrieveHtml, RetrievalError } from './https.ts';
 import type { RetrievalErrorCode, RetrievalOptions } from './https.ts';
 export { parseReceiptHtml, parseProviderTime } from './extraction.ts';
@@ -30,7 +31,12 @@ export async function retrieveTelebirr(
   options: RetrievalOptions = {},
 ): Promise<ProviderResult> {
   try {
-    const locator = normalizeReceiptLocator('telebirr', input);
+    let locator: ReceiptLocator;
+    try {
+      locator = normalizeReceiptLocator('telebirr', input);
+    } catch {
+      return { kind: 'UNAVAILABLE', code: 'INVALID_LOCATOR' };
+    }
     const { html } = await retrieveHtml(locator, options);
     const parsed = parseReceiptHtml('telebirr', html, locator.transactionId!);
     return Object.freeze({
@@ -46,7 +52,6 @@ export async function retrieveTelebirr(
     });
   } catch (error) {
     if (error instanceof RetrievalError) return { kind: 'UNAVAILABLE', code: error.code };
-    if (error instanceof TypeError) return { kind: 'UNAVAILABLE', code: 'INVALID_LOCATOR' };
     return { kind: 'UNAVAILABLE', code: 'PROVIDER_UNAVAILABLE' };
   }
 }

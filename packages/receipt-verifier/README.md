@@ -115,3 +115,11 @@ storage work. `submit` combines those steps. A caller-owned transaction may comp
 a previously prepared token but cannot prepare provider work inside that transaction.
 The SQL package documents connection ownership, replay, migrations and durable events.
 No receipt-only result authorizes settlement, credit or fulfillment.
+
+HTML extraction accepts explicit, balanced row/cell/span layouts. The scanner
+advances monotonically through at most 2 MB, 8192 structural tokens, 4096
+characters per tag, 128 cells per row and 8192 characters per field. Unsupported
+or malformed structures throw a generic error; retrieved parser failures become
+provider unavailability. Scripts/comments and raw-text content do not supply
+evidence. Entities decode once and escaped markup remains text. These limits
+are conservative compatibility boundaries, not browser-style HTML repair.

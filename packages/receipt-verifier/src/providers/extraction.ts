@@ -15,24 +15,162 @@ export interface ParsedReceipt {
 
 function clean(value: string): string {
   return value
-    .replace(/<[^>]*>/gu, ' ')
-    .replace(/&(?:nbsp|#160);/giu, ' ')
-    .replace(/&amp;/giu, '&')
-    .replace(/&quot;/giu, '"')
-    .replace(/&apos;/giu, "'")
     .replace(
-      /&#(?:x([0-9a-f]+)|([0-9]+));/giu,
-      (_whole: string, hex: string | undefined, dec: string | undefined) => {
+      /&(?:#x([0-9a-f]+)|#([0-9]+)|(nbsp|amp|quot|apos|lt|gt));/giu,
+      (
+        whole: string,
+        hex: string | undefined,
+        dec: string | undefined,
+        named: string | undefined,
+      ) => {
+        if (named)
+          return (
+            (
+              { nbsp: ' ', amp: '&', quot: '"', apos: "'", lt: '<', gt: '>' } as Record<
+                string,
+                string
+              >
+            )[named.toLowerCase()] ?? whole
+          );
         const code = Number.parseInt(hex ?? dec ?? '', hex ? 16 : 10);
         return code >= 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff)
           ? String.fromCodePoint(code)
           : '';
       },
     )
-    .replace(/&lt;/giu, '<')
-    .replace(/&gt;/giu, '>')
     .replace(/\s+/gu, ' ')
     .trim();
+}
+interface ReceiptLayout {
+  rows: string[][];
+  spans: string[];
+  text: string;
+}
+/** Monotonic scanner for supported layouts; intentionally does not repair malformed HTML. */
+function layout(html: string): ReceiptLayout {
+  // ASCII-only folding preserves offsets even for Unicode case expansions.
+  const lower = html.replace(/[A-Z]/gu, (char) => char.toLowerCase());
+  const rows: string[][] = [],
+    spans: string[] = [],
+    visible: string[] = [];
+  let row: string[] | undefined, cell: string[] | undefined, span: string[] | undefined;
+  let cellTag: string | undefined;
+  let cellLength = 0,
+    spanLength = 0,
+    tags = 0,
+    cursor = 0;
+  function invalid(): never {
+    throw new TypeError('Unsupported receipt HTML structure');
+  }
+  const append = (part: string): void => {
+    visible.push(part);
+    if (cell) {
+      cellLength += part.length;
+      if (cellLength > 8192) invalid();
+      cell.push(part);
+    }
+    if (span) {
+      spanLength += part.length;
+      if (spanLength > 8192) invalid();
+      span.push(part);
+    }
+  };
+  // Each invocation consumes a disjoint tag; quoted > characters are attributes.
+  const tagEnd = (start: number): number => {
+    let quote = '';
+    for (let i = start + 1; i < html.length && i - start <= 4096; i++) {
+      const char = html[i]!;
+      if (quote) {
+        if (char === quote) quote = '';
+      } else if (char === '"' || char === "'") quote = char;
+      else if (char === '>') return i;
+      else if (char === '<') return invalid();
+    }
+    return invalid();
+  };
+  while (cursor < html.length) {
+    const open = html.indexOf('<', cursor);
+    if (open === -1) {
+      append(html.slice(cursor));
+      cursor = html.length;
+      break;
+    }
+    append(html.slice(cursor, open));
+    if (++tags > 8192) invalid();
+    if (html.startsWith('<!--', open)) {
+      const end = html.indexOf('-->', open + 4);
+      if (end === -1) invalid();
+      cursor = end + 3;
+      append(' ');
+      continue;
+    }
+    const end = tagEnd(open);
+    const token = lower.slice(open + 1, end);
+    const match = /^(\/)?([a-z][a-z0-9-]*)(?=[\s/]|$)/u.exec(token);
+    cursor = end + 1;
+    if (!match) {
+      if (!/^!doctype(?:\s|$)/u.test(token)) invalid();
+      append(' ');
+      continue;
+    }
+    const closing = Boolean(match[1]),
+      name = match[2]!;
+    if (closing && !/^\/[a-z][a-z0-9-]*\s*$/u.test(token)) invalid();
+    if (['script', 'style', 'noscript', 'textarea', 'title', 'iframe', 'xmp'].includes(name)) {
+      if (closing || /\/\s*$/u.test(token)) invalid();
+      let close = cursor;
+      for (;;) {
+        close = lower.indexOf(`</${name}`, close);
+        if (close === -1) invalid();
+        const boundary = lower[close + name.length + 2];
+        if (boundary === '>' || /\s/u.test(boundary ?? '')) break;
+        close += name.length + 2;
+      }
+      const closeEnd = tagEnd(close);
+      if (!new RegExp(`^/${name}\\s*$`, 'u').test(lower.slice(close + 1, closeEnd))) invalid();
+      cursor = closeEnd + 1;
+      append(' ');
+      continue;
+    }
+    if (['tr', 'td', 'th', 'span'].includes(name) && /\/\s*$/u.test(token)) invalid();
+    if (name === 'tr') {
+      if (closing) {
+        if (!row || cell || span) invalid();
+        rows.push(row);
+        row = undefined;
+      } else {
+        if (row || cell || span) invalid();
+        row = [];
+      }
+    } else if (name === 'td' || name === 'th') {
+      if (!row || span) invalid();
+      if (closing) {
+        if (!cell || cellTag !== name) invalid();
+        row.push(clean(cell.join('')));
+        cell = undefined;
+        cellTag = undefined;
+        if (row.length > 128) invalid();
+      } else {
+        if (cell) invalid();
+        cell = [];
+        cellLength = 0;
+        cellTag = name;
+      }
+    } else if (name === 'span') {
+      if (closing) {
+        if (!span) invalid();
+        spans.push(clean(span.join('')));
+        span = undefined;
+      } else {
+        if (span) invalid();
+        span = [];
+        spanLength = 0;
+      }
+    }
+    append(' ');
+  }
+  if (row || cell || span) invalid();
+  return { rows, spans, text: clean(visible.join('')) };
 }
 function key(value: string): string {
   return value
@@ -165,10 +303,11 @@ const aliases: Readonly<Partial<Record<EvidenceField, readonly string[]>>> = {
   transactionAt: ['Payment date', 'Transaction date', 'Date & Time', 'Date', 'Payment Date & Time'],
   paymentType: ['Payment Type'],
 };
+const fields = new Map<string, EvidenceField>(
+  (Object.keys(aliases) as EvidenceField[]).flatMap((f) => aliases[f]!.map((a) => [key(a), f])),
+);
 function field(label: string): EvidenceField | undefined {
-  return (Object.keys(aliases) as EvidenceField[]).find((f) =>
-    aliases[f]!.some((a) => key(a) === key(label)),
-  );
+  return fields.get(key(label));
 }
 function money(value: string): { amount: EtbMinorUnits | null; currency: string | null } {
   const m =
@@ -210,12 +349,7 @@ export function parseReceiptHtml(
     throw new TypeError('Invalid or oversized receipt HTML');
   if (expectedTransactionId !== undefined && !/^[A-Z0-9]{6,32}$/.test(expectedTransactionId))
     throw new TypeError('Invalid expected transaction ID');
-  const stripped = html
-    .replace(/<(script|style|noscript)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, ' ')
-    .replace(/<!--[\s\S]*?-->/gu, ' ');
-  const rows = [...stripped.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr\s*>/gi)].map((row) =>
-    [...row[1]!.matchAll(/<(td|th)\b[^>]*>([\s\S]*?)<\/\1\s*>/gi)].map((cell) => clean(cell[2]!)),
-  );
+  const { rows, spans, text } = layout(html);
   const values = new Map<EvidenceField, string[]>();
   const add = (f: EvidenceField, value: string): void => {
     const list = values.get(f) ?? [];
@@ -235,7 +369,8 @@ export function parseReceiptHtml(
       headers.includes('amountMinor')
     ) {
       // Read all contiguous value rows; multiple receipts are ambiguous, never first-wins.
-      for (const next of rows.slice(i + 1)) {
+      for (let j = i + 1; j < rows.length; j++) {
+        const next = rows[j]!;
         if (next.length !== row.length || next.some((v) => field(v) !== undefined)) break;
         headers.forEach((f, index) => {
           if (f) add(f, next[index] ?? '');
@@ -243,9 +378,6 @@ export function parseReceiptHtml(
       }
     }
   }
-  const spans = [...stripped.matchAll(/<span\b[^>]*>([\s\S]*?)<\/span\s*>/gi)].map((m) =>
-    clean(m[1]!),
-  );
   let receiver = false;
   for (let i = 0; i + 1 < spans.length; i++) {
     const label = spans[i]!,
@@ -261,8 +393,7 @@ export function parseReceiptHtml(
     }
   }
   if (provider === 'cbe') {
-    for (const found of clean(stripped).matchAll(/\bStatus:\s*([A-Za-z]+)/gi))
-      add('status', found[1]!);
+    for (const found of text.matchAll(/\bStatus:\s*([A-Za-z]+)/gi)) add('status', found[1]!);
   }
   const ambiguous: EvidenceField[] = [];
   const get = (f: EvidenceField): string | null => {

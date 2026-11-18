@@ -95,6 +95,19 @@ describe('optional CBE execution with real Chromium and mocked provider transpor
     vi.mocked(retrieveHtml).mockResolvedValue({ html, bytes: Buffer.byteLength(html) });
     expect((await provider.retrieve(url)).kind).toBe('EVIDENCE');
   }, 20_000);
+  it('terminates an infinite inline script and admits a subsequent request', async () => {
+    const provider = createCbeProvider();
+    vi.mocked(retrieveHtml).mockResolvedValue({
+      html: '<html><body><script>while (true) {}</script></body></html>',
+      bytes: 64,
+    });
+    expect(await provider.retrieve(url, { timeoutMs: 1500 })).toEqual({
+      kind: 'UNAVAILABLE',
+      code: 'TIMEOUT',
+    });
+    vi.mocked(retrieveHtml).mockResolvedValue({ html, bytes: Buffer.byteLength(html) });
+    expect((await provider.retrieve(url)).kind).toBe('EVIDENCE');
+  }, 20_000);
   it('rejects excess work without starting another retrieval, then recovers capacity', async () => {
     let release!: (value: { html: string; bytes: number }) => void;
     vi.mocked(retrieveHtml).mockImplementationOnce(
@@ -123,6 +136,16 @@ describe('optional CBE execution with real Chromium and mocked provider transpor
       code: 'DESTINATION_BLOCKED',
     });
   });
+  it('reports unsupported provider HTML as unavailable, preserving the valid locator', async () => {
+    vi.mocked(retrieveHtml).mockResolvedValue({
+      html: '<div></div>'.repeat(4097) + html,
+      bytes: 50000,
+    });
+    expect(await createCbeProvider().retrieve(url)).toEqual({
+      kind: 'UNAVAILABLE',
+      code: 'PROVIDER_UNAVAILABLE',
+    });
+  }, 20_000);
   it('rejects invalid concurrency', () => {
     expect(() => createCbeProvider({ maxConcurrency: 0 })).toThrow();
     expect(() => createCbeProvider({ maxConcurrency: 1.5 })).toThrow();

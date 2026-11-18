@@ -197,6 +197,13 @@ describe('bounded HTTPS with local transport/DNS mocks', () => {
     await expect(retrieveHtml(locator, { timeoutMs: 0 })).rejects.toThrow(TypeError);
     expect(request).not.toHaveBeenCalled();
   });
+  it('reports malformed fetched HTML as provider unavailability', async () => {
+    chunks = [Buffer.from('<span>unclosed')];
+    expect(await retrieveTelebirr('TEST1234AB')).toEqual({
+      kind: 'UNAVAILABLE',
+      code: 'PROVIDER_UNAVAILABLE',
+    });
+  });
   it('retains retrieved provenance separately from saved HTML', async () => {
     chunks = [Buffer.from('<html>unrecognized</html>')];
     expect(await retrieveTelebirr('TEST1234AB')).toMatchObject({

@@ -105,6 +105,64 @@ describe('ported synthetic extraction', () => {
         .amountMinor,
     ).toBe(29);
   });
+  it.each(['script', 'style', 'noscript', 'tr', 'td', 'span'])(
+    'bounds maximum-size repeated unclosed %s tags',
+    (tag) => {
+      const opening = `<${tag}>`;
+      const malformed = opening.repeat(Math.floor(2_000_000 / opening.length));
+      expect(() => parseReceiptHtml('telebirr', malformed)).toThrow('Unsupported receipt HTML');
+    },
+  );
+  it.each([
+    '<div></div>'.repeat(4097),
+    `<div title="${'x'.repeat(4097)}">`,
+    `<div title="${'x'.repeat(5000)}`,
+    '<span>outer<span>inner</span></span>',
+    '<tr><td>label</th></tr>',
+    `<span>${'x'.repeat(8193)}</span>`,
+    '<!-- unclosed',
+  ])('rejects unsupported structural complexity %#', (prefix) => {
+    expect(() => parseReceiptHtml('telebirr', prefix + v5)).toThrow('Unsupported receipt HTML');
+  });
+  it('preserves Unicode offsets, quoted attributes and formatting', () => {
+    const document =
+      'İ' +
+      v5
+        .replace('<table>', '<TABLE title="a > b">')
+        .replace('</table>', '</TABLE>')
+        .replace('Example Merchant', '<b>Example Merchant</b>');
+    expect(
+      compareReceipt(expectation('telebirr'), parseReceiptHtml('telebirr', document).evidence)
+        .verificationStatus,
+    ).toBe('MATCHED_RECEIPT_ONLY');
+  });
+  it('decodes entities once, never as markup or a second encoded value', () => {
+    expect(
+      parseReceiptHtml('telebirr', v5.replace('AH-TEST-4821', '&#65;H-TEST-4821')).evidence
+        .reference,
+    ).toBe('AH-TEST-4821');
+    for (const replacement of ['&amp;#65;H-TEST-4821', '&lt;b&gt;AH-TEST-4821&lt;/b&gt;']) {
+      const evidence = parseReceiptHtml(
+        'telebirr',
+        v5.replace('AH-TEST-4821', replacement),
+      ).evidence;
+      expect(compareReceipt(expectation('telebirr'), evidence).verificationStatus).not.toBe(
+        'MATCHED_RECEIPT_ONLY',
+      );
+    }
+  });
+  it.each(['script', 'style', 'noscript', 'textarea', 'title', 'iframe', 'xmp'])(
+    'ignores receipt-like markup in raw %s content',
+    (tag) => {
+      const evidence = parseReceiptHtml(
+        'telebirr',
+        `<${tag}>${v5.replace(/<title>.*?<\/title>/u, '')}</${tag}>`,
+      ).evidence;
+      expect(compareReceipt(expectation('telebirr'), evidence).verificationStatus).toBe(
+        'UNABLE_TO_VERIFY',
+      );
+    },
+  );
   it('rejects oversized HTML and malformed expected identifiers', () => {
     expect(() => parseReceiptHtml('telebirr', 'x'.repeat(2_000_001))).toThrow();
     expect(() => parseReceiptHtml('telebirr', v5, '.*')).toThrow();

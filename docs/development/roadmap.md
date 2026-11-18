@@ -45,6 +45,12 @@ unsupported layouts remain unavailable. Root imports still have no dependencies
 or provider I/O. Chromium installation is required only for the optional package
 and workspace browser tests. `pnpm setup:browsers` installs its matching browser.
 
+The [parser resource review](plans/006-parser-resource-bounds.md) reproduced
+quadratic work on malformed maximum-size inputs and replaced structural regexes
+with a monotonic scanner and explicit complexity limits. Single-pass entity
+decoding, Unicode offsets and infinite inline-script cleanup have regressions.
+Unsupported HTML fails closed; provider parser failures remain unavailable.
+
 Slice 3's [execution plan](plans/004-storage-contract.md) records atomic claims,
 normalized evidence, idempotent results and durable events, with caller-owned
 transaction commit/rollback, rollback fault injection, synchronized process races
