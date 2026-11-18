@@ -2,6 +2,8 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test';
 import { ReceiptCheckout } from './checkout';
 import type { CheckoutProps, ReceiptResult, ReceiptSubmission } from './checkout';
+import { demoMethods, demoOrder, demoSamples } from './demo-config';
+import { createDemoVerifier, validateDemoEvidence } from './demo-verification';
 
 const props = {
   branding: { name: 'Sample shop' },
@@ -131,5 +133,95 @@ describe('ReceiptCheckout', () => {
       true,
     );
     expect(callback).not.toHaveBeenCalled();
+  });
+});
+
+function demoCheckout() {
+  const callback = vi.fn(createDemoVerifier(async () => {}));
+  render(
+    <ReceiptCheckout
+      {...props}
+      order={demoOrder}
+      paymentMethods={demoMethods}
+      onSubmitReceipt={callback}
+      evidence={{
+        simulated: true,
+        validate: validateDemoEvidence,
+        sample: (method, kind) =>
+          method === 'cbe' || method === 'telebirr' ? demoSamples[method][kind] : undefined,
+      }}
+    />,
+  );
+  return callback;
+}
+
+describe('Ethiopian checkout', () => {
+  it('switches keyboard tabs and preserves independent drafts across tabs and methods', () => {
+    demoCheckout();
+    const number = screen.getByRole('tab', { name: 'Transaction number' });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Transaction number' }), {
+      target: { value: 'FTEXAMPLE09' },
+    });
+    number.focus();
+    fireEvent.keyDown(number, { key: 'End' });
+    const sms = screen.getByRole('tab', { name: 'Full SMS message' });
+    expect(document.activeElement).toBe(sms);
+    expect(sms.getAttribute('aria-selected')).toBe('true');
+    fireEvent.change(screen.getByRole('textbox', { name: 'Full SMS message' }), {
+      target: { value: 'Unsent draft' },
+    });
+    fireEvent.keyDown(sms, { key: 'Home' });
+    expect(
+      (screen.getByRole('textbox', { name: 'Transaction number' }) as HTMLInputElement).value,
+    ).toBe('FTEXAMPLE09');
+    fireEvent.click(screen.getByRole('radio', { name: /Telebirr/ }));
+    expect(screen.getByText('+251 00 000 1048')).toBeTruthy();
+    expect(
+      (screen.getByRole('textbox', { name: 'Transaction number' }) as HTMLInputElement).value,
+    ).toBe('');
+    fireEvent.click(screen.getByRole('radio', { name: /CBE/ }));
+    fireEvent.click(sms);
+    expect(
+      (screen.getByRole('textbox', { name: 'Full SMS message' }) as HTMLTextAreaElement).value,
+    ).toBe('Unsent draft');
+  });
+
+  it('copies only the configured values and reports blocked clipboard access', async () => {
+    const writeText = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('blocked'));
+    const descriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText } });
+    try {
+      const callback = demoCheckout();
+      fireEvent.click(screen.getByRole('button', { name: 'Copy amount' }));
+      await screen.findByText('Copied amount.');
+      fireEvent.click(screen.getByRole('button', { name: 'Copy invoice number' }));
+      await screen.findByText('Copy was blocked. Select the text to copy it manually.');
+      expect(writeText.mock.calls).toEqual([[demoOrder.copyAmount], [demoOrder.reference]]);
+      expect(callback).not.toHaveBeenCalled();
+    } finally {
+      if (descriptor) Object.defineProperty(navigator, 'clipboard', descriptor);
+      else Reflect.deleteProperty(navigator, 'clipboard');
+    }
+  });
+
+  it('rejects a foreign receipt URL and explicitly labels a simulated match', async () => {
+    const callback = demoCheckout();
+    fireEvent.click(screen.getByRole('tab', { name: 'Receipt URL' }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'Receipt URL' }), {
+      target: { value: demoSamples.telebirr.url },
+    });
+    submit('Submit Payment for Verification');
+    await screen.findByRole('alert');
+    expect(callback).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('tab', { name: 'Full SMS message' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Use sample SMS' }));
+    submit('Submit Payment for Verification');
+    await screen.findByText('Simulated match');
+    expect(screen.getByText(/No payment was made/)).toBeTruthy();
+    submit('Submit Payment for Verification');
+    await screen.findByText('Evidence already submitted');
   });
 });

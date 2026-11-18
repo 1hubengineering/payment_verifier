@@ -17,6 +17,7 @@ publication. Historical examples are not additional compatibility promises.
 | 8. Drizzle v1 RC source upgrade | Complete in source; not republished  | ORM/Kit 1.0.0-rc.5 from rc tags; full pnpm verify, all nine engine cells, installed relation-client types and local Kit checks pass; version unchanged |
 | 9. Repository and web checkout  | Complete; static Pages deployed      | Reusable React checkout, guide and contributor setup, synthetic results, and verified Pages deployment; no live backend or npm changes                 |
 | 10. Developer documentation     | Complete; static Pages deployed      | 0.1.0 guide and API index from release declarations, public skills install, tested local stdio MCP, and read-only npm naming assessment                |
+| 11. Ethiopian checkout demo     | Implemented in source                | CBE and Telebirr instructions and synthetic evidence checks; no provider requests, durable SMS storage, or production deployment                       |
 
 Published 0.1.0 acceptance: **237 fast/application/example/provider cases,
 243 real-engine contract cases (nine cells × 27), and 11 frozen reference cases**,

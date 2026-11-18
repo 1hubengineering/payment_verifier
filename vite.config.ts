@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite-plus';
+import { configDefaults, defineConfig } from 'vite-plus';
 
 export default defineConfig({
   lint: {
@@ -31,6 +31,7 @@ export default defineConfig({
   },
   test: {
     include: ['packages/**/*.test.ts', 'apps/**/*.test.ts', 'examples/**/*.test.ts'],
+    exclude: [...configDefaults.exclude, 'examples/checkout-web/**'],
     environment: 'node',
     passWithNoTests: false,
   },

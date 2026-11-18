@@ -59,3 +59,9 @@ The adaptation is only in the homepage, outside SDK packages, reusable checkout 
 skills, and example source offered through MCP. No registry files or upstream images ship.
 Shadcnblocks retains its rights; this project's ISC license does not license that adaptation
 for extraction into a template or library.
+
+The checkout demo uses the [Commercial Bank of Ethiopia site mark](https://combanketh.et/)
+and the [Telebirr logo from Ethio telecom's brand page](https://www.ethiotelecom.et/logos/).
+The images are stored locally and resized without changing their proportions.
+They identify the methods and do not imply sponsorship. The respective
+providers retain their rights in the marks.

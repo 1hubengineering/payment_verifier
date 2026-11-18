@@ -21,13 +21,22 @@ import {
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { EvidenceTabs, evidenceTabs, TransferDetails } from './evidence-fields';
+import type { EvidenceKind } from './demo-evidence';
 
-export type ReceiptResult = 'matched' | 'mismatch' | 'unavailable' | 'rejected';
+export type ReceiptResult =
+  | 'matched'
+  | 'mismatch'
+  | 'unavailable'
+  | 'rejected'
+  | 'review'
+  | 'duplicate';
 
 export interface ReceiptSubmission {
   readonly reference: string;
   readonly paymentMethodId: string;
   readonly signal: AbortSignal;
+  readonly kind?: EvidenceKind;
 }
 
 export interface CheckoutProps {
@@ -36,10 +45,24 @@ export interface CheckoutProps {
     reference: string;
     lines: readonly { id: string; label: string; detail?: string; amountLabel: string }[];
     totalLabel: string;
+    copyAmount?: string;
   };
-  paymentMethods: readonly { id: string; label: string; instructions: string }[];
+  paymentMethods: readonly {
+    id: string;
+    label: string;
+    instructions: string;
+    subtitle?: string;
+    logo?: string;
+    receiving?: { holder: string; accountLabel: string; account: string };
+    placeholders?: Readonly<Record<EvidenceKind, string>>;
+  }[];
   onSubmitReceipt: (submission: ReceiptSubmission) => Promise<ReceiptResult>;
   validateReference?: (reference: string) => string | undefined;
+  evidence?: {
+    simulated?: boolean;
+    validate?: (input: Omit<ReceiptSubmission, 'signal'>) => string | undefined;
+    sample?: (method: string, kind: EvidenceKind) => string | undefined;
+  };
   sections?: { receiptHelp?: ReactNode; orderFooter?: ReactNode };
 }
 
@@ -63,6 +86,14 @@ const resultCopy: Record<ReceiptResult | 'error', { title: string; detail: strin
   rejected: {
     title: 'Receipt not accepted',
     detail: 'Check the reference or contact the merchant for help. No payment was confirmed.',
+  },
+  review: {
+    title: 'Pending review',
+    detail: 'We could not confirm these details from a trusted record. No payment was confirmed.',
+  },
+  duplicate: {
+    title: 'Evidence already submitted',
+    detail: 'This transaction has already been recorded. It does not confirm settlement.',
   },
   error: {
     title: 'Could not submit the receipt',
@@ -125,16 +156,21 @@ export function ReceiptCheckout({
   paymentMethods,
   onSubmitReceipt,
   validateReference,
+  evidence,
   sections,
 }: CheckoutProps) {
   const identifier = useId();
-  const input = useRef<HTMLInputElement>(null);
   const activeRequest = useRef<AbortController | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<string>();
-  const [reference, setReference] = useState('');
+  const [kind, setKind] = useState<EvidenceKind>('transaction');
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const method = paymentMethods.find((option) => option.id === selectedMethod) ?? paymentMethods[0];
+  const draftKey = JSON.stringify([method?.id, kind]);
+  const reference = drafts[draftKey] ?? '';
+  const currentTab = evidenceTabs.find((tab) => tab.id === kind) ?? evidenceTabs[0];
+  const sample = method && evidence?.sample?.(method.id, kind);
   const pending = status === 'submitting';
   const result = status === 'idle' || status === 'submitting' ? null : resultCopy[status];
   const retry = status === 'unavailable' || status === 'error';
@@ -152,19 +188,33 @@ export function ReceiptCheckout({
     setError('');
   }
 
+  function updateReference(value: string): void {
+    setDrafts((previous) => ({ ...previous, [draftKey]: value }));
+    resetFeedback();
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (activeRequest.current || !method) return;
     const trimmed = reference.trim();
+    const submission = {
+      reference: trimmed,
+      paymentMethodId: method.id,
+      ...(evidence ? { kind } : {}),
+    };
     const validation = !trimmed
-      ? 'Enter a receipt reference.'
+      ? evidence
+        ? `Enter the ${currentTab.label.toLowerCase()}.`
+        : 'Enter a receipt reference.'
       : trimmed.length > 4096
-        ? 'Use a receipt reference of at most 4096 characters.'
-        : validateReference?.(trimmed);
+        ? 'Use at most 4096 characters.'
+        : evidence
+          ? evidence.validate?.(submission)
+          : validateReference?.(trimmed);
     if (validation) {
       setError(validation);
       setStatus('idle');
-      input.current?.focus();
+      document.getElementById(`${identifier}-reference`)?.focus();
       return;
     }
 
@@ -174,8 +224,7 @@ export function ReceiptCheckout({
     setStatus('submitting');
     try {
       const outcome = await onSubmitReceipt({
-        reference: trimmed,
-        paymentMethodId: method.id,
+        ...submission,
         signal: request.signal,
       });
       if (activeRequest.current === request) {
@@ -183,7 +232,9 @@ export function ReceiptCheckout({
           outcome === 'matched' ||
             outcome === 'mismatch' ||
             outcome === 'unavailable' ||
-            outcome === 'rejected'
+            outcome === 'rejected' ||
+            outcome === 'review' ||
+            outcome === 'duplicate'
             ? outcome
             : 'error',
         );
@@ -195,16 +246,39 @@ export function ReceiptCheckout({
     }
   }
 
+  const fieldProps = {
+    id: `${identifier}-reference`,
+    name: 'reference',
+    autoComplete: 'off',
+    spellCheck: false,
+    required: true,
+    maxLength: 4096,
+    'aria-invalid': error ? true : undefined,
+    'aria-describedby':
+      [evidence ? `${identifier}-hint` : '', error ? `${identifier}-error` : '']
+        .filter(Boolean)
+        .join(' ') || undefined,
+    placeholder: method?.placeholders?.[kind],
+    value: reference,
+    disabled: pending,
+  };
+
   return (
-    <div className="checkout-layout">
+    <div className={evidence ? 'checkout-layout evidence-checkout' : 'checkout-layout'}>
       <OrderSummary branding={branding} order={order} footer={sections?.orderFooter} />
       <Card className="receipt-card">
         <CardHeader>
-          <p className="eyebrow">RECEIPT VERIFICATION</p>
+          <p className="eyebrow">{evidence ? 'PAYMENT INSTRUCTIONS' : 'RECEIPT VERIFICATION'}</p>
           <CardTitle>
-            <h2>Check a receipt</h2>
+            <h2>{evidence ? 'Choose how to pay' : 'Check a receipt'}</h2>
           </CardTitle>
-          <CardDescription>Choose the method used and enter the receipt reference.</CardDescription>
+          <CardDescription>
+            {evidence?.simulated
+              ? 'These details are examples. Do not send money.'
+              : evidence
+                ? 'Use the account details for your selected method.'
+                : 'Choose the method used and enter the receipt reference.'}
+          </CardDescription>
         </CardHeader>
         <form
           noValidate
@@ -229,39 +303,116 @@ export function ReceiptCheckout({
                             resetFeedback();
                           }}
                         />
-                        {option.label}
+                        {option.logo && <img src={option.logo} alt="" className="method-logo" />}
+                        <span>
+                          <strong>{option.label}</strong>
+                          {option.subtitle && (
+                            <span className="method-subtitle">{option.subtitle}</span>
+                          )}
+                        </span>
                       </label>
                     ))}
                   </div>
                   <FieldDescription>{method.instructions}</FieldDescription>
                 </FieldSet>
-                <Field
-                  data-invalid={error ? true : undefined}
-                  data-disabled={pending ? true : undefined}
-                >
-                  <FieldLabel htmlFor={`${identifier}-reference`}>Receipt reference</FieldLabel>
-                  <Input
-                    ref={input}
-                    id={`${identifier}-reference`}
-                    name="reference"
-                    autoComplete="off"
-                    spellCheck={false}
-                    required
-                    aria-invalid={error ? true : undefined}
-                    aria-describedby={error ? `${identifier}-error` : undefined}
-                    value={reference}
+                {method.receiving && (
+                  <TransferDetails
+                    key={method.id}
+                    details={[
+                      { label: 'Account holder', value: method.receiving.holder },
+                      { label: method.receiving.accountLabel, value: method.receiving.account },
+                      {
+                        label: 'Amount',
+                        value: order.totalLabel,
+                        copy: order.copyAmount ?? order.totalLabel,
+                      },
+                      { label: 'Invoice number', value: order.reference },
+                    ]}
+                  />
+                )}
+                {evidence && (
+                  <div className="evidence-heading">
+                    <p className="eyebrow">PAYMENT VERIFICATION</p>
+                    <h2>Submit your evidence</h2>
+                    <p>
+                      {evidence.simulated
+                        ? 'Use a sample below. Do not paste a real receipt or SMS.'
+                        : 'After you transfer, submit one of the following.'}
+                    </p>
+                  </div>
+                )}
+                {evidence && (
+                  <EvidenceTabs
+                    identifier={identifier}
+                    selected={kind}
                     disabled={pending}
-                    onChange={(event) => {
-                      setReference(event.target.value);
+                    select={(value) => {
+                      setKind(value);
                       resetFeedback();
                     }}
                   />
-                  {error && (
-                    <p id={`${identifier}-error`} role="alert">
-                      {error}
-                    </p>
+                )}
+                {evidence &&
+                  evidenceTabs
+                    .filter((tab) => tab.id !== kind)
+                    .map((tab) => (
+                      <div
+                        key={tab.id}
+                        role="tabpanel"
+                        id={`${identifier}-panel-${tab.id}`}
+                        aria-labelledby={`${identifier}-tab-${tab.id}`}
+                        hidden
+                      />
+                    ))}
+                <div
+                  role={evidence ? 'tabpanel' : undefined}
+                  id={evidence ? `${identifier}-panel-${kind}` : undefined}
+                  aria-labelledby={evidence ? `${identifier}-tab-${kind}` : undefined}
+                >
+                  <Field
+                    data-invalid={error ? true : undefined}
+                    data-disabled={pending ? true : undefined}
+                  >
+                    <FieldLabel htmlFor={fieldProps.id}>
+                      {evidence ? currentTab.label : 'Receipt reference'}
+                    </FieldLabel>
+                    {kind === 'sms' ? (
+                      <textarea
+                        {...fieldProps}
+                        rows={4}
+                        className="evidence-textarea"
+                        onChange={(event) => updateReference(event.target.value)}
+                      />
+                    ) : (
+                      <Input
+                        {...fieldProps}
+                        type={kind === 'url' ? 'url' : 'text'}
+                        onChange={(event) => updateReference(event.target.value)}
+                      />
+                    )}
+                    {evidence && (
+                      <FieldDescription id={`${identifier}-hint`}>
+                        {currentTab.hint}
+                      </FieldDescription>
+                    )}
+                    {error && (
+                      <p id={`${identifier}-error`} role="alert">
+                        {error}
+                      </p>
+                    )}
+                  </Field>
+                  {sample && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="sample-button"
+                      disabled={pending}
+                      onClick={() => updateReference(sample)}
+                    >
+                      Use sample {kind === 'sms' ? 'SMS' : kind === 'url' ? 'URL' : 'number'}
+                    </Button>
                   )}
-                </Field>
+                </div>
               </FieldGroup>
             ) : (
               <Alert>
@@ -278,14 +429,28 @@ export function ReceiptCheckout({
               {pending && (
                 <Spinner data-icon="inline-start" aria-hidden="true" role="presentation" />
               )}
-              {pending ? 'Checking receipt…' : retry ? 'Retry receipt check' : 'Check receipt'}
+              {pending
+                ? 'Checking receipt…'
+                : evidence && !retry
+                  ? 'Submit Payment for Verification'
+                  : retry
+                    ? 'Retry receipt check'
+                    : 'Check receipt'}
             </Button>
             <div role="status" aria-live="polite" aria-atomic="true">
               {pending && <span className="sr-only">Checking receipt…</span>}
               {result && (
                 <Alert role="presentation" variant={status === 'error' ? 'destructive' : 'default'}>
-                  <AlertTitle>{result.title}</AlertTitle>
-                  <AlertDescription>{result.detail}</AlertDescription>
+                  <AlertTitle>
+                    {evidence?.simulated && status === 'matched' ? 'Simulated match' : result.title}
+                  </AlertTitle>
+                  <AlertDescription>
+                    {evidence?.simulated && status === 'matched'
+                      ? 'The sample matched an offline demo record. No payment was made. Settlement remains unconfirmed.'
+                      : evidence?.simulated && status === 'review'
+                        ? 'The demo could not confirm this evidence. Nothing was sent to a reviewer or a provider.'
+                        : result.detail}
+                  </AlertDescription>
                 </Alert>
               )}
             </div>
