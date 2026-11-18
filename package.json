@@ -22,7 +22,8 @@
     "generate": "vp run @1hubengineering/receipt-verifier-adapter-contract#generate",
     "cli": "vp run @1hubengineering/receipt-verifier-cli#start",
     "worker": "vp run @1hubengineering/receipt-verifier-worker#start",
-    "checkout": "vp run @1hubengineering/receipt-verifier-fastify-checkout#start"
+    "checkout": "vp run @1hubengineering/receipt-verifier-fastify-checkout#start",
+    "release:prepare": "node scripts/prepare-release.mjs"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

@@ -31,7 +31,7 @@ Useful task prompts:
 | `pnpm install --frozen-lockfile` | Reproduce dependency resolution                                |
 | `pnpm check` / `pnpm check:fix`  | Vite+ formatting, lint, and configured type checking / fixes   |
 | `pnpm typecheck`                 | Strict workspace and package declaration-isolation checks      |
-| `pnpm test` / `pnpm test:watch`  | New core tests / watch mode                                    |
+| `pnpm test` / `pnpm test:watch`  | Fast/provider/application plus real-engine tests / watch mode  |
 | `pnpm test:reference`            | Original offline regression baseline                           |
 | `pnpm check:env`                 | Application-local Varlock validation and local type generation |
 | `pnpm build`                     | Build implemented library packages with Vite+ task selection   |
@@ -47,9 +47,8 @@ and [execution plans](https://developers.openai.com/cookbook/articles/codex_exec
 No global settings, model defaults, permissions, MCP servers, or paid integrations
 are changed. A project config is unnecessary for the current workflow.
 
-CI runs the same acceptance command on Node 26.13.1 and 24.22.3. GitHub branch
-protection and automatic Codex review require a future connected repository;
-the checked-in workflow does not configure those account settings.
+CI runs the same acceptance command on Node 26.13.1 and 24.22.3. Hosted checks are recorded in the roadmap. Branch protection and automatic review
+are separate account controls; do not infer them from the checked-in workflow.
 
 The Node 26 LTS development pin is separate from the two supported library runtime
 ranges. `pnpm verify` generates application-local environment types before
@@ -66,3 +65,9 @@ resolve package scope ownership and licensing, demonstrate all advertised storag
 and ORM versions, verify tarball contents and dependency isolation, test failures
 and concurrency, document migrations and consumer runtime support, and select
 versioning/publishing automation. CI does not publish anything.
+
+The [release policy](release-policy.md) defines clean-commit artifact preparation,
+independent identities/access, private eligibility gates and registry integrity
+verification. `pnpm release:prepare` packs reviewed libraries and checksums without
+publishing. The [compatibility matrix](compatibility.md), [migrations](migrations.md)
+and [third-party notices](../../THIRD_PARTY_NOTICES.md) record the exact boundaries.

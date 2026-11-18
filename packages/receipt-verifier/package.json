@@ -1,9 +1,18 @@
 {
   "name": "@1hubengineering/receipt-verifier",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Receipt-only comparison and exact ETB domain primitives; private development preview",
+  "homepage": "https://github.com/1hubengineering/verify_payment_v1/tree/main/packages/receipt-verifier",
+  "bugs": {
+    "url": "https://github.com/1hubengineering/verify_payment_v1/issues"
+  },
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/1hubengineering/verify_payment_v1.git",
+    "directory": "packages/receipt-verifier"
+  },
   "files": [
     "dist",
     "README.md"
@@ -27,6 +36,10 @@
       "types": "./dist/jobs.d.mts",
       "import": "./dist/jobs.mjs"
     }
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
     "build": "vp pack",

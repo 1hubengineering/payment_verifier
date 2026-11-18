@@ -6,7 +6,7 @@ synthetic/local validation. Direct SQL, Drizzle and Prisma 7 adapters pass the r
 matrix. Optional durable jobs add bounded encrypted acceptance and crash recovery.
 All receipt results retain settlement UNCONFIRMED. Packages remain private; the
 CLI and optional worker are implemented as trusted operator tools; the Fastify checkout example demonstrates existing host auth/order boundaries.
-Release gates remain.
+The private 0.1.0 candidate is undergoing final artifact/release checks.
 
 ## Develop
 
@@ -61,3 +61,7 @@ defaults disabled and queue commands require an explicit encryption key.
 `pnpm checkout` starts the [local Fastify example](examples/fastify-checkout/README.md).
 Receipt verification and host settlement/fulfillment remain separate records and
 authority decisions. The example has no settlement or delivery write endpoint.
+
+Release references: [compatibility](docs/development/compatibility.md),
+[migrations](docs/development/migrations.md), [release policy](docs/development/release-policy.md),
+[changelog](CHANGELOG.md), and [third-party licenses](THIRD_PARTY_NOTICES.md).

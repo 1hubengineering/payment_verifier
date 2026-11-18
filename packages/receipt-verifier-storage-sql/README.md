@@ -77,9 +77,14 @@ try {
 
 MySQL supplies `mysqlTransaction` for an already-started mysql2 callback connection;
 SQLite supplies `sqliteTransaction` for an already-started connection transaction.
+Its constructor and every scoped read/transaction reject an inactive or ended
+native transaction, preventing accidental autocommit through a stale scope.
+PostgreSQL/MySQL raw-client helpers require the caller to keep the actual enclosing
+transaction active and await all work before commit; no private driver state is inferred.
 Kysely hosts can use `createSqlStorage` and `withTransaction` with the actual
 transaction object. A plain Kysely handle is refused by `withTransaction`.
-Scoped adapters issue no begin, commit, rollback or connection release. They refuse
+Raw PostgreSQL/MySQL callers must select Serializable for the actual enclosing
+transaction. Scoped adapters issue no begin, commit, rollback or connection release. They refuse
 provider preparation. The caller must retry its entire transaction on
 `StorageConflict`; a returned result remains provisional until the caller commits.
 Library-owned transactions retry serialization, deadlock, busy and uniqueness

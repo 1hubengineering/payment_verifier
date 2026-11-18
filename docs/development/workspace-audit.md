@@ -5,6 +5,23 @@ are maintained in [workspace conventions](conventions.md); the later
 [modernization plan](plans/001-modernize-workspace-conventions.md) records the
 follow-up changes and validation.
 
+## Current implementation and release review
+
+Slices 0–6 are implemented. Commit 2c9b626 passed the full suite locally on Node
+26 and hosted on Node 24/26: 234 fast/application/example/provider cases, 234
+real-engine contract cases across nine cells, 11 frozen cases and installed
+consumers. The SQLite ORM harness now separates native implementations per file
+and process; three repeated 52-case runs followed that correction. The supported
+boundary is explicit in the compatibility document.
+
+Release review is tracked in [plan 010](plans/010-release-readiness.md). It adds
+active/ended SQLite scope checks, confirms all ten frozen originals still match,
+checks source/data and external license boundaries, and prepares private 0.1.0
+artifacts. Production audit reports zero advisories. Registry publication and
+release eligibility are still pending; see the roadmap for their current evidence.
+Earlier audit sections below remain the initialization record rather than current
+claims about missing implementation.
+
 ## Initial state
 
 The workspace contained a placeholder ESM `package.json`, two library planning

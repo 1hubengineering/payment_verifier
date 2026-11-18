@@ -15,6 +15,10 @@ encryption, leases and maintenance ownership.
 [Checkout example](../examples/fastify-checkout/README.md) demonstrates host
 auth/order integration while keeping settlement and fulfillment independent.
 
+[Compatibility](development/compatibility.md), [migrations](development/migrations.md),
+[release policy](development/release-policy.md), and
+[third-party notices](../THIRD_PARTY_NOTICES.md) define release boundaries.
+
 [Execution plans](development/plans/) record substantial implementation work.
 
 ## Historical standalone material

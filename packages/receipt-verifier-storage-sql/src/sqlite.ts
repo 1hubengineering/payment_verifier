@@ -12,9 +12,25 @@ export function sqliteStorage(database: Database): SqlStorage {
 }
 /** The caller has already begun a transaction on this exact SQLite connection. */
 export function sqliteTransaction(database: Database): VerificationStorage {
-  return createStorage(
+  const active = (): void => {
+    if (!database.open || !database.inTransaction)
+      throw new TypeError('Expected an active caller-owned SQLite transaction');
+  };
+  active();
+  const scoped = createStorage(
     new Kysely<StorageSchema>({ dialect: new SqliteDialect({ database }) }),
     'sqlite',
     true,
   );
+  return {
+    callerTransaction: true,
+    async read(key) {
+      active();
+      return scoped.read(key);
+    },
+    async transaction(work) {
+      active();
+      return scoped.transaction(work);
+    },
+  };
 }

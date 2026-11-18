@@ -12,7 +12,7 @@ implementation; a target is not a supported integration until its gate passes.
 | 4. Drizzle and versioned Prisma               | Implemented; nine-cell matrix passed         | Explicit client/engine versions; all advertised engine cells pass the shared contract suite and caller transaction tests                                                             |
 | 5. CLI and optional durable worker            | Implemented; local gate passed               | Varlock at startup; durable acceptance, leases/retries, bounds, restart and crash recovery; no lost acknowledged work                                                                |
 | 6. Fastify checkout example                   | Implemented; local gate passed               | Host auth/order ownership; trusted expectation snapshot; structured outcomes; no fulfillment from receipt alone                                                                      |
-| 7. Release readiness                          | Planned                                      | All three engines and advertised ORM paths proven, migration docs, packaging, provenance/licensing, release policy                                                                   |
+| 7. Release readiness                          | In progress; private candidate               | All three engines and advertised ORM paths proven, migration docs, packaging, provenance/licensing, release policy                                                                   |
 
 PostgreSQL, MySQL, and SQLite remain first-release requirements. Delivery can be
 incremental. Direct PostgreSQL 18.7/pg 8.23.1, MySQL 8.4.13/mysql2 3.24.6, and
@@ -89,7 +89,15 @@ durable admission/status and a real loopback Varlock demo with no providers.
 Full `pnpm verify` passed on Node 26 with 234 fast/application cases and
 234 real-engine cases after isolating native SQLite implementations per process.
 The ORM suites additionally passed three repeated SQLite crash/transaction runs.
-Hosted two-runtime acceptance is pending; no public deployment is claimed.
+Hosted CI passed both minimum runtimes at 2c9b626; no public deployment is claimed.
+
+Slice 7's [release plan](plans/010-release-readiness.md) records the private
+0.1.0 candidate, compatibility/migration/release policy and artifact checksums.
+The release audit verified all ten frozen originals, tracked-data hygiene and
+selected external licenses; production dependency audit found zero advisories.
+SQLite caller scopes now reject inactive/ended transactions. The private 0.1.0 candidate passed full local `pnpm verify`, including
+installed inactive/ended SQLite scope regressions. Clean-commit artifact preparation
+and exact-commit hosted gates remain pending before eligibility.
 
 Execution access findings (18 November 2026): GitHub CLI and connector confirm
 `1hubengineering`. After the user refreshed token permissions, `GET /user/emails`

@@ -29,3 +29,6 @@ tests/adapter-contract/generated/
 
 # Generated example-local environment types.
 examples/*/env.ts
+
+# Reviewed release artifacts are attached to releases, not source commits.
+artifacts/

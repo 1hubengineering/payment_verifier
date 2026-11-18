@@ -31,4 +31,9 @@ remain private and no release has been published. npm now separately authenticat
 2FA enabled. The user found `andhub` unavailable and explicitly selected the
 matching personal `@1hubengineering` scope, which needs no organization. Namespace
 rights follow the verified npm account, independently of GitHub access. No package
-has been published; the full matrix and release artifacts remain separate gates.
+has been published. The full nine-cell matrix and hosted minimum-runtime gates
+passed at implementation commit 2c9b626. The ten original source/test/fixture
+files were again compared byte-for-byte to the ignored archive during release
+audit. Dependency notices are recorded in THIRD_PARTY_NOTICES.md; production
+audit reported zero advisories (67 dependencies including optional packages).
+The 0.1.0 candidate remains private while release metadata/artifact gates run.
