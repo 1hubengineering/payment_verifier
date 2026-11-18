@@ -161,5 +161,6 @@ stable 7.10.1. The integration selects matching stable CLI/client and official d
 PostgreSQL 18.7, mariadb 3.5.4 / MySQL 8.4.13, better-sqlite3 12.11.1 /
 SQLite 3.53.2. Generated clients match distributed model snippets. Actual
 Serializable caller transactions and installed declarations are tested. Prisma
-8 and other combinations remain unsupported. The Node 24 Prisma gate is pending
-hosted CI, where its native dependency is built for that runtime.
+8 and other combinations remain unsupported. Hosted CI passed on both Node 24 and 26 for commit 342dbb5, building the native
+dependency for each runtime. The subsequent parser review commit also passed
+both hosted runtime gates.

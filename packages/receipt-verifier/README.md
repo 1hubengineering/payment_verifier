@@ -123,3 +123,15 @@ or malformed structures throw a generic error; retrieved parser failures become
 provider unavailability. Scripts/comments and raw-text content do not supply
 evidence. Entities decode once and escaped markup remains text. These limits
 are conservative compatibility boundaries, not browser-style HTML repair.
+
+## Optional durable work
+
+The `/jobs` entry supplies `createDurableVerifier` using the same configured
+store and trusted providers. Acceptance persists encrypted locators and bounded
+idempotency aliases before acknowledgment. Persisted leases, fenced completion,
+bounded retries/backoff/provider pauses and explicit retention survive process
+restarts. Completion joins the same atomic claim/evidence/result/outbox transaction.
+Every advertised storage cell runs the shared durable-job and SIGKILL recovery
+cases. See [durable job configuration](../../docs/development/durable-jobs.md) for
+policy bounds, key handling, ownership and operational requirements. All outcomes
+retain settlement UNCONFIRMED; jobs never authorize fulfillment.

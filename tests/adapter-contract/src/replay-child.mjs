@@ -1,6 +1,8 @@
+import { createDurableVerifier } from '@1hubengineering/receipt-verifier/jobs';
+import { jobTestKey, jobTestPolicy } from './fixtures.ts';
 import { createReceiptVerifier, parseEtbAmount } from '@1hubengineering/receipt-verifier';
 
-const [engine, inputText, mode] = process.argv.slice(2);
+const [engine, inputText, mode, jobTime] = process.argv.slice(2);
 const input = JSON.parse(inputText);
 let storage, close;
 try {
@@ -79,40 +81,54 @@ try {
     };
   }
   const time = 1700000000000;
-  const verifier = createReceiptVerifier({
-    storage,
-    now: () => time + 1000,
-    providers: {
-      telebirr: {
-        async retrieve(url) {
-          if (mode === 'replay') throw new Error('Replay must not retrieve');
-          return {
-            kind: 'EVIDENCE',
-            provenance: {
-              kind: 'OFFICIAL_HTTPS',
-              url,
-              sha256: 'a'.repeat(64),
-              parserVersion: '1',
-              retrievedAt: time + 1000,
-            },
-            evidence: {
-              provider: 'telebirr',
-              currency: 'ETB',
-              transactionId: url.split('/').at(-1),
-              status: 'SUCCESSFUL',
-              amountMinor: parseEtbAmount('0.29'),
-              recipientName: 'Synthetic Merchant',
-              recipientAccountLast4: '1234',
-              reference: 'ORDER_1234',
-              transactionAt: time + 500,
-              paymentType: null,
-              ambiguousFields: [],
-            },
-          };
-        },
+  const providers = {
+    telebirr: {
+      async retrieve(url) {
+        if (mode === 'job-crash') {
+          process.send({ ready: true });
+          await new Promise((resolve) => process.once('message', resolve));
+          throw new Error('Synthetic crash worker unexpectedly resumed');
+        }
+        if (mode === 'replay') throw new Error('Replay must not retrieve');
+        return {
+          kind: 'EVIDENCE',
+          provenance: {
+            kind: 'OFFICIAL_HTTPS',
+            url,
+            sha256: 'a'.repeat(64),
+            parserVersion: '1',
+            retrievedAt: time + 1000,
+          },
+          evidence: {
+            provider: 'telebirr',
+            currency: 'ETB',
+            transactionId: url.split('/').at(-1),
+            status: 'SUCCESSFUL',
+            amountMinor: parseEtbAmount('0.29'),
+            recipientName: 'Synthetic Merchant',
+            recipientAccountLast4: '1234',
+            reference: 'ORDER_1234',
+            transactionAt: time + 500,
+            paymentType: null,
+            ambiguousFields: [],
+          },
+        };
       },
     },
-  });
+  };
+  if (mode === 'job-crash') {
+    const jobs = createDurableVerifier({
+      storage,
+      providers,
+      encryptionKey: jobTestKey,
+      policy: jobTestPolicy,
+      now: () => Number(jobTime),
+    });
+    await jobs.initialize();
+    await jobs.runOnce();
+    throw new Error('Synthetic worker did not reach retrieval');
+  }
+  const verifier = createReceiptVerifier({ storage, providers, now: () => time + 1000 });
   const prepared = await verifier.prepare(input);
   process.send({ ready: true });
   await new Promise((resolve) => process.once('message', resolve));

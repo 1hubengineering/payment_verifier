@@ -1,3 +1,5 @@
+import { expectation, providerResult, submission, time } from './fixtures.ts';
+import { jobContract } from './jobs-suite.ts';
 import {
   beforeAll,
   beforeEach,
@@ -9,13 +11,11 @@ import {
   vi,
 } from 'vite-plus/test';
 import {
-  createPaymentExpectation,
   createReceiptVerifier,
   parseEtbAmount,
   storageKey,
 } from '@1hubengineering/receipt-verifier';
 import type {
-  PaymentExpectation,
   VerificationStorage,
   VerificationSubmission,
   VerificationResult,
@@ -33,55 +33,8 @@ export interface AdapterHarness {
   assertOwnerOpen(): Promise<void>;
   restart(input: VerificationSubmission): Promise<VerificationResult>;
   race(inputs: readonly VerificationSubmission[]): Promise<readonly VerificationResult[]>;
+  crashJob(input: VerificationSubmission, now: number): Promise<void>;
   close(): Promise<void>;
-}
-export const time: number = 1_700_000_000_000;
-export function expectation(tenantId = 'tenant-a', paymentId = 'payment-a'): PaymentExpectation {
-  return createPaymentExpectation({
-    tenantId,
-    paymentId,
-    provider: 'telebirr',
-    currency: 'ETB',
-    amountMinor: parseEtbAmount('0.29'),
-    recipientName: 'Synthetic Merchant',
-    recipientAccountLast4: '1234',
-    reference: 'ORDER_1234',
-    validFrom: time,
-    validUntil: time + 60_000,
-  });
-}
-export function providerResult(url: string): ProviderResult {
-  return {
-    kind: 'EVIDENCE',
-    provenance: {
-      kind: 'OFFICIAL_HTTPS',
-      url,
-      sha256: 'a'.repeat(64),
-      parserVersion: '1',
-      retrievedAt: time + 1000,
-    },
-    evidence: {
-      provider: 'telebirr',
-      currency: 'ETB',
-      transactionId: url.split('/').at(-1)!,
-      status: 'SUCCESSFUL',
-      amountMinor: parseEtbAmount('0.29'),
-      recipientName: 'Synthetic Merchant',
-      recipientAccountLast4: '1234',
-      reference: 'ORDER_1234',
-      transactionAt: time + 500,
-      paymentType: null,
-      ambiguousFields: [],
-    },
-  };
-}
-export function submission(
-  tenantId = 'tenant-a',
-  paymentId = 'payment-a',
-  idempotencyKey = 'key-a',
-  receiptLocator = 'SYNTH1234',
-): VerificationSubmission {
-  return { tenantId, paymentId, idempotencyKey, receiptLocator };
 }
 
 async function completeAll<T>(operations: readonly Promise<T>[]): Promise<T[]> {
@@ -114,6 +67,8 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
     afterAll(async () => {
       await harness?.close();
     });
+
+    jobContract(() => harness);
 
     it('migrates idempotently and refuses incompatible schema metadata', async () => {
       await harness.migrate();

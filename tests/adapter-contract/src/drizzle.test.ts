@@ -18,6 +18,7 @@ import { adapterContract } from './suite.ts';
 import type { AdapterHarness } from './suite.ts';
 import {
   children,
+  crashedWorker,
   directPostgresHarness,
   directMysqlHarness,
   directSqliteHarness,
@@ -38,6 +39,7 @@ adapterContract(
         }),
       restart: async (input) => (await children('drizzle-postgres', [input], 'replay'))[0]!,
       race: (inputs) => children('drizzle-postgres', inputs, 'race'),
+      crashJob: (input, now) => crashedWorker('drizzle-postgres', input, now),
     };
   },
 );
@@ -56,6 +58,7 @@ adapterContract(
         }),
       restart: async (input) => (await children('drizzle-mysql', [input], 'replay'))[0]!,
       race: (inputs) => children('drizzle-mysql', inputs, 'race'),
+      crashJob: (input, now) => crashedWorker('drizzle-mysql', input, now),
     };
   },
 );
@@ -78,6 +81,7 @@ adapterContract(
       restart: async (input) =>
         (await children('drizzle-sqlite', [input], 'replay', base.sqliteFilename))[0]!,
       race: (inputs) => children('drizzle-sqlite', inputs, 'race', base.sqliteFilename),
+      crashJob: (input, now) => crashedWorker('drizzle-sqlite', input, now, base.sqliteFilename),
       async close() {
         for (const client of clients) client.close();
         await base.close();

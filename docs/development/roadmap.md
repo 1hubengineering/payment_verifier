@@ -10,7 +10,7 @@ implementation; a target is not a supported integration until its gate passes.
 | 2. Provider extraction and retrieval          | Implemented; synthetic/local gate passed     | Port Telebirr v5 synthetic regression behavior; provider-neutral errors and provenance; bounded allowlisted HTTP; separately packaged CBE browser execution with local failure tests |
 | 3. Storage contract and direct SQL            | Implemented; direct matrix gate passed       | Prototype Kysely; shared real PostgreSQL/MySQL/SQLite tests; atomic claims/evidence/results/outbox; idempotency and rollback; caller-owned connections                               |
 | 4. Drizzle and versioned Prisma               | Implemented; nine-cell matrix passed         | Explicit client/engine versions; all advertised engine cells pass the shared contract suite and caller transaction tests                                                             |
-| 5. CLI and optional durable worker            | Planned                                      | Varlock at startup; durable acceptance, leases/retries, bounds, restart and crash recovery; no lost acknowledged work                                                                |
+| 5. CLI and optional durable worker            | Durable API implemented; apps next           | Varlock at startup; durable acceptance, leases/retries, bounds, restart and crash recovery; no lost acknowledged work                                                                |
 | 6. Fastify checkout example                   | Planned                                      | Host auth/order ownership; trusted expectation snapshot; structured outcomes; no fulfillment from receipt alone                                                                      |
 | 7. Release readiness                          | Planned                                      | All three engines and advertised ORM paths proven, migration docs, packaging, provenance/licensing, release policy                                                                   |
 
@@ -69,8 +69,15 @@ Isolated installed ORM consumers use the workspace's skipLibCheck policy for
 Drizzle's upstream TypeScript declarations; strict API/negative type checks pass.
 Prisma uses actual generated clients and native delegates, with explicit
 Serializable caller transaction policy and full installed declaration checking.
-The nine-cell matrix and package checks passed locally on Node 26; Prisma
-Node 24 CI acceptance is pending. No public release is claimed yet.
+The nine-cell matrix and package checks passed locally on Node 26 and hosted CI
+on both Node 24 and 26 (commit 342dbb5). No public release is claimed yet.
+
+Slice 5's [durable API plan](plans/007-durable-jobs.md) implements encrypted
+committed acceptance, bounded aliases/quotas, shared-store leases and provider
+pauses, stale-owner fencing, retry rollback, atomic terminal jobs and explicit
+retention. The shared matrix now passes 234 cases (26 per cell), including actual
+SIGKILL recovery and repeated crash exhaustion. Full `pnpm verify` and installed-package acceptance passed on Node 26;
+CLI/worker applications are next. See [operations](durable-jobs.md).
 
 Execution access findings (18 November 2026): GitHub CLI and connector confirm
 `1hubengineering`. After the user refreshed token permissions, `GET /user/emails`

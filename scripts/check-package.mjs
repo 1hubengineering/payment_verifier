@@ -76,6 +76,10 @@ assert.equal(core.compareReceipt(expected, {}).verificationStatus, 'UNABLE_TO_VE
 assert.equal(core.parseEtbAmount('0.29'), 29);
 assert.equal(core.parseEtbAmount('500.00'), 50000);
 assert.throws(() => core.parseEtbAmount('0.001'));
+const jobsModule = await import('@1hubengineering/receipt-verifier/jobs');
+const noWorkStorage = { read: async () => { throw new Error('Import/construction performed I/O'); }, transaction: async () => { throw new Error('Import/construction started a transaction'); } };
+assert.equal(typeof jobsModule.createDurableVerifier({ storage: noWorkStorage, providers: {}, encryptionKey: new Uint8Array(32) }).enqueue, 'function');
+assert.throws(() => jobsModule.createDurableVerifier({ storage: { ...noWorkStorage, callerTransaction: true }, providers: {}, encryptionKey: new Uint8Array(32) }), /CONFIGURATION/);
 const providers = await import('@1hubengineering/receipt-verifier/providers');
 assert.equal(providers.normalizeReceiptLocator('telebirr', 'TEST1234AB').transactionId, 'TEST1234AB');
 const parsed = providers.parseReceiptHtml('telebirr', '<html>unsupported</html>');
@@ -91,6 +95,14 @@ assert.equal(providers.isPublicDestination('127.0.0.1'), false);
     `
 import { parseEtbAmount, type EtbMinorUnits, type VerificationStatus, type SettlementStatus, createPaymentExpectation, compareReceipt, type ReceiptComparison, type ReceiptEvidence }  from '@1hubengineering/receipt-verifier';
 import { parseReceiptHtml, normalizeReceiptLocator, type ProviderResult } from '@1hubengineering/receipt-verifier/providers';
+import { createDurableVerifier, type VerificationJob } from '@1hubengineering/receipt-verifier/jobs';
+import type { VerificationStorage } from '@1hubengineering/receipt-verifier';
+declare const storage: VerificationStorage;
+const jobs = createDurableVerifier({storage,providers:{},encryptionKey:new Uint8Array(32)});
+const accepted: Promise<VerificationJob> = jobs.enqueue({tenantId:'synthetic',paymentId:'synthetic',idempotencyKey:'synthetic',receiptLocator:'SYNTH1234'});
+// @ts-expect-error Status always requires the trusted tenant and payment scope.
+jobs.status({paymentId:'synthetic'},'job');
+void accepted;
 const parsed = parseReceiptHtml('telebirr', '');
 const locator = normalizeReceiptLocator('telebirr', 'TEST1234AB');
 const unavailable: ProviderResult = { kind: 'UNAVAILABLE', code: 'TIMEOUT' };
@@ -205,6 +217,16 @@ assert.equal(first.verificationStatus, 'MATCHED_RECEIPT_ONLY');
 assert.equal(first.settlementStatus, 'UNCONFIRMED');
 assert.deepEqual(await verifier.submit(input), first);
 assert.equal((await verifier.events()).length, 1);
+const { createDurableVerifier } = await import('@1hubengineering/receipt-verifier/jobs');
+await verifier.registerExpectation({...expectation,paymentId:'queued'});
+const jobs = createDurableVerifier({storage,providers:{},encryptionKey:new Uint8Array(32).fill(1),policy:{maxAttempts:1},now:()=>1500});
+await jobs.initialize();
+const jobInput={...input,paymentId:'queued',idempotencyKey:'queued'};
+const accepted = await jobs.enqueue(jobInput);
+assert.equal(accepted.state,'QUEUED');
+assert.equal(await jobs.runOnce(),'COMPLETED');
+assert.equal((await jobs.status(jobInput,accepted.jobId)).result.verificationStatus,'UNABLE_TO_VERIFY');
+assert.equal((await jobs.status(jobInput,accepted.jobId)).result.settlementStatus,'UNCONFIRMED');
 assert.equal(database.open, true);
 database.close();
 `,

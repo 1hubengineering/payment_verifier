@@ -11,6 +11,7 @@ import { adapterContract } from './suite.ts';
 import type { AdapterHarness } from './suite.ts';
 import {
   children,
+  crashedWorker,
   directPostgresHarness,
   directMysqlHarness,
   directSqliteHarness,
@@ -50,6 +51,7 @@ function harness(
     restart: async (input) =>
       (await children(`prisma-${engine}`, [input], 'replay', base.sqliteFilename))[0]!,
     race: (inputs) => children(`prisma-${engine}`, inputs, 'race', base.sqliteFilename),
+    crashJob: (input, now) => crashedWorker(`prisma-${engine}`, input, now, base.sqliteFilename),
     async close() {
       await Promise.all(clients.map((c) => c.$disconnect()));
       await base.close();

@@ -9,6 +9,9 @@ Read the active library documents in this order:
 5. [Roadmap](development/roadmap.md): implemented slices and the next acceptance gates.
 6. [Workspace conventions](development/conventions.md): current package names, runtime policy, commands, and verified sources.
 
+[Durable jobs](development/durable-jobs.md) documents optional queue policy,
+encryption, leases and maintenance ownership.
+
 [Execution plans](development/plans/) record substantial implementation work.
 
 ## Historical standalone material

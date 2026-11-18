@@ -97,6 +97,47 @@ export function children(
   });
 }
 
+/** Kill only the synthetic child after it proves the persisted lease reached retrieval. */
+export async function crashedWorker(
+  engine: string,
+  input: VerificationSubmission,
+  now: number,
+  sqliteFile?: string,
+): Promise<void> {
+  const child = fork(
+    fileURLToPath(new URL('./replay-child.mjs', import.meta.url)),
+    [engine, JSON.stringify(input), 'job-crash', String(now)],
+    {
+      stdio: ['ignore', 'ignore', 'ignore', 'ipc'],
+      env: { ...process.env, ...(sqliteFile ? { RECEIPT_TEST_SQLITE_FILE: sqliteFile } : {}) },
+    },
+  );
+  const timer = setTimeout(() => child.kill('SIGKILL'), 15000);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      let ready = false;
+      child.on('message', (message: { ready?: boolean; error?: string }) => {
+        if (message.ready) {
+          ready = true;
+          child.kill('SIGKILL');
+        } else if (message.error) reject(new Error(`Synthetic crash child: ${message.error}`));
+      });
+      child.on('error', reject);
+      child.on('exit', (_code, signal) => {
+        if (ready && signal === 'SIGKILL') resolve();
+        else reject(new Error('Synthetic child did not reach its durable lease'));
+      });
+    });
+  } finally {
+    clearTimeout(timer);
+    if (child.exitCode === null && child.signalCode === null) {
+      const exited = once(child, 'exit');
+      child.kill('SIGKILL');
+      await exited;
+    }
+  }
+}
+
 export async function directPostgresHarness(): Promise<DirectHarness> {
   const pool = new Pool({
     connectionString: localTestUrl(ENV.RECEIPT_TEST_POSTGRES_URL),
@@ -148,6 +189,7 @@ export async function directPostgresHarness(): Promise<DirectHarness> {
     },
     restart: async (input) => (await children('postgres', [input], 'replay'))[0]!,
     race: (inputs) => children('postgres', inputs, 'race'),
+    crashJob: (input, now) => crashedWorker('postgres', input, now),
     close: () => pool.end(),
   };
 }
@@ -206,6 +248,7 @@ export async function directMysqlHarness(): Promise<DirectHarness> {
     },
     restart: async (input) => (await children('mysql', [input], 'replay'))[0]!,
     race: (inputs) => children('mysql', inputs, 'race'),
+    crashJob: (input, now) => crashedWorker('mysql', input, now),
     close: () => pool.promise().end(),
   };
 }
@@ -266,6 +309,7 @@ export async function directSqliteHarness(): Promise<DirectHarness> {
     },
     restart: async (input) => (await children('sqlite', [input], 'replay', filename))[0]!,
     race: (inputs) => children('sqlite', inputs, 'race', filename),
+    crashJob: (input, now) => crashedWorker('sqlite', input, now, filename),
     async close() {
       for (const db of opened) db.close();
       rmSync(directory, { recursive: true, force: true });
