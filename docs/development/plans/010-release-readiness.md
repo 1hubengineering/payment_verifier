@@ -100,3 +100,10 @@ caller scopes. Full clean-commit artifact preparation and hosted candidate gates
 follow the commit. GitHub login/verified primary email and npm login/verified
 email/auth-and-writes 2FA were rechecked independently; all five registry names
 currently return 404, which is not a name reservation or publication claim.
+
+Clean-commit artifact execution caught a checker error: Prisma's exported schema
+wildcard is a string, whereas the first checker assumed every export was a
+condition object. Validate string/condition targets recursively and explicitly
+require all three distributed Prisma snippets. The SDK installed consumers had
+already passed; this was a release-checker failure, not missing package content.
+Artifacts remain private/ineligible until the corrected clean-commit run succeeds.

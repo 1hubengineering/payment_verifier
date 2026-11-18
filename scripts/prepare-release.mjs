@@ -63,8 +63,18 @@ for (let index = 0; index < folders.length; index++) {
     if (name.startsWith('@1hubengineering/')) assert.equal(range, version);
   for (const hook of ['preinstall', 'install', 'postinstall', 'prepare', 'prepublishOnly'])
     assert.equal(packed.scripts?.[hook], undefined);
-  for (const value of Object.values(packed.exports))
-    for (const path of Object.values(value)) assert.ok(paths.includes(`package/${path.slice(2)}`));
+  const checkExport = (value) => {
+    if (typeof value === 'string') {
+      if (value === './schema/*') {
+        for (const engine of ['postgres', 'mysql', 'sqlite'])
+          assert.ok(paths.includes(`package/schema/${engine}.prisma`));
+      } else {
+        assert.ok(value.startsWith('./dist/'));
+        assert.ok(paths.includes(`package/${value.slice(2)}`));
+      }
+    } else for (const target of Object.values(value)) checkExport(target);
+  };
+  checkExport(packed.exports);
   const bytes = readFileSync(file),
     sha256 = createHash('sha256').update(bytes).digest('hex'),
     sha512 = createHash('sha512').update(bytes).digest('base64');
