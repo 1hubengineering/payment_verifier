@@ -53,3 +53,9 @@ site build and the stdio MCP smoke test.
 See the [npm naming assessment](../npm-name-assessment.md). No registry write
 was made. The redesign ships through the existing GitHub Pages workflow;
 the MCP server runs locally over stdio.
+
+[Pages run 44398022101](https://github.com/1hubengineering/payment_verifier/actions/runs/44398022101)
+deployed the redesign. Chromium verified the live homepage, quickstart, API search
+and checkout retry at 375px and 1440px. Both skills installed from
+`1hubengineering/payment_verifier` into a fresh Codex project without GitHub
+credentials.

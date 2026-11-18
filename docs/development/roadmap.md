@@ -16,7 +16,7 @@ publication. Historical examples are not additional compatibility promises.
 | 7. Release readiness            | Complete; 0.1.0 published            | Five npm versions verified by publisher, both hashes and installed workflow; public GitHub tag/assets match reviewed source                            |
 | 8. Drizzle v1 RC source upgrade | Complete in source; not republished  | ORM/Kit 1.0.0-rc.5 from rc tags; full pnpm verify, all nine engine cells, installed relation-client types and local Kit checks pass; version unchanged |
 | 9. Repository and web checkout  | Complete; static Pages deployed      | Reusable React checkout, guide and contributor setup, synthetic results, and verified Pages deployment; no live backend or npm changes                 |
-| 10. Developer documentation     | Implemented locally                  | 0.1.0 guide and API index from release declarations, installable skills, tested stdio docs MCP, and read-only npm naming assessment                    |
+| 10. Developer documentation     | Complete; static Pages deployed      | 0.1.0 guide and API index from release declarations, public skills install, tested local stdio MCP, and read-only npm naming assessment                |
 
 Published 0.1.0 acceptance: **237 fast/application/example/provider cases,
 243 real-engine contract cases (nine cells × 27), and 11 frozen reference cases**,
