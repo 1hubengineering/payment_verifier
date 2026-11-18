@@ -1,4 +1,5 @@
 import { fork } from 'node:child_process';
+import { once } from 'node:events';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -11,14 +12,20 @@ import { expect } from 'vite-plus/test';
 import {
   postgresStorage,
   postgresTransaction,
-} from '@andhub/receipt-verifier-storage-sql/postgres';
-import { mysqlStorage, mysqlTransaction } from '@andhub/receipt-verifier-storage-sql/mysql';
-import { sqliteStorage, sqliteTransaction } from '@andhub/receipt-verifier-storage-sql/sqlite';
+} from '@1hubengineering/receipt-verifier-storage-sql/postgres';
+import {
+  mysqlStorage,
+  mysqlTransaction,
+} from '@1hubengineering/receipt-verifier-storage-sql/mysql';
+import {
+  sqliteStorage,
+  sqliteTransaction,
+} from '@1hubengineering/receipt-verifier-storage-sql/sqlite';
 import type {
   VerificationStorage,
   VerificationSubmission,
   VerificationResult,
-} from '@andhub/receipt-verifier';
+} from '@1hubengineering/receipt-verifier';
 import { ENV } from '../env.ts';
 import type { AdapterHarness } from './suite.ts';
 
@@ -77,9 +84,16 @@ export function children(
   const timer = setTimeout(() => {
     for (const child of processes) child.kill();
   }, 15000);
-  return Promise.all(results).finally(() => {
+  return Promise.all(results).finally(async () => {
     clearTimeout(timer);
-    for (const child of processes) if (child.exitCode === null) child.kill();
+    await Promise.all(
+      processes.map(async (child) => {
+        if (child.exitCode !== null || child.signalCode !== null) return;
+        const exited = once(child, 'exit');
+        child.kill();
+        await exited;
+      }),
+    );
   });
 }
 

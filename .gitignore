@@ -22,3 +22,7 @@ apps/*/env.ts
 
 # Generated integration-test environment types.
 tests/adapter-contract/env.ts
+tests/adapter-contract/generated/
+
+# Registry credentials never belong in source control.
+.npmrc

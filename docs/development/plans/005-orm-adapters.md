@@ -21,9 +21,9 @@ Official registry checks on 18 November 2026 identify Drizzle 0.45.4 as stable;
 - [x] Implement native Drizzle PostgreSQL/MySQL/SQLite client and transaction paths.
 - [x] Run the unchanged contract suite on all three real Drizzle engine cells.
 - [x] Document migration ownership, installed peers, limitations; verify and commit.
-- [ ] Generate and test explicit Prisma 7.10.1 clients for all three engines.
-- [ ] Implement Prisma delegate and caller-transaction paths; run the same suite.
-- [ ] Verify installed artifacts/types, document compatibility, review and commit.
+- [x] Generate and test explicit Prisma 7.10.1 clients for all three engines.
+- [x] Implement Prisma delegate and caller-transaction paths; run the same suite.
+- [x] Verify installed artifacts/types, document compatibility, review and commit.
 
 ## Validation
 
@@ -68,7 +68,7 @@ pass runtime export/table-object checks and strict API/negative transaction typi
 They follow the workspace's skipLibCheck policy because Drizzle's upstream 0.45.4
 declarations fail full TypeScript 7 vendor checks. Core/SQL consumers still pass
 full declaration checking. This limitation is documented rather than suppressed
-in core checks. Full acceptance and Node 24 validation remain before commit. Prisma implementation is next. npm identity/scope remain unverified.
+in core checks. Full Drizzle acceptance passed on both runtimes; see its dated acceptance below. The subsequent Prisma acceptance and scope decision follow.
 
 ## Drizzle acceptance
 
@@ -83,5 +83,59 @@ The direct SQL commit's hosted CI also passed before this change.
 
 Review against code-review.md confirmed no driver ownership changes, ORM query
 execution through actual scoped transactions, no receipt-to-settlement transition,
-and fail-closed behavior for the known unsupported libSQL 0.18.0 path. Prisma
-remains the next incomplete part of this plan.
+and fail-closed behavior for the known unsupported libSQL 0.18.0 path. Prisma was the next incomplete part at that commit; its acceptance follows.
+
+## Prisma implementation progress
+
+Prisma 7.10.1 CLI/client and its three official driver adapters are selected.
+The SQLite driver adapter requires better-sqlite3 ^12.6.0 and resolves stable
+12.11.1, distinct from the direct SQL adapter's 13.2.0. Its prebuild installation
+aborted and the fallback lacked node-gyp. The host has Python/make/g++; add
+registry-stable node-gyp 13.1.0 as a concrete workspace development build tool.
+Native builds are explicitly allowed only for better-sqlite3, Prisma and its
+engine package. Prisma CLI/client package engines are ^20.19 || ^22.12 || >=24.0,
+which include both selected runtimes.
+
+The user has now logged into npm. CLI whoami is 1hubengineering and profile
+email_verified is true. The personal @1hubengineering namespace is selected below; the provisional
+@andhub organization was unavailable.
+
+Release review follow-up: audit the provider extractor's regex/slicing resource
+bounds with malformed maximum-size input before publication; do not lose this
+security review item while completing the ORM matrix.
+
+## Confirmed npm scope
+
+The user confirmed that andhub was unavailable and explicitly chose
+@1hubengineering. Update active package names, imports, scripts, consumers and
+conventions before first publication. Preserve original research, frozen reference
+and prior execution records as history. npm authentication is independently
+1hubengineering with verified email and 2FA; its personal namespace needs no org.
+No packages are published yet.
+
+Prisma compatibility discovery: 7.10.1 retains $transaction on both the runtime
+transaction proxy and generated transaction type (its denylist omits connect,
+disconnect, extends, on and use). A whole-client rejection based on property
+presence incorrectly rejected legitimate host transactions. Remove that inference;
+require the explicit Serializable policy and document that callers pass the actual
+callback tx. Real rollback/commit tests prove the supported path. Generated-client
+consumer checks cover every actual model client rather than an abstract mock.
+The official SQLite adapter's native driver reports SQLite 3.53.2.
+
+## Prisma acceptance
+
+`pnpm verify` passed on Node 26.13.1: 186 fast/provider tests, 135 shared
+contract cases across all nine direct/Drizzle/Prisma cells, 11 frozen reference
+tests, generated-client checks, five package builds, formatting/lint/types,
+publint and isolated installed consumers. The Prisma consumer checks all three
+actual generated clients with full declaration checking. SQLite is 3.53.2 via
+better-sqlite3 12.11.1. Hosted Node 24 acceptance remains pending for this commit;
+the native dependency must be built for its runtime in each clean CI checkout.
+
+Review against code-review.md verified native Prisma delegate calls, actual
+Serializable caller transactions, eight bounded whole-transaction conflict
+retries, shared-store claims, rollback/process races and no client ownership
+changes. The scope rename changes active imports and package names consistently;
+frozen reference files and historical plans remain untouched. No registry
+publication is claimed. Next work is the extractor resource review, followed by
+durable worker/CLI and checkout example.

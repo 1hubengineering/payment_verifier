@@ -1,0 +1,23 @@
+generator client {
+  provider = "prisma-client"
+  output = "../generated/postgres"
+  moduleFormat = "esm"
+  generatedFileExtension = "ts"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model ReceiptVerifierRecord {
+  recordKey String @id @map("record_key") @db.VarChar(96)
+  payload String @db.Text
+  @@map("receipt_verifier_records")
+}
+
+model ReceiptVerifierSchema {
+  id Int @id
+  version Int
+  @@map("receipt_verifier_schema")
+}

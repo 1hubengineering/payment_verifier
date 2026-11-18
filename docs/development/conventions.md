@@ -31,28 +31,32 @@ its original child-process arguments to preserve the regression baseline.
 
 ## Names and package boundaries
 
-| Location                                                  | npm name / role                                                                                       |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `packages/receipt-verifier`                               | `@andhub/receipt-verifier`: public library API and provider-neutral domain                            |
-| `apps/cli`                                                | `@andhub/receipt-verifier-cli`: private executable application boundary; currently configuration only |
-| `tests/reference-cli`                                     | Frozen synthetic source and regression evidence; never a runtime dependency                           |
-| `scripts`                                                 | Workspace verification utilities                                                                      |
-| `examples/<framework>-<scenario>`                         | Consumer applications when implemented, such as `fastify-checkout`                                    |
-| `docs/library-plan` / `docs/development` / `docs/archive` | Original direction / current workflow and execution plans / historical requirements                   |
+| Location                                                  | npm name / role                                                                                                |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `packages/receipt-verifier`                               | `@1hubengineering/receipt-verifier`: public library API and provider-neutral domain                            |
+| `apps/cli`                                                | `@1hubengineering/receipt-verifier-cli`: private executable application boundary; currently configuration only |
+| `tests/reference-cli`                                     | Frozen synthetic source and regression evidence; never a runtime dependency                                    |
+| `scripts`                                                 | Workspace verification utilities                                                                               |
+| `examples/<framework>-<scenario>`                         | Consumer applications when implemented, such as `fastify-checkout`                                             |
+| `docs/library-plan` / `docs/development` / `docs/archive` | Original direction / current workflow and execution plans / historical requirements                            |
 
 Use lowercase, descriptive, hyphenated npm names, as recommended by
 [npm package metadata guidance](https://docs.npmjs.com/cli/v11/configuring-npm/package-json/#name).
-The scope `@andhub` is provisional: ownership and publishing access have not been
-verified. All packages remain private. No registry name reservation is claimed.
+The npm scope is now `@1hubengineering`. CLI authentication and the registry profile
+separately confirm that user identity and verified email. npm assigns the matching
+personal namespace to the user; no organization is needed. The user selected this
+scope after finding the provisional `@andhub` name unavailable. All packages remain
+private until release gates pass; no registry publication or name reservation is
+claimed before publishing succeeds.
 
 For future independently installed integrations, use a consistent product prefix:
 
-| Planned folder                              | Planned npm name                           | Reason to split                                     |
-| ------------------------------------------- | ------------------------------------------ | --------------------------------------------------- |
-| `packages/receipt-verifier-storage-sql`     | `@andhub/receipt-verifier-storage-sql`     | SQL drivers, migrations, and connection integration |
-| `packages/receipt-verifier-adapter-drizzle` | `@andhub/receipt-verifier-adapter-drizzle` | Drizzle peer/version and transaction contract       |
-| `packages/receipt-verifier-adapter-prisma`  | `@andhub/receipt-verifier-adapter-prisma`  | Versioned Prisma client and transaction contract    |
-| `packages/receipt-verifier-provider-cbe`    | `@andhub/receipt-verifier-provider-cbe`    | Optional browser execution dependencies             |
+| Planned folder                              | Planned npm name                                    | Reason to split                                     |
+| ------------------------------------------- | --------------------------------------------------- | --------------------------------------------------- |
+| `packages/receipt-verifier-storage-sql`     | `@1hubengineering/receipt-verifier-storage-sql`     | SQL drivers, migrations, and connection integration |
+| `packages/receipt-verifier-adapter-drizzle` | `@1hubengineering/receipt-verifier-adapter-drizzle` | Drizzle peer/version and transaction contract       |
+| `packages/receipt-verifier-adapter-prisma`  | `@1hubengineering/receipt-verifier-adapter-prisma`  | Versioned Prisma client and transaction contract    |
+| `packages/receipt-verifier-provider-cbe`    | `@1hubengineering/receipt-verifier-provider-cbe`    | Optional browser execution dependencies             |
 
 Create these only with actual implementation. Telebirr retrieval and shared extraction use the dependency-free core `/providers`
 subpath; CBE browser execution is now implemented in its optional package.
@@ -93,7 +97,8 @@ CI retains read-only repository permissions, explicit runtime versions, frozen
 installation, and the same acceptance command as local development.
 
 Update action SHAs from verified official release tags when maintaining the
-workflow. Local checks validate the package; hosted CI has not run in this workspace.
+workflow. Local checks and hosted CI validate the package; the direct/Drizzle main commit
+passed both configured Node versions. Each new slice must pass its own CI.
 Current automation is exercised on Linux; no macOS or Windows validation is claimed.
 
 ## Provider execution and verification
@@ -135,7 +140,7 @@ Storage uses one versioned typed record schema, not separate ORM-owned shadow
 stores. A single migration owner maintains its primary keys and version metadata.
 Hosts retain all connection, transaction, settlement and fulfillment ownership.
 
-## ORM compatibility under validation
+## ORM compatibility
 
 Drizzle 0.45.4 is now tested with pg 8.23.1/PostgreSQL 18.7, mysql2
 3.24.6/MySQL 8.4.13 and @libsql/client 0.17.4/local SQLite 3.45.1. libSQL 0.18.0
@@ -151,5 +156,10 @@ API usage and negative transaction typing still pass in isolated installations;
 core and direct-SQL declarations pass full checking.
 
 Registry latest for Prisma CLI pointed to 8.0.0-rc.34 while Prisma Client latest was
-stable 7.10.1. The next integration selects matching stable CLI/client 7.10.1;
-no Prisma compatibility is claimed until its own engine matrix passes.
+stable 7.10.1. The integration selects matching stable CLI/client and official driver adapters
+7.10.1. All three cells pass the shared 15-case suite on Node 26: pg 8.23.1 /
+PostgreSQL 18.7, mariadb 3.5.4 / MySQL 8.4.13, better-sqlite3 12.11.1 /
+SQLite 3.53.2. Generated clients match distributed model snippets. Actual
+Serializable caller transactions and installed declarations are tested. Prisma
+8 and other combinations remain unsupported. The Node 24 Prisma gate is pending
+hosted CI, where its native dependency is built for that runtime.

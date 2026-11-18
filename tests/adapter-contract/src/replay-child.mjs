@@ -1,28 +1,29 @@
-import { createReceiptVerifier, parseEtbAmount } from '@andhub/receipt-verifier';
+import { createReceiptVerifier, parseEtbAmount } from '@1hubengineering/receipt-verifier';
 
 const [engine, inputText, mode] = process.argv.slice(2);
 const input = JSON.parse(inputText);
 let storage, close;
 try {
-  const baseEngine = engine.replace(/^drizzle-/, '');
+  const baseEngine = engine.replace(/^(?:drizzle|prisma)-/, '');
   let host;
   if (baseEngine === 'postgres') {
     const { Pool } = await import('pg');
-    const { postgresStorage } = await import('@andhub/receipt-verifier-storage-sql/postgres');
+    const { postgresStorage } =
+      await import('@1hubengineering/receipt-verifier-storage-sql/postgres');
     const pool = new Pool({ connectionString: process.env.RECEIPT_TEST_POSTGRES_URL });
     storage = postgresStorage(pool);
     host = pool;
     close = () => pool.end();
   } else if (baseEngine === 'mysql') {
     const { createPool } = await import('mysql2');
-    const { mysqlStorage } = await import('@andhub/receipt-verifier-storage-sql/mysql');
+    const { mysqlStorage } = await import('@1hubengineering/receipt-verifier-storage-sql/mysql');
     const pool = createPool(process.env.RECEIPT_TEST_MYSQL_URL);
     storage = mysqlStorage(pool);
     host = pool;
     close = () => pool.promise().end();
   } else {
     const { default: Database } = await import('better-sqlite3');
-    const { sqliteStorage } = await import('@andhub/receipt-verifier-storage-sql/sqlite');
+    const { sqliteStorage } = await import('@1hubengineering/receipt-verifier-storage-sql/sqlite');
     const database = new Database(process.env.RECEIPT_TEST_SQLITE_FILE, { timeout: 20 });
     storage = sqliteStorage(database);
     close = async () => database.close();
@@ -31,18 +32,18 @@ try {
     if (baseEngine === 'postgres') {
       const { drizzle } = await import('drizzle-orm/node-postgres');
       const { drizzlePostgresStorage } =
-        await import('@andhub/receipt-verifier-adapter-drizzle/postgres');
+        await import('@1hubengineering/receipt-verifier-adapter-drizzle/postgres');
       storage = drizzlePostgresStorage(drizzle(host));
     } else if (baseEngine === 'mysql') {
       const { drizzle } = await import('drizzle-orm/mysql2');
       const { drizzleMysqlStorage } =
-        await import('@andhub/receipt-verifier-adapter-drizzle/mysql');
+        await import('@1hubengineering/receipt-verifier-adapter-drizzle/mysql');
       storage = drizzleMysqlStorage(drizzle(host.promise()));
     } else {
       const { createClient } = await import('@libsql/client');
       const { drizzle } = await import('drizzle-orm/libsql');
       const { drizzleSqliteStorage } =
-        await import('@andhub/receipt-verifier-adapter-drizzle/sqlite');
+        await import('@1hubengineering/receipt-verifier-adapter-drizzle/sqlite');
       const client = createClient({ url: 'file:' + process.env.RECEIPT_TEST_SQLITE_FILE });
       storage = drizzleSqliteStorage(drizzle(client));
       const originalClose = close;
@@ -51,6 +52,31 @@ try {
         await originalClose();
       };
     }
+  }
+  if (engine.startsWith('prisma-')) {
+    const { prismaStorage } = await import('@1hubengineering/receipt-verifier-adapter-prisma');
+    const { PrismaClient } = await import(`../generated/${baseEngine}/client.ts`);
+    let adapter;
+    if (baseEngine === 'postgres') {
+      const { PrismaPg } = await import('@prisma/adapter-pg');
+      adapter = new PrismaPg({ connectionString: process.env.RECEIPT_TEST_POSTGRES_URL });
+    } else if (baseEngine === 'mysql') {
+      const { PrismaMariaDb } = await import('@prisma/adapter-mariadb');
+      adapter = new PrismaMariaDb(process.env.RECEIPT_TEST_MYSQL_URL);
+    } else {
+      const { PrismaBetterSqlite3 } = await import('@prisma/adapter-better-sqlite3');
+      adapter = new PrismaBetterSqlite3({
+        url: 'file:' + process.env.RECEIPT_TEST_SQLITE_FILE,
+        timeout: 20,
+      });
+    }
+    const client = new PrismaClient({ adapter });
+    storage = prismaStorage(client);
+    const originalClose = close;
+    close = async () => {
+      await client.$disconnect();
+      await originalClose();
+    };
   }
   const time = 1700000000000;
   const verifier = createReceiptVerifier({

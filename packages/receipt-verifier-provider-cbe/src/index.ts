@@ -4,8 +4,8 @@ import {
   parseReceiptHtml,
   retrieveHtml,
   RetrievalError,
-} from '@andhub/receipt-verifier/providers';
-import type { ProviderResult, RetrievalOptions } from '@andhub/receipt-verifier/providers';
+} from '@1hubengineering/receipt-verifier/providers';
+import type { ProviderResult, RetrievalOptions } from '@1hubengineering/receipt-verifier/providers';
 import { renderCbeHtml } from './render.ts';
 
 export interface CbeProvider {

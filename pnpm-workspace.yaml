@@ -5,3 +5,9 @@ packages:
   - tests/adapter-contract
 
 minimumReleaseAge: 1440
+
+# Required only by Prisma's selected engine/native test dependencies.
+allowBuilds:
+  '@prisma/engines': true
+  prisma: true
+  better-sqlite3: true

@@ -5,15 +5,15 @@ import { createClient } from '@libsql/client';
 import {
   drizzlePostgresStorage,
   drizzlePostgresTransaction,
-} from '@andhub/receipt-verifier-adapter-drizzle/postgres';
+} from '@1hubengineering/receipt-verifier-adapter-drizzle/postgres';
 import {
   drizzleMysqlStorage,
   drizzleMysqlTransaction,
-} from '@andhub/receipt-verifier-adapter-drizzle/mysql';
+} from '@1hubengineering/receipt-verifier-adapter-drizzle/mysql';
 import {
   drizzleSqliteStorage,
   drizzleSqliteTransaction,
-} from '@andhub/receipt-verifier-adapter-drizzle/sqlite';
+} from '@1hubengineering/receipt-verifier-adapter-drizzle/sqlite';
 import { adapterContract } from './suite.ts';
 import type { AdapterHarness } from './suite.ts';
 import {

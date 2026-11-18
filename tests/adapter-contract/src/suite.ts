@@ -13,14 +13,14 @@ import {
   createReceiptVerifier,
   parseEtbAmount,
   storageKey,
-} from '@andhub/receipt-verifier';
+} from '@1hubengineering/receipt-verifier';
 import type {
   PaymentExpectation,
   VerificationStorage,
   VerificationSubmission,
   VerificationResult,
-} from '@andhub/receipt-verifier';
-import type { ProviderResult } from '@andhub/receipt-verifier/providers';
+} from '@1hubengineering/receipt-verifier';
+import type { ProviderResult } from '@1hubengineering/receipt-verifier/providers';
 
 export interface AdapterHarness {
   storage: VerificationStorage;
@@ -82,6 +82,14 @@ export function submission(
   receiptLocator = 'SYNTH1234',
 ): VerificationSubmission {
   return { tenantId, paymentId, idempotencyKey, receiptLocator };
+}
+
+async function completeAll<T>(operations: readonly Promise<T>[]): Promise<T[]> {
+  const results = await Promise.allSettled(operations);
+  return results.map((result) => {
+    if (result.status === 'rejected') throw result.reason;
+    return result.value;
+  });
 }
 
 export function adapterContract(name: string, createHarness: () => Promise<AdapterHarness>): void {
@@ -151,7 +159,7 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
     it('replays identical concurrent submissions with one claim and event', async () => {
       const v = verifier();
       await v.registerExpectation(expectation());
-      const results = await Promise.all(Array.from({ length: 6 }, () => v.submit(submission())));
+      const results = await completeAll(Array.from({ length: 6 }, () => v.submit(submission())));
       for (const result of results) expect(result).toEqual(results[0]);
       expect(results[0]!.verificationStatus).toBe('MATCHED_RECEIPT_ONLY');
       expect(await v.events()).toHaveLength(1);
@@ -177,12 +185,12 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
       const inputs = Array.from({ length: 6 }, (_, i) =>
         submission(`tenant-${i}`, `payment-${i}`, 'same-key'),
       );
-      await Promise.all(
+      await completeAll(
         inputs.map((input) =>
           verifier().registerExpectation(expectation(input.tenantId, input.paymentId)),
         ),
       );
-      const results = await Promise.all(
+      const results = await completeAll(
         inputs.map((input) => verifier(harness.fork()).submit(input)),
       );
       expect(results.filter((r) => r.verificationStatus === 'MATCHED_RECEIPT_ONLY')).toHaveLength(
@@ -198,7 +206,7 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
       const inputs = ['SYNTH1234', 'OTHER1234'].map((id) =>
         submission('tenant-a', 'payment-a', id, id),
       );
-      const results = await Promise.all(
+      const results = await completeAll(
         inputs.map((input) => verifier(harness.fork()).submit(input)),
       );
       expect(results.filter((r) => r.verificationStatus === 'MATCHED_RECEIPT_ONLY')).toHaveLength(

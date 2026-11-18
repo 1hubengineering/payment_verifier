@@ -4,7 +4,7 @@ Private development preview; locally tested with synthetic HTML and Playwright
 1.65.1 / its matching Chromium. No live provider availability is claimed.
 
 ```ts
-import { createCbeProvider } from '@andhub/receipt-verifier-provider-cbe';
+import { createCbeProvider } from '@1hubengineering/receipt-verifier-provider-cbe';
 const cbe = createCbeProvider({ maxConcurrency: 1 });
 // Call from an authenticated host route or durable worker, outside DB locks.
 const result = await cbe.retrieve('https://mbreciept.cbe.com.et/v2-SYNTHETIC', {

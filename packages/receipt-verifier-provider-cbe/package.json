@@ -1,5 +1,5 @@
 {
-  "name": "@andhub/receipt-verifier-provider-cbe",
+  "name": "@1hubengineering/receipt-verifier-provider-cbe",
   "version": "0.0.0",
   "private": true,
   "description": "Optional isolated Chromium execution for CBE receipt evidence",
@@ -22,7 +22,7 @@
     "setup:browsers": "playwright install chromium"
   },
   "dependencies": {
-    "@andhub/receipt-verifier": "workspace:*"
+    "@1hubengineering/receipt-verifier": "workspace:*"
   },
   "devDependencies": {
     "playwright": "1.65.1"

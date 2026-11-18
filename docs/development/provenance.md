@@ -27,5 +27,8 @@ uses that name/email and preserves the unrelated global Git settings. These chec
 establish commit attribution, not signed-commit status or npm rights.
 
 The repository was created private as `1hubengineering/verify_payment_v1`. Packages
-remain private and no release has been published. npm login, intended scope access,
-full adapter matrix, release artifacts and provenance review remain separate gates.
+remain private and no release has been published. npm now separately authenticates `1hubengineering` with email_verified true and
+2FA enabled. The user found `andhub` unavailable and explicitly selected the
+matching personal `@1hubengineering` scope, which needs no organization. Namespace
+rights follow the verified npm account, independently of GitHub access. No package
+has been published; the full matrix and release artifacts remain separate gates.

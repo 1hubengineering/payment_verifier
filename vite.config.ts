@@ -10,6 +10,7 @@ export default defineConfig({
       'docs/archive/**',
       'apps/*/env.ts',
       'tests/adapter-contract/env.ts',
+      'tests/adapter-contract/generated/**',
     ],
   },
   fmt: {
@@ -21,6 +22,7 @@ export default defineConfig({
       'docs/archive/**',
       'apps/*/env.ts',
       'tests/adapter-contract/env.ts',
+      'tests/adapter-contract/generated/**',
     ],
   },
   test: {

@@ -2,7 +2,7 @@ import { Kysely, SqliteDialect } from 'kysely';
 import type { Database } from 'better-sqlite3';
 import { createStorage } from './storage.ts';
 import type { SqlStorage, StorageSchema } from './index.ts';
-import type { VerificationStorage } from '@andhub/receipt-verifier';
+import type { VerificationStorage } from '@1hubengineering/receipt-verifier';
 
 export function sqliteStorage(database: Database): SqlStorage {
   return createStorage(

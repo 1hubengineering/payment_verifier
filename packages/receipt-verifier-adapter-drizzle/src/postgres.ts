@@ -7,7 +7,7 @@ import type {
 import { eq, like, asc, is } from 'drizzle-orm';
 import { pgTable, varchar, text, integer } from 'drizzle-orm/pg-core';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type { RecordTransaction, VerificationStorage } from '@andhub/receipt-verifier';
+import type { RecordTransaction, VerificationStorage } from '@1hubengineering/receipt-verifier';
 import {
   drizzleStore,
   StorageDataError,

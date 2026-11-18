@@ -1,5 +1,5 @@
 {
-  "name": "@andhub/receipt-verifier-adapter-drizzle",
+  "name": "@1hubengineering/receipt-verifier-adapter-drizzle",
   "version": "0.0.0",
   "private": true,
   "description": "Versioned Drizzle storage integration for receipt-only verification",
@@ -30,7 +30,7 @@
     "check:package": "publint --strict"
   },
   "dependencies": {
-    "@andhub/receipt-verifier": "workspace:*"
+    "@1hubengineering/receipt-verifier": "workspace:*"
   },
   "devDependencies": {
     "@libsql/client": "0.17.4",

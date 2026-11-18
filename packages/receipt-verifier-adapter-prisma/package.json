@@ -1,0 +1,38 @@
+{
+  "name": "@1hubengineering/receipt-verifier-adapter-prisma",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Prisma 7.10.1 transaction integration for receipt-only verification",
+  "license": "ISC",
+  "files": [
+    "dist",
+    "schema",
+    "README.md",
+    "LICENSE"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./schema/*": "./schema/*"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "check:package": "publint --strict"
+  },
+  "dependencies": {
+    "@1hubengineering/receipt-verifier": "workspace:*"
+  },
+  "devDependencies": {
+    "@prisma/client": "7.10.1"
+  },
+  "peerDependencies": {
+    "@prisma/client": "7.10.1"
+  },
+  "engines": {
+    "node": "^24.22.3 || ^26.13.1"
+  }
+}

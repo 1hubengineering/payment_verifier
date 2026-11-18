@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,7 +37,10 @@ try {
   );
 
   const manifest = JSON.parse(
-    readFileSync(join(temporary, 'node_modules/@andhub/receipt-verifier/package.json'), 'utf8'),
+    readFileSync(
+      join(temporary, 'node_modules/@1hubengineering/receipt-verifier/package.json'),
+      'utf8',
+    ),
   );
   assert.equal(
     Object.keys(manifest.dependencies ?? {}).length,
@@ -47,7 +58,7 @@ try {
     `
 import assert from 'node:assert/strict';
 globalThis.fetch = () => { throw new Error('Unexpected import-time network request'); };
-const core = await import('@andhub/receipt-verifier');
+const core = await import('@1hubengineering/receipt-verifier');
 assert.deepEqual(Object.keys(core).sort(), ['StorageConflict', 'VerificationError', 'compareReceipt', 'createPaymentExpectation', 'createReceiptVerifier', 'parseEtbAmount', 'storageKey']);
 const expected = core.createPaymentExpectation({
   tenantId: 'synthetic', paymentId: 'synthetic', provider: 'telebirr', currency: 'ETB',
@@ -65,7 +76,7 @@ assert.equal(core.compareReceipt(expected, {}).verificationStatus, 'UNABLE_TO_VE
 assert.equal(core.parseEtbAmount('0.29'), 29);
 assert.equal(core.parseEtbAmount('500.00'), 50000);
 assert.throws(() => core.parseEtbAmount('0.001'));
-const providers = await import('@andhub/receipt-verifier/providers');
+const providers = await import('@1hubengineering/receipt-verifier/providers');
 assert.equal(providers.normalizeReceiptLocator('telebirr', 'TEST1234AB').transactionId, 'TEST1234AB');
 const parsed = providers.parseReceiptHtml('telebirr', '<html>unsupported</html>');
 assert.equal(parsed.provenance.kind, 'SAVED_HTML');
@@ -78,8 +89,8 @@ assert.equal(providers.isPublicDestination('127.0.0.1'), false);
   writeFileSync(
     join(temporary, 'consumer.ts'),
     `
-import { parseEtbAmount, type EtbMinorUnits, type VerificationStatus, type SettlementStatus, createPaymentExpectation, compareReceipt, type ReceiptComparison, type ReceiptEvidence }  from '@andhub/receipt-verifier';
-import { parseReceiptHtml, normalizeReceiptLocator, type ProviderResult } from '@andhub/receipt-verifier/providers';
+import { parseEtbAmount, type EtbMinorUnits, type VerificationStatus, type SettlementStatus, createPaymentExpectation, compareReceipt, type ReceiptComparison, type ReceiptEvidence }  from '@1hubengineering/receipt-verifier';
+import { parseReceiptHtml, normalizeReceiptLocator, type ProviderResult } from '@1hubengineering/receipt-verifier/providers';
 const parsed = parseReceiptHtml('telebirr', '');
 const locator = normalizeReceiptLocator('telebirr', 'TEST1234AB');
 const unavailable: ProviderResult = { kind: 'UNAVAILABLE', code: 'TIMEOUT' };
@@ -145,7 +156,7 @@ void [amount, verification, settlement, invalidAmount, invalidVerification, resu
     join(temporary, 'optional.mjs'),
     `
 import assert from 'node:assert/strict';
-const { createCbeProvider } = await import('@andhub/receipt-verifier-provider-cbe');
+const { createCbeProvider } = await import('@1hubengineering/receipt-verifier-provider-cbe');
 assert.deepEqual(await createCbeProvider().retrieve('http://127.0.0.1/'), { kind: 'UNAVAILABLE', code: 'INVALID_LOCATOR' });
 `,
   );
@@ -178,8 +189,8 @@ assert.deepEqual(await createCbeProvider().retrieve('http://127.0.0.1/'), { kind
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import Database from 'better-sqlite3';
-import { sqliteStorage } from '@andhub/receipt-verifier-storage-sql/sqlite';
-import { createPaymentExpectation, createReceiptVerifier, parseEtbAmount } from '@andhub/receipt-verifier';
+import { sqliteStorage } from '@1hubengineering/receipt-verifier-storage-sql/sqlite';
+import { createPaymentExpectation, createReceiptVerifier, parseEtbAmount } from '@1hubengineering/receipt-verifier';
 assert.equal(existsSync(new URL('./node_modules/pg', import.meta.url)), false);
 assert.equal(existsSync(new URL('./node_modules/mysql2', import.meta.url)), false);
 const database = new Database(':memory:');
@@ -202,9 +213,9 @@ database.close();
   writeFileSync(
     join(temporary, 'adapter.ts'),
     `
-import type { SqlStorage } from '@andhub/receipt-verifier-storage-sql';
-import { createCbeProvider } from '@andhub/receipt-verifier-provider-cbe';
-import { createReceiptVerifier, type VerificationStorage } from '@andhub/receipt-verifier';
+import type { SqlStorage } from '@1hubengineering/receipt-verifier-storage-sql';
+import { createCbeProvider } from '@1hubengineering/receipt-verifier-provider-cbe';
+import { createReceiptVerifier, type VerificationStorage } from '@1hubengineering/receipt-verifier';
 const cbe = createCbeProvider();
 declare const sql: SqlStorage;
 const storage: VerificationStorage = sql;
@@ -290,7 +301,7 @@ void verifier;
     );
     const label = engine[0].toUpperCase() + engine.slice(1);
     const imports = `import { drizzle } from 'drizzle-orm/${driver}';
-import { drizzle${label}Storage, drizzle${label}Transaction, receiptVerifierRecords, receiptVerifierSchema } from '@andhub/receipt-verifier-adapter-drizzle/${engine}';
+import { drizzle${label}Storage, drizzle${label}Transaction, receiptVerifierRecords, receiptVerifierSchema } from '@1hubengineering/receipt-verifier-adapter-drizzle/${engine}';
 ${setup}
 `;
     writeFileSync(
@@ -307,7 +318,7 @@ ${cleanup}
     writeFileSync(
       join(directory, 'consumer.ts'),
       `${imports}
-import type { VerificationStorage } from '@andhub/receipt-verifier';
+import type { VerificationStorage } from '@1hubengineering/receipt-verifier';
 const storage: VerificationStorage = drizzle${label}Storage(db);
 await db.transaction(async (tx) => { const scoped: VerificationStorage = drizzle${label}Transaction(tx); void scoped; });
 // @ts-expect-error A plain ORM handle is not a caller-owned transaction.
@@ -338,6 +349,74 @@ ${cleanup}
       directory,
     );
   }
+  run(
+    'pnpm',
+    ['pack', '--pack-destination', temporary],
+    join(root, 'packages/receipt-verifier-adapter-prisma'),
+  );
+  const prismaArchive = readdirSync(temporary).find(
+    (file) => file.includes('adapter-prisma') && file.endsWith('.tgz'),
+  );
+  assert.ok(prismaArchive);
+  const prismaDirectory = join(temporary, 'prisma');
+  mkdirSync(prismaDirectory);
+  writeFileSync(
+    join(prismaDirectory, 'package.json'),
+    JSON.stringify({ private: true, type: 'module' }),
+  );
+  run(
+    'npm',
+    [
+      'install',
+      '--ignore-scripts',
+      '--no-audit',
+      '--no-fund',
+      '--package-lock=false',
+      resolve(temporary, archives[0]),
+      resolve(temporary, prismaArchive),
+      '@prisma/client@7.10.1',
+    ],
+    prismaDirectory,
+  );
+  cpSync(join(root, 'tests/adapter-contract/generated'), join(prismaDirectory, 'generated'), {
+    recursive: true,
+  });
+  writeFileSync(
+    join(prismaDirectory, 'consumer.mjs'),
+    `
+import assert from 'node:assert/strict';
+const adapter = await import('@1hubengineering/receipt-verifier-adapter-prisma');
+assert.deepEqual(Object.keys(adapter).sort(), ['prismaStorage', 'prismaTransaction']);
+assert.throws(() => adapter.prismaStorage({}), /Prisma 7.10.1 receipt model/);
+`,
+  );
+  run(process.execPath, ['consumer.mjs'], prismaDirectory);
+  const prismaTypes = readFileSync(
+    join(root, 'tests/adapter-contract/src/prisma-types.ts'),
+    'utf8',
+  ).replaceAll("'../generated/", "'./generated/");
+  writeFileSync(join(prismaDirectory, 'consumer.ts'), prismaTypes);
+  run(
+    process.execPath,
+    [
+      join(root, 'node_modules/typescript/bin/tsc'),
+      '--noEmit',
+      '--strict',
+      '--target',
+      'ES2023',
+      '--module',
+      'NodeNext',
+      '--moduleResolution',
+      'NodeNext',
+      '--allowImportingTsExtensions',
+      '--types',
+      'node',
+      '--typeRoots',
+      join(root, 'node_modules/@types'),
+      join(prismaDirectory, 'consumer.ts'),
+    ],
+    prismaDirectory,
+  );
   console.log(
     'Packed npm consumer: ESM comparison, exact money, declarations, and dependency boundary passed.',
   );

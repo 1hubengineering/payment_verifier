@@ -1,17 +1,23 @@
 {
-  "name": "@andhub/receipt-verifier-adapter-contract",
+  "name": "@1hubengineering/receipt-verifier-adapter-contract",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
     "check:env": "varlock load",
-    "test": "varlock run -- vp test run"
+    "test": "varlock run -- vp test run",
+    "generate": "node ../../scripts/generate-prisma.mjs"
   },
   "devDependencies": {
-    "@andhub/receipt-verifier": "workspace:*",
-    "@andhub/receipt-verifier-adapter-drizzle": "workspace:*",
-    "@andhub/receipt-verifier-storage-sql": "workspace:*",
+    "@1hubengineering/receipt-verifier": "workspace:*",
+    "@1hubengineering/receipt-verifier-adapter-drizzle": "workspace:*",
+    "@1hubengineering/receipt-verifier-adapter-prisma": "workspace:*",
+    "@1hubengineering/receipt-verifier-storage-sql": "workspace:*",
     "@libsql/client": "0.17.4",
+    "@prisma/adapter-better-sqlite3": "7.10.1",
+    "@prisma/adapter-mariadb": "7.10.1",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
     "@types/better-sqlite3": "9.6.0",
     "@types/pg": "8.23.1",
     "better-sqlite3": "13.2.0",
@@ -19,6 +25,7 @@
     "kysely": "0.29.9",
     "mysql2": "3.24.6",
     "pg": "8.23.1",
+    "prisma": "7.10.1",
     "varlock": "1.25.0"
   }
 }

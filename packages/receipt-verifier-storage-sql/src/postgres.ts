@@ -2,7 +2,7 @@ import { Kysely, PostgresDialect } from 'kysely';
 import type { Pool, PoolClient } from 'pg';
 import { createStorage } from './storage.ts';
 import type { SqlStorage, StorageSchema } from './index.ts';
-import type { VerificationStorage } from '@andhub/receipt-verifier';
+import type { VerificationStorage } from '@1hubengineering/receipt-verifier';
 
 export function postgresStorage(pool: Pool): SqlStorage {
   return createStorage(

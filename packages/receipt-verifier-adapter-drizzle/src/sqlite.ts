@@ -6,7 +6,7 @@ import type {
 import { eq, like, asc, is } from 'drizzle-orm';
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 import type { LibSQLDatabase } from 'drizzle-orm/libsql';
-import type { RecordTransaction, VerificationStorage } from '@andhub/receipt-verifier';
+import type { RecordTransaction, VerificationStorage } from '@1hubengineering/receipt-verifier';
 import {
   drizzleStore,
   StorageDataError,

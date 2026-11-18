@@ -10,9 +10,9 @@ versioned; the core has no driver dependencies. Import the selected subpath:
 
 ```ts
 import { Pool } from 'pg';
-import { postgresStorage } from '@andhub/receipt-verifier-storage-sql/postgres';
-import { createReceiptVerifier } from '@andhub/receipt-verifier';
-import { retrieveTelebirr } from '@andhub/receipt-verifier/providers';
+import { postgresStorage } from '@1hubengineering/receipt-verifier-storage-sql/postgres';
+import { createReceiptVerifier } from '@1hubengineering/receipt-verifier';
+import { retrieveTelebirr } from '@1hubengineering/receipt-verifier/providers';
 
 const pool = new Pool({ connectionString: trustedDatabaseUrl }); // host configuration
 const storage = postgresStorage(pool);
@@ -58,7 +58,7 @@ Prepare before opening the host transaction. Then bind the exact transaction
 client and complete using the opaque in-process preparation token:
 
 ```ts
-import { postgresTransaction } from '@andhub/receipt-verifier-storage-sql/postgres';
+import { postgresTransaction } from '@1hubengineering/receipt-verifier-storage-sql/postgres';
 const prepared = await verifier.prepare(authorizedSubmission);
 const client = await pool.connect();
 try {

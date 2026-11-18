@@ -13,7 +13,9 @@ export interface RecordTransaction {
 export interface VerificationStorage {
   readonly callerTransaction?: boolean;
   read(key: string): Promise<unknown>;
-  /** Atomic work; scoped adapters leave commit/rollback/retry to the caller. */
+  /** Serializable or equivalent key locking, with unique inserts and no lost checked state.
+   * Work may retry; external effects belong outside. Scoped adapters leave commit/rollback/retry to the caller.
+   */
   transaction<T>(work: (transaction: RecordTransaction) => Promise<T>): Promise<T>;
 }
 

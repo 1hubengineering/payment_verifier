@@ -1,0 +1,11 @@
+import { defineConfig } from 'vite-plus';
+export default defineConfig({
+  pack: {
+    entry: ['src/index.ts'],
+    format: ['esm'],
+    dts: { generator: 'oxc' },
+    target: 'node24.22.3',
+    sourcemap: true,
+    clean: true,
+  },
+});

@@ -1,12 +1,12 @@
-import { StorageConflict } from '@andhub/receipt-verifier';
-import type { RecordTransaction, VerificationStorage } from '@andhub/receipt-verifier';
+import { StorageConflict } from '@1hubengineering/receipt-verifier';
+import type { RecordTransaction, VerificationStorage } from '@1hubengineering/receipt-verifier';
 export {
   StorageDataError,
   validateStorageKey,
   validateStorageScan,
   encodeStorageRecord,
   decodeStorageRecord,
-} from '@andhub/receipt-verifier/storage';
+} from '@1hubengineering/receipt-verifier/storage';
 
 function conflict(error: unknown): boolean {
   let current = error;

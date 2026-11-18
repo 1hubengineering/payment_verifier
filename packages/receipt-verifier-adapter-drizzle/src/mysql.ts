@@ -7,7 +7,7 @@ import type {
 import { eq, like, asc, is } from 'drizzle-orm';
 import { mysqlTable, varchar, text, int } from 'drizzle-orm/mysql-core';
 import type { MySql2Database } from 'drizzle-orm/mysql2';
-import type { RecordTransaction, VerificationStorage } from '@andhub/receipt-verifier';
+import type { RecordTransaction, VerificationStorage } from '@1hubengineering/receipt-verifier';
 import {
   drizzleStore,
   StorageDataError,

@@ -1,6 +1,6 @@
 import { chromium } from 'playwright';
-import { RetrievalError } from '@andhub/receipt-verifier/providers';
-import type { RetrievalOptions } from '@andhub/receipt-verifier/providers';
+import { RetrievalError } from '@1hubengineering/receipt-verifier/providers';
+import type { RetrievalOptions } from '@1hubengineering/receipt-verifier/providers';
 
 /** Internal browser boundary: no browser-owned provider connections. */
 export async function renderCbeHtml(

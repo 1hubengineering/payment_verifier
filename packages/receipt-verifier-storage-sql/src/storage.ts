@@ -4,15 +4,15 @@ import {
   validateStorageScan,
   encodeStorageRecord as encode,
   decodeStorageRecord as decode,
-} from '@andhub/receipt-verifier/storage';
-export { StorageDataError } from '@andhub/receipt-verifier/storage';
+} from '@1hubengineering/receipt-verifier/storage';
+export { StorageDataError } from '@1hubengineering/receipt-verifier/storage';
 import type { Kysely } from 'kysely';
-import { StorageConflict } from '@andhub/receipt-verifier';
+import { StorageConflict } from '@1hubengineering/receipt-verifier';
 import type {
   RecordTransaction,
   StoredRecord,
   VerificationStorage,
-} from '@andhub/receipt-verifier';
+} from '@1hubengineering/receipt-verifier';
 
 export interface StorageSchema {
   receipt_verifier_records: { record_key: string; payload: string };

@@ -1,0 +1,23 @@
+generator client {
+  provider = "prisma-client"
+  output = "../generated/sqlite"
+  moduleFormat = "esm"
+  generatedFileExtension = "ts"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model ReceiptVerifierRecord {
+  recordKey String @id @map("record_key")
+  payload String
+  @@map("receipt_verifier_records")
+}
+
+model ReceiptVerifierSchema {
+  id Int @id
+  version Int
+  @@map("receipt_verifier_schema")
+}

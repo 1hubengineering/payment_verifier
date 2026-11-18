@@ -23,7 +23,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import {
   drizzlePostgresStorage,
   drizzlePostgresTransaction,
-} from '@andhub/receipt-verifier-adapter-drizzle/postgres';
+} from '@1hubengineering/receipt-verifier-adapter-drizzle/postgres';
 
 const db = drizzle(hostPool);
 const storage = drizzlePostgresStorage(db);

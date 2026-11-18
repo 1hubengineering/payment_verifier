@@ -1,11 +1,15 @@
 import { readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
-import { compareReceipt, createPaymentExpectation, parseEtbAmount } from '@andhub/receipt-verifier';
-import { retrieveHtml, RetrievalError } from '@andhub/receipt-verifier/providers';
+import {
+  compareReceipt,
+  createPaymentExpectation,
+  parseEtbAmount,
+} from '@1hubengineering/receipt-verifier';
+import { retrieveHtml, RetrievalError } from '@1hubengineering/receipt-verifier/providers';
 import { createCbeProvider } from './index.ts';
 
-vi.mock('@andhub/receipt-verifier/providers', async (importOriginal) => ({
+vi.mock('@1hubengineering/receipt-verifier/providers', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   retrieveHtml: vi.fn(),
 }));

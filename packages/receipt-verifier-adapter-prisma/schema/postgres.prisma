@@ -1,0 +1,11 @@
+model ReceiptVerifierRecord {
+  recordKey String @id @map("record_key") @db.VarChar(96)
+  payload String @db.Text
+  @@map("receipt_verifier_records")
+}
+
+model ReceiptVerifierSchema {
+  id Int @id
+  version Int
+  @@map("receipt_verifier_schema")
+}
