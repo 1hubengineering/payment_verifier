@@ -5,13 +5,13 @@ description: Select a supported storage adapter and integrate the Payment Verifi
 
 # Set up Payment Verifier
 
-1. Check the installed package release and backend driver. For published 0.1.0,
+1. Check the installed package release and backend driver. For published 0.1.1,
    start with the [quickstart](https://1hubengineering.github.io/payment_verifier/docs/#quickstart)
-   and [release matrix](https://github.com/1hubengineering/payment_verifier/blob/v0.1.0/docs/development/compatibility.md).
-   Do not use the Git branch's Drizzle v1 RC examples with npm 0.1.0.
+   and [release matrix](https://github.com/1hubengineering/payment_verifier/blob/v0.1.1/docs/development/compatibility.md).
+   For the old names and their Drizzle 0.45.4 peer, use the archived 0.1.0 docs.
 2. Keep the host's existing client. Use [direct SQL](https://1hubengineering.github.io/payment_verifier/docs/#direct-sql)
    for a driver pool, [Drizzle](https://1hubengineering.github.io/payment_verifier/docs/#drizzle)
-   for Drizzle 0.45.4, or [Prisma](https://1hubengineering.github.io/payment_verifier/docs/#prisma)
+   for Drizzle 1.0.0-rc.5, or [Prisma](https://1hubengineering.github.io/payment_verifier/docs/#prisma)
    for Prisma 7.10.1. Check the exact driver and engine; do not assume remote SQLite works.
 3. Use one explicit migration owner and one shared claim store. Build the
    expectation from the authorized host order and pass only the authorized payment

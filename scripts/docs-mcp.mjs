@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { McpServer } from '@modelcontextprotocol/server';
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { z } from 'zod';
-import { searchDocs, version } from './docs-catalog.mjs';
+import { releases, searchDocs, version } from './docs-catalog.mjs';
 
 const corpus = new URL('../.cache/payment-verifier-docs/corpus.json', import.meta.url);
 const entries = JSON.parse(
@@ -14,7 +14,8 @@ const entries = JSON.parse(
     throw error;
   }),
 );
-const byId = new Map(entries.map((entry) => [entry.id, entry]));
+const byId = new Map(entries.map((entry) => [`${entry.version}:${entry.id}`, entry]));
+const releaseVersion = z.enum(Object.keys(releases));
 const annotations = {
   readOnlyHint: true,
   destructiveHint: false,
@@ -28,16 +29,22 @@ serveStdio(() => {
   server.registerTool(
     'search_docs',
     {
-      description:
-        'Find Payment Verifier guides, public TypeScript exports, or runnable examples by name or topic. Omit version to search the only supported release, 0.1.0.',
+      description: `Find Payment Verifier guides, public TypeScript exports, or runnable examples. Omit version to search ${version}.`,
       inputSchema: z.object({
         query: z.string().trim().min(1).max(160),
-        version: z.literal(version).optional(),
+        version: releaseVersion.optional(),
         kind: z.enum(['guide', 'api', 'example']).optional(),
       }),
       annotations,
     },
-    ({ query, kind }) => reply(searchDocs(entries, query, kind)),
+    ({ query, kind, version: target = version }) =>
+      reply(
+        searchDocs(
+          entries.filter((entry) => entry.version === target),
+          query,
+          kind,
+        ),
+      ),
   );
   server.registerTool(
     'get_doc',
@@ -46,12 +53,12 @@ serveStdio(() => {
         'Retrieve the Markdown, TypeScript declaration or example for an exact ID from search_docs, with version and source links.',
       inputSchema: z.object({
         id: z.string().min(1).max(200),
-        version: z.literal(version).optional(),
+        version: releaseVersion.optional(),
       }),
       annotations,
     },
-    ({ id }) => {
-      const entry = byId.get(id);
+    ({ id, version: target = version }) => {
+      const entry = byId.get(`${target}:${id}`);
       return entry
         ? reply(entry)
         : {

@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { sep } from 'node:path';
 import { Marked } from 'marked';
-import { repository } from '../../scripts/docs-catalog.mjs';
+import { repository, version } from '../../scripts/docs-catalog.mjs';
 
 const corpus = new URL('../../.cache/payment-verifier-docs/corpus.json', import.meta.url);
 const escape = (text) =>
@@ -56,7 +56,9 @@ export function documentation() {
         navigation(route === './' ? './' : '../', route),
       );
       if (route !== 'docs/' && route !== 'api/') return page;
-      const entries = JSON.parse(await readFile(corpus, 'utf8'));
+      const entries = JSON.parse(await readFile(corpus, 'utf8')).filter(
+        (entry) => entry.version === version,
+      );
       if (route === 'docs/') {
         const guides = entries.filter(({ kind }) => kind === 'guide');
         const links = guides

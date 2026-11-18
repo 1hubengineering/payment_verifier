@@ -18,6 +18,7 @@ publication. Historical examples are not additional compatibility promises.
 | 9. Repository and web checkout  | Complete; static Pages deployed      | Reusable React checkout, guide and contributor setup, synthetic results, and verified Pages deployment; no live backend or npm changes                 |
 | 10. Developer documentation     | Complete; static Pages deployed      | 0.1.0 guide and API index from release declarations, public skills install, tested local stdio MCP, and read-only npm naming assessment                |
 | 11. Ethiopian checkout demo     | Complete; static Pages deployed      | CBE and Telebirr instructions, three evidence tabs and verified synthetic flows; no provider requests or durable SMS storage                           |
+| 12. Short npm names             | 0.1.1 published and verified         | Five renamed packages installed from npm with matching hashes; old npm versions await separate unpublish authorization from npm 2FA                    |
 
 Published 0.1.0 acceptance: **237 fast/application/example/provider cases,
 243 real-engine contract cases (nine cells × 27), and 11 frozen reference cases**,
@@ -34,9 +35,9 @@ was published as 1hubengineering at 2026-11-18 16:22:13 UTC. Its tag points to t
 reviewed source above; anonymous downloads of all seven assets match the reviewed
 files. [Release evidence](releases/0.1.0.md) includes all package links and hashes.
 The 0.1.0 release gates are complete. The post-release v1 RC source upgrade is
-tracked in [plan 011](plans/011-drizzle-v1-upgrade.md). It keeps package version
-fields at 0.1.0 by explicit user instruction; npm cannot overwrite the existing
-versions, so this source change is distinct from registry publication.
+tracked in [plan 011](plans/011-drizzle-v1-upgrade.md). The upgraded adapter is
+now published under the shorter name in [0.1.1](releases/0.1.1.md). The old 0.1.0
+archives still use Drizzle 0.45.4.
 
 The [workspace compatibility matrix](compatibility.md) lists the new RC boundary;
 the immutable v0.1.0 release uses Drizzle 0.45.4. Direct Kysely, Drizzle and

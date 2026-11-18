@@ -9,29 +9,25 @@ to prevent receipt reuse. Your app decides when a payment has settled and when t
 [Developer guide](https://1hubengineering.github.io/payment_verifier/docs/) ·
 [API reference](https://1hubengineering.github.io/payment_verifier/api/) ·
 [Interactive checkout demo](https://1hubengineering.github.io/payment_verifier/demo/) ·
-[Release v0.1.0](https://github.com/1hubengineering/payment_verifier/releases/tag/v0.1.0)
+[Release v0.1.1](https://github.com/1hubengineering/payment_verifier/releases/tag/v0.1.1)
 
 ## Install
 
 ```sh
-npm install @1hubengineering/receipt-verifier@0.1.0
+npm install @1hubengineering/verifier@0.1.1
 ```
 
-Run the [0.1.0 quickstart](https://1hubengineering.github.io/payment_verifier/docs/#quickstart)
+Run the [0.1.1 quickstart](https://1hubengineering.github.io/payment_verifier/docs/#quickstart)
 to compare two synthetic records without a bank connection or database. To wire up
 your application, choose [direct SQL, Drizzle, or Prisma](https://1hubengineering.github.io/payment_verifier/docs/#storage).
-The published Drizzle adapter requires ORM `0.45.4`; the source tree's v1 RC changes
-are not part of npm `0.1.0`.
-
 The [0.1.1 package migration](docs/development/npm-name-assessment.md#migration)
-lists the shorter names and the Drizzle peer change. Wait for confirmed npm
-publication before switching dependencies.
+lists the shorter names and the upgrade from Drizzle `0.45.4` to the tested
+`1.0.0-rc.5` peer.
 
 ## Agent tools
 
-The [agent setup guide](docs/0.1.0/agents.md) covers installation of the Payment
-Verifier skills and a local MCP server that searches the 0.1.0 guides, examples,
-and public TypeScript exports.
+The [agent setup guide](docs/0.1.1/agents.md) covers the Payment Verifier skills
+and a local MCP server for the current and archived docs.
 
 ## Examples
 

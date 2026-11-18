@@ -1,5 +1,9 @@
 Compare two synthetic records in Node.js. This example needs no database, provider credentials, or network access at runtime.
 
+For a new integration, use the [renamed 0.1.1 packages](https://1hubengineering.github.io/payment_verifier/docs/#quickstart).
+The [GitHub v0.1.0 archive](https://github.com/1hubengineering/payment_verifier/releases/tag/v0.1.0)
+preserves this release if the old npm names are removed.
+
 Use Node `24.22.3` or `26.13.1` in a new directory. Install the published core:
 
 ```sh

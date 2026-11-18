@@ -3,13 +3,13 @@
 Initially checked on 18 November 2026. The approved 0.1.1 migration is tracked
 in [plan 015](plans/015-npm-package-rename.md).
 
-| Current name under `@1hubengineering` | Proposed name under `@1hubengineering` | Public registry |
-| ------------------------------------- | -------------------------------------- | --------------- |
-| `receipt-verifier`                    | `verifier`                             | HTTP 404        |
-| `receipt-verifier-storage-sql`        | `storage-sql`                          | HTTP 404        |
-| `receipt-verifier-adapter-drizzle`    | `adapter-drizzle`                      | HTTP 404        |
-| `receipt-verifier-adapter-prisma`     | `adapter-prisma`                       | HTTP 404        |
-| `receipt-verifier-provider-cbe`       | `provider-cbe`                         | HTTP 404        |
+| Old name under `@1hubengineering`  | New name under `@1hubengineering` | Initial lookup |
+| ---------------------------------- | --------------------------------- | -------------- |
+| `receipt-verifier`                 | `verifier`                        | HTTP 404       |
+| `receipt-verifier-storage-sql`     | `storage-sql`                     | HTTP 404       |
+| `receipt-verifier-adapter-drizzle` | `adapter-drizzle`                 | HTTP 404       |
+| `receipt-verifier-adapter-prisma`  | `adapter-prisma`                  | HTTP 404       |
+| `receipt-verifier-provider-cbe`    | `provider-cbe`                    | HTTP 404       |
 
 The [public npm registry](https://registry.npmjs.org/) returned no public package
 for any proposed name. Authenticated `npm whoami` returned `1hubengineering`;
@@ -21,6 +21,9 @@ publish under npm's 2FA and staging rules. See [scope rules](https://docs.npmjs.
 and [access checks](https://docs.npmjs.com/cli-documentation/access/).
 
 ## Migration
+
+All five short names are published at `0.1.1`. See the
+[release notes](releases/0.1.1.md) for verified npm links.
 
 1. Recheck the names, account, and staging rules. Build all five 0.1.1 artifacts from one
    reviewed commit. Update package metadata, internal dependencies, and peer ranges

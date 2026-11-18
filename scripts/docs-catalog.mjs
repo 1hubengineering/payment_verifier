@@ -1,4 +1,4 @@
-export const version = '0.1.0';
+export const version = '0.1.1';
 export const repository = 'https://github.com/1hubengineering/payment_verifier';
 export const pages = 'https://1hubengineering.github.io/payment_verifier/';
 
@@ -25,6 +25,17 @@ export const packages = {
     '330037141364973c23f702bf27892fe542f2b1c564e0737e11951b9e70fe25c7',
   'receipt-verifier-provider-cbe':
     'b375b9dd376115c4f5e12f6fc559956512c48275fed26330b53d8b8c4ed069c3',
+};
+
+export const releases = {
+  '0.1.0': packages,
+  '0.1.1': {
+    verifier: 'dce2c9f2ccaf5439f0f9f1ba80ee26d58d24a3421dbe343e27c68cfc84aa7af7',
+    'storage-sql': '755e9ff25108573f7f5d079fbb3616ab251c4a60f46c86d045cb7996ce60a5ba',
+    'adapter-drizzle': '31aed56c663434d9908f61c70c6113b823606f90369d3c196ee76583d4ce0cc0',
+    'adapter-prisma': 'bbf10cba35962105e6f6ae1c39a347e909aeb716cb36038a5b4daf673cffaf68',
+    'provider-cbe': '02e8a0982a45f277796457998d099ed7ed0150429f0b2cf4338bd76afe26aecf',
+  },
 };
 
 export function searchDocs(entries, query, kind, limit = 12) {

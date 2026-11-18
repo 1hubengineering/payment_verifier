@@ -1,6 +1,6 @@
 # Validated compatibility
 
-The matrix below describes the workspace and the renamed 0.1.1 release candidate. The old npm 0.1.0 uses
+The matrix below describes the workspace and the renamed 0.1.1 npm release. The old npm 0.1.0 uses
 Drizzle 0.45.4; its immutable [release matrix](https://github.com/1hubengineering/payment_verifier/blob/v0.1.0/docs/development/compatibility.md)
 records that release's compatibility. The renamed packages do not replace those artifacts.
 

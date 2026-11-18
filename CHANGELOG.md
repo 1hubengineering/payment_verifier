@@ -1,9 +1,13 @@
 # Changelog
 
-## Unreleased — Drizzle v1 RC source upgrade
+## 0.1.1
 
-- Select drizzle-orm@rc and development-only drizzle-kit@rc, currently resolved
-  to 1.0.0-rc.5. Keep package versions unchanged at 0.1.0 by user instruction.
+- Publish the core as `@1hubengineering/verifier` and shorten its four
+  companion names. See the [migration guide](docs/development/npm-name-assessment.md#migration)
+  for the package map. Export subpaths and the storage schema are unchanged.
+
+- Select drizzle-orm@rc and development-only drizzle-kit@rc, tested at
+  1.0.0-rc.5.
 - Adapt asynchronous transaction classes, column builder types, AnyRelations
   generics and caller-owned `drizzle({ client })` construction.
 - Add installed-consumer checks for v1 relation-configured clients and local Kit
@@ -11,8 +15,7 @@
 - Install Kit's revision-15 agent skill and project-local Codex MCP configuration;
   verify stdio tools listing without invoking database operations.
 
-The published npm 0.1.0 archives and v0.1.0 tag still use Drizzle 0.45.4. Registry
-versions cannot be replaced, and this source upgrade is not a new npm release.
+The archived v0.1.0 tarballs still use Drizzle 0.45.4.
 
 ## 0.1.0
 

@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promise
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import ts from 'typescript-docs-parser';
-import { guides, packages, pages, repository, version } from './docs-catalog.mjs';
+import { guides, releases, pages, repository, version as currentVersion } from './docs-catalog.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const cache = join(root, '.cache/payment-verifier-docs');
@@ -13,7 +13,9 @@ const scratch = await mkdtemp(join(cache, 'build-'));
 const digest = (data) => createHash('sha256').update(data).digest('hex');
 const entries = [];
 
-try {
+async function prepareRelease(version, packages) {
+  const current = version === currentVersion;
+  const core = current ? 'verifier' : 'receipt-verifier';
   const examplePath = `docs/${version}/examples/compare-receipt.mjs`;
   const example = await readFile(join(root, examplePath), 'utf8');
   for (const [id, title] of guides) {
@@ -27,7 +29,7 @@ try {
       version,
       summary: body.split('\n\n')[0]?.trim() ?? title,
       body,
-      url: `${pages}docs/#${id}`,
+      url: current ? `${pages}docs/#${id}` : `${repository}/blob/main/${path}`,
       source: `${repository}/blob/main/${path}`,
     });
   }
@@ -37,13 +39,13 @@ try {
     title: 'Runnable receipt comparison',
     kind: 'example',
     version,
-    summary: `Node.js example using @1hubengineering/receipt-verifier@${version}`,
+    summary: `Node.js example using @1hubengineering/${core}@${version}`,
     body: example,
-    url: `${pages}docs/#quickstart`,
+    url: current ? `${pages}docs/#quickstart` : `${repository}/blob/main/${examplePath}`,
     source: `${repository}/blob/main/${examplePath}`,
   });
 
-  const scope = join(scratch, 'node_modules', '@1hubengineering');
+  const scope = join(scratch, version, 'node_modules', '@1hubengineering');
   await mkdir(scope, { recursive: true });
   for (const [name, hash] of Object.entries(packages)) {
     const archiveName = `${name}-${version}.tgz`;
@@ -118,6 +120,12 @@ try {
         const subpathName = subpath === '.' ? 'index' : subpath.slice(2);
         const sourceEntry = subpathName === 'providers' ? 'providers/index' : subpathName;
         const id = `api-${name}-${subpathName}-${title}`;
+        const folder = current
+          ? name === 'verifier'
+            ? 'receipt-verifier'
+            : `receipt-verifier-${name}`
+          : name;
+        const sourceUrl = `${repository}/blob/v${version}/packages/${folder}/src/${sourceEntry}.ts`;
         entries.push({
           id,
           title,
@@ -130,18 +138,26 @@ try {
               return declaration.getText();
             })
             .join('\n\n'),
-          url: `${pages}api/#${id}`,
-          source: `${repository}/blob/v${version}/packages/${name}/src/${sourceEntry}.ts`,
+          url: current ? `${pages}api/#${id}` : sourceUrl,
+          source: sourceUrl,
         });
       }
     }
   }
-  if (new Set(entries.map(({ id }) => id)).size !== entries.length)
+}
+
+try {
+  for (const [version, packages] of Object.entries(releases)) {
+    await prepareRelease(version, packages);
+  }
+  if (new Set(entries.map(({ id, version }) => `${version}:${id}`)).size !== entries.length)
     throw new Error('Duplicate documentation IDs');
   const built = join(scratch, 'corpus.json');
   await writeFile(built, JSON.stringify(entries));
   await rename(built, join(cache, 'corpus.json'));
-  console.log(`Prepared ${entries.length} documentation entries for ${version}`);
+  console.log(
+    `Prepared ${entries.length} documentation entries across ${Object.keys(releases).join(', ')}`,
+  );
 } finally {
   await rm(scratch, { recursive: true, force: true });
 }

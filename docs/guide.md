@@ -1,7 +1,6 @@
 ## Installation
 
-The current workspace targets the renamed release candidate. Install these
-names after 0.1.1 is available on npm:
+Install the renamed core in an existing Node.js backend:
 
 ```sh
 npm install @1hubengineering/verifier@0.1.1
