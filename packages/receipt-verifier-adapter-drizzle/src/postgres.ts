@@ -1,10 +1,7 @@
-import { PgTransaction } from 'drizzle-orm/pg-core';
-import type {
-  PgVarcharBuilderInitial,
-  PgTextBuilderInitial,
-  PgIntegerBuilderInitial,
-} from 'drizzle-orm/pg-core';
+import { PgAsyncTransaction } from 'drizzle-orm/pg-core';
+import type { PgVarcharBuilder, PgTextBuilder, PgIntegerBuilder } from 'drizzle-orm/pg-core';
 import { eq, like, asc, is } from 'drizzle-orm';
+import type { AnyRelations } from 'drizzle-orm/relations';
 import { pgTable, varchar, text, integer } from 'drizzle-orm/pg-core';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { RecordTransaction, VerificationStorage } from '@1hubengineering/receipt-verifier';
@@ -21,10 +18,8 @@ export const receiptVerifierRecords: ReturnType<
   typeof pgTable<
     'receipt_verifier_records',
     {
-      recordKey: ReturnType<
-        PgVarcharBuilderInitial<'record_key', [string, ...string[]], 96>['primaryKey']
-      >;
-      payload: ReturnType<PgTextBuilderInitial<'payload', [string, ...string[]]>['notNull']>;
+      recordKey: ReturnType<PgVarcharBuilder['primaryKey']>;
+      payload: ReturnType<PgTextBuilder['notNull']>;
     }
   >
 > = pgTable('receipt_verifier_records', {
@@ -35,17 +30,16 @@ export const receiptVerifierSchema: ReturnType<
   typeof pgTable<
     'receipt_verifier_schema',
     {
-      id: ReturnType<PgIntegerBuilderInitial<'id'>['primaryKey']>;
-      version: ReturnType<PgIntegerBuilderInitial<'version'>['notNull']>;
+      id: ReturnType<PgIntegerBuilder['primaryKey']>;
+      version: ReturnType<PgIntegerBuilder['notNull']>;
     }
   >
 > = pgTable('receipt_verifier_schema', {
   id: integer('id').primaryKey(),
   version: integer('version').notNull(),
 });
-type Schema = Record<string, unknown>;
-type Tx<T extends Schema> = Parameters<Parameters<NodePgDatabase<T>['transaction']>[0]>[0];
-function records<T extends Schema>(
+type Tx<T extends AnyRelations> = Parameters<Parameters<NodePgDatabase<T>['transaction']>[0]>[0];
+function records<T extends AnyRelations>(
   db: NodePgDatabase<T> | Tx<T>,
   lock: boolean,
 ): RecordTransaction {
@@ -93,7 +87,7 @@ function records<T extends Schema>(
     },
   };
 }
-export function drizzlePostgresStorage<T extends Schema>(
+export function drizzlePostgresStorage<T extends AnyRelations>(
   database: NodePgDatabase<T>,
 ): VerificationStorage {
   return drizzleStore(
@@ -103,10 +97,10 @@ export function drizzlePostgresStorage<T extends Schema>(
     false,
   );
 }
-export function drizzlePostgresTransaction<T extends Schema>(
+export function drizzlePostgresTransaction<T extends AnyRelations>(
   transaction: Tx<T>,
 ): VerificationStorage {
-  if (!is(transaction, PgTransaction))
+  if (!is(transaction, PgAsyncTransaction))
     throw new TypeError('Expected a caller-owned Drizzle transaction');
   return drizzleStore(
     (key) => records(transaction, true).get(key),

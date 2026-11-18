@@ -7,7 +7,7 @@ follow-up changes and validation.
 
 ## Current implementation and release review
 
-Slices 0–7 are complete. Release source c4464f0 passed pnpm verify locally and
+The published baseline slices 0–7 are complete. Release source c4464f0 passed pnpm verify locally and
 on hosted Node 24.22.3/26.13.1: 237 fast/application/example/provider cases,
 243 real-engine contract cases across nine cells, all 11 frozen cases, builds,
 types/lint/publint and installed consumers. The SQLite ORM harness separates
@@ -26,6 +26,17 @@ examples/tests remain private npm packages. No release blocker remains; see the
 [roadmap](roadmap.md) and [release evidence](releases/0.1.0.md).
 Earlier audit sections below remain the initialization record rather than current
 claims about missing implementation.
+
+The post-release [Drizzle v1 RC source upgrade](plans/011-drizzle-v1-upgrade.md)
+selects ORM/Kit rc tags, currently locked to 1.0.0-rc.5. Adapted asynchronous
+transaction classes, builder types, AnyRelations and explicit client construction
+pass all 81 real Drizzle cases and installed-consumer API checks. Full local
+pnpm verify also passed 237 fast/app/provider, 243 real-engine and 11 frozen
+cases plus four local Kit up/check/export checks, builds/types/lint/publint. Local Kit
+up/check/export validation uses scratch directories only; no application migration
+history or host database was changed. Package versions stay 0.1.0 as requested;
+the published archives still contain Drizzle 0.45.4. The roadmap records full
+workspace acceptance and source publication separately.
 
 ## Initial state
 

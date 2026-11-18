@@ -10,6 +10,11 @@ and tests remain private npm packages; their source is available in this reposit
 See [release v0.1.0](https://github.com/1hubengineering/verify_payment_v1/releases/tag/v0.1.0)
 and [release evidence](docs/development/releases/0.1.0.md).
 
+The current source upgrades Drizzle ORM/Kit through their rc tags (locked at
+1.0.0-rc.5). Package versions stay 0.1.0 at the user's request. Published npm
+0.1.0 and tag v0.1.0 remain the earlier Drizzle 0.45.4 release; this source upgrade
+cannot overwrite those registry archives. See [plan 011](docs/development/plans/011-drizzle-v1-upgrade.md).
+
 ## Develop
 
 Install the [Vite+ CLI](https://www.viteplus.dev/guide/), then:

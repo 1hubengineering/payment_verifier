@@ -26,14 +26,14 @@ import {
 } from './harness.ts';
 
 adapterContract(
-  'Drizzle 0.45.4 / PostgreSQL 18.7 / pg 8.23.1',
+  'Drizzle 1.0.0-rc.5 / PostgreSQL 18.7 / pg 8.23.1',
   async (): Promise<AdapterHarness> => {
     const base = await directPostgresHarness();
-    const db = postgres(base.postgresPool!);
+    const db = postgres({ client: base.postgresPool! });
     return {
       ...base,
       storage: drizzlePostgresStorage(db),
-      fork: () => drizzlePostgresStorage(postgres(base.postgresPool!)),
+      fork: () => drizzlePostgresStorage(postgres({ client: base.postgresPool! })),
       hostTransaction: (work) =>
         db.transaction((tx) => work(drizzlePostgresTransaction(tx)), {
           isolationLevel: 'serializable',
@@ -45,14 +45,14 @@ adapterContract(
   },
 );
 adapterContract(
-  'Drizzle 0.45.4 / MySQL 8.4.13 / mysql2 3.24.6',
+  'Drizzle 1.0.0-rc.5 / MySQL 8.4.13 / mysql2 3.24.6',
   async (): Promise<AdapterHarness> => {
     const base = await directMysqlHarness();
-    const db = mysql(base.mysqlPool!.promise());
+    const db = mysql({ client: base.mysqlPool!.promise() });
     return {
       ...base,
       storage: drizzleMysqlStorage(db),
-      fork: () => drizzleMysqlStorage(mysql(base.mysqlPool!.promise())),
+      fork: () => drizzleMysqlStorage(mysql({ client: base.mysqlPool!.promise() })),
       hostTransaction: (work) =>
         db.transaction((tx) => work(drizzleMysqlTransaction(tx)), {
           isolationLevel: 'serializable',
@@ -64,7 +64,7 @@ adapterContract(
   },
 );
 adapterContract(
-  'Drizzle 0.45.4 / local SQLite files / libSQL client 0.17.4',
+  'Drizzle 1.0.0-rc.5 / local SQLite files / libSQL client 0.17.4',
   async (): Promise<AdapterHarness> => {
     const base = await directSqliteHarness();
     base.detachSqlite!();
@@ -72,7 +72,7 @@ adapterContract(
     const open = (): ReturnType<typeof sqlite> => {
       const client = createClient({ url: `file:${base.sqliteFilename}` });
       clients.push(client);
-      return sqlite(client);
+      return sqlite({ client });
     };
     const db = open();
     return {

@@ -1,0 +1,4 @@
+[mcp_servers.drizzle]
+command = "pnpm"
+args = ["exec", "drizzle-kit", "mcp"]
+cwd = "/home/linux-env/github/verify_payment_v1/packages/receipt-verifier-adapter-drizzle"

@@ -280,11 +280,18 @@ void verifier;
     (file) => file.includes('adapter-drizzle') && file.endsWith('.tgz'),
   );
   assert.ok(drizzleArchive);
+  const drizzleVersion = JSON.parse(
+    readFileSync(
+      join(root, 'packages/receipt-verifier-adapter-drizzle/node_modules/drizzle-orm/package.json'),
+      'utf8',
+    ),
+  ).version;
   const drizzleConsumers = [
     {
       engine: 'postgres',
       driver: 'node-postgres',
-      setup: "import { Pool } from 'pg'; const client = new Pool(); const db = drizzle(client);",
+      setup:
+        "import { Pool } from 'pg'; const client = new Pool(); const db = drizzle({ client });",
       cleanup: 'await client.end();',
       peers: ['pg@8.23.1', '@types/pg@8.23.1'],
     },
@@ -292,7 +299,7 @@ void verifier;
       engine: 'mysql',
       driver: 'mysql2',
       setup:
-        "import { createPool } from 'mysql2/promise'; const client = createPool({host:'127.0.0.1'}); const db = drizzle(client);",
+        "import { createPool } from 'mysql2/promise'; const client = createPool({host:'127.0.0.1'}); const db = drizzle({ client });",
       cleanup: 'await client.end();',
       peers: ['mysql2@3.24.6'],
     },
@@ -300,7 +307,7 @@ void verifier;
       engine: 'sqlite',
       driver: 'libsql',
       setup:
-        "import { createClient } from '@libsql/client'; const client = createClient({url:'file::memory:'}); const db = drizzle(client);",
+        "import { createClient } from '@libsql/client'; const client = createClient({url:'file::memory:'}); const db = drizzle({ client });",
       cleanup: 'client.close();',
       peers: ['@libsql/client@0.17.4'],
     },
@@ -322,7 +329,7 @@ void verifier;
         '--package-lock=false',
         resolve(temporary, archives[0]),
         resolve(temporary, drizzleArchive),
-        'drizzle-orm@0.45.4',
+        `drizzle-orm@${drizzleVersion}`,
         ...peers,
       ],
       directory,
@@ -347,7 +354,13 @@ ${cleanup}
       join(directory, 'consumer.ts'),
       `${imports}
 import type { VerificationStorage } from '@1hubengineering/receipt-verifier';
+import { defineRelations } from 'drizzle-orm';
 const storage: VerificationStorage = drizzle${label}Storage(db);
+const relations = defineRelations({ receiptVerifierRecords, receiptVerifierSchema });
+const withRelations = drizzle({ client, relations });
+const relationStorage: VerificationStorage = drizzle${label}Storage(withRelations);
+await withRelations.transaction(async (tx) => { const scoped: VerificationStorage = drizzle${label}Transaction(tx); void scoped; });
+void relationStorage;
 await db.transaction(async (tx) => { const scoped: VerificationStorage = drizzle${label}Transaction(tx); void scoped; });
 // @ts-expect-error A plain ORM handle is not a caller-owned transaction.
 drizzle${label}Transaction(db);

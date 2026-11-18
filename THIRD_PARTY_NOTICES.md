@@ -15,7 +15,7 @@ license files during release preparation on 18 November 2026:
 | PostgreSQL client                        | pg 8.23.1                                                                  | MIT               |
 | MySQL direct/Drizzle client              | mysql2 3.24.6                                                              | MIT               |
 | Direct SQLite client                     | better-sqlite3 13.2.0                                                      | MIT               |
-| Drizzle peer                             | drizzle-orm 0.45.4                                                         | Apache-2.0        |
+| Drizzle peer (published 0.1.0)           | drizzle-orm 0.45.4                                                         | Apache-2.0        |
 | Drizzle SQLite client                    | @libsql/client 0.17.4                                                      | MIT               |
 | Prisma host client and official adapters | @prisma/client, adapter-pg, adapter-mariadb, adapter-better-sqlite3 7.10.1 | Apache-2.0        |
 | Prisma MySQL driver                      | mariadb 3.5.4                                                              | LGPL-2.1-or-later |
@@ -37,3 +37,13 @@ package roots. Their declared grants were also checked against the upstream
 and the libSQL client's exact published git revision
 [MIT license](https://github.com/tursodatabase/libsql-client-ts/blob/889a2ec3130b9fb3b32fda9e19ebd33864efc509/LICENSE).
 This inventory records those external boundaries, not a transfer of their grants.
+
+The Drizzle v1 source upgrade selects drizzle-orm 1.0.0-rc.5 (Apache-2.0) and
+local development tool drizzle-kit 1.0.0-rc.5 (MIT as declared by its installed
+manifest). The installed bundled agent skill is the only new upstream source
+copied into this repository. Its unmodified guides come from the official
+[Drizzle skill source](https://github.com/drizzle-team/drizzle-orm/tree/beta/drizzle-kit/skills/drizzle).
+The upstream repository's Apache-2.0 license is retained alongside those guides
+in packages/receipt-verifier-adapter-drizzle/.agents/skills/drizzle/LICENSE.
+These guides are outside the project's ISC grant and all npm library archives.
+No Drizzle Kit code or dependencies are bundled into the SDK.

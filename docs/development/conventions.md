@@ -142,7 +142,10 @@ Hosts retain all connection, transaction, settlement and fulfillment ownership.
 
 ## ORM compatibility
 
-Drizzle 0.45.4 is now tested with pg 8.23.1/PostgreSQL 18.7, mysql2
+The upgraded workspace selects Drizzle ORM and Kit through rc tags, both locked
+to 1.0.0-rc.5 at this upgrade. This is an explicit user-requested exception to
+stable version selection. ORM remains a runtime peer; Kit is development-only.
+The v1 RC adapter is tested with pg 8.23.1/PostgreSQL 18.7, mysql2
 3.24.6/MySQL 8.4.13 and @libsql/client 0.17.4/local SQLite 3.45.1. libSQL 0.18.0
 is excluded after reproducible concurrency failures; the exact optional peer
 constraint records that measured boundary. The synchronous better-sqlite3 Drizzle
@@ -205,3 +208,28 @@ for the pinned Playwright browser binaries, then remove it during cleanup. The
 global namespace restriction stays enabled; renderer seccomp and PID namespace
 assertions still run. Production hosts must supply appropriate unprivileged
 sandbox/worker confinement; the SDK has no unsafe sandbox bypass.
+
+## Drizzle v1 source upgrade
+
+Use `drizzle({ client })` for caller-owned clients. Public database generics now
+use AnyRelations and scoped wrappers require the v1 asynchronous transaction
+classes. Installed consumers test both plain and defineRelations-configured
+clients, while rejecting whole clients as transaction arguments.
+
+`pnpm check:drizzle` runs the installed Kit's file-only up/check/export checks in
+disposable scratch directories. No application Kit config or history is invented;
+the direct SQL v1 migration remains the owner. PostgreSQL's empty-history
+schema_changed warning is expected and checked explicitly. Full contract tests
+use only newly provisioned disposable fixture services/local temporary files.
+
+The bundled Drizzle skill is installed in the adapter package with a root discovery
+link; its revision matches installed Kit. `.codex/config.toml` is project-local and
+sets that package's absolute working directory. Update that local path if moving
+the checkout. A stdio tools-list handshake passed; a fresh/reloaded Codex session
+is needed to load the new entry into the current tool catalog. No global MCP,
+trust or approval settings are modified.
+
+All package version fields remain unchanged at the user's request. The published
+0.1.0 archives/tag remain immutable and still use Drizzle 0.45.4. The upgraded
+source is recorded separately from registry publication; it cannot overwrite the
+existing package@0.1.0.

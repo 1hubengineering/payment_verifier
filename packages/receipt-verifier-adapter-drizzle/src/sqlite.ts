@@ -1,9 +1,7 @@
-import { SQLiteTransaction } from 'drizzle-orm/sqlite-core';
-import type {
-  SQLiteTextBuilderInitial,
-  SQLiteIntegerBuilderInitial,
-} from 'drizzle-orm/sqlite-core';
+import { SQLiteAsyncTransaction } from 'drizzle-orm/sqlite-core';
+import type { SQLiteTextBuilder, SQLiteIntegerBuilder } from 'drizzle-orm/sqlite-core';
 import { eq, like, asc, is } from 'drizzle-orm';
+import type { AnyRelations } from 'drizzle-orm/relations';
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 import type { LibSQLDatabase } from 'drizzle-orm/libsql';
 import type { RecordTransaction, VerificationStorage } from '@1hubengineering/receipt-verifier';
@@ -20,16 +18,8 @@ export const receiptVerifierRecords: ReturnType<
   typeof sqliteTable<
     'receipt_verifier_records',
     {
-      recordKey: ReturnType<
-        SQLiteTextBuilderInitial<
-          'record_key',
-          [string, ...string[]],
-          number | undefined
-        >['primaryKey']
-      >;
-      payload: ReturnType<
-        SQLiteTextBuilderInitial<'payload', [string, ...string[]], number | undefined>['notNull']
-      >;
+      recordKey: ReturnType<SQLiteTextBuilder<[string, ...string[]]>['primaryKey']>;
+      payload: ReturnType<SQLiteTextBuilder<[string, ...string[]]>['notNull']>;
     }
   >
 > = sqliteTable('receipt_verifier_records', {
@@ -40,17 +30,16 @@ export const receiptVerifierSchema: ReturnType<
   typeof sqliteTable<
     'receipt_verifier_schema',
     {
-      id: ReturnType<SQLiteIntegerBuilderInitial<'id'>['primaryKey']>;
-      version: ReturnType<SQLiteIntegerBuilderInitial<'version'>['notNull']>;
+      id: ReturnType<SQLiteIntegerBuilder['primaryKey']>;
+      version: ReturnType<SQLiteIntegerBuilder['notNull']>;
     }
   >
 > = sqliteTable('receipt_verifier_schema', {
   id: integer('id').primaryKey(),
   version: integer('version').notNull(),
 });
-type Schema = Record<string, unknown>;
-type Tx<T extends Schema> = Parameters<Parameters<LibSQLDatabase<T>['transaction']>[0]>[0];
-function records<T extends Schema>(db: LibSQLDatabase<T> | Tx<T>): RecordTransaction {
+type Tx<T extends AnyRelations> = Parameters<Parameters<LibSQLDatabase<T>['transaction']>[0]>[0];
+function records<T extends AnyRelations>(db: LibSQLDatabase<T> | Tx<T>): RecordTransaction {
   const get: RecordTransaction['get'] = async (key) => {
     validateStorageKey(key);
     const query = db
@@ -95,7 +84,7 @@ function records<T extends Schema>(db: LibSQLDatabase<T> | Tx<T>): RecordTransac
     },
   };
 }
-export function drizzleSqliteStorage<T extends Schema>(
+export function drizzleSqliteStorage<T extends AnyRelations>(
   database: LibSQLDatabase<T>,
 ): VerificationStorage {
   return drizzleStore(
@@ -104,10 +93,10 @@ export function drizzleSqliteStorage<T extends Schema>(
     false,
   );
 }
-export function drizzleSqliteTransaction<T extends Schema>(
+export function drizzleSqliteTransaction<T extends AnyRelations>(
   transaction: Tx<T>,
 ): VerificationStorage {
-  if (!is(transaction, SQLiteTransaction))
+  if (!is(transaction, SQLiteAsyncTransaction))
     throw new TypeError('Expected a caller-owned Drizzle transaction');
   return drizzleStore(
     (key) => records(transaction).get(key),

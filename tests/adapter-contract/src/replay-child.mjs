@@ -36,19 +36,19 @@ try {
       const { drizzle } = await import('drizzle-orm/node-postgres');
       const { drizzlePostgresStorage } =
         await import('@1hubengineering/receipt-verifier-adapter-drizzle/postgres');
-      storage = drizzlePostgresStorage(drizzle(host));
+      storage = drizzlePostgresStorage(drizzle({ client: host }));
     } else if (baseEngine === 'mysql') {
       const { drizzle } = await import('drizzle-orm/mysql2');
       const { drizzleMysqlStorage } =
         await import('@1hubengineering/receipt-verifier-adapter-drizzle/mysql');
-      storage = drizzleMysqlStorage(drizzle(host.promise()));
+      storage = drizzleMysqlStorage(drizzle({ client: host.promise() }));
     } else {
       const { createClient } = await import('@libsql/client');
       const { drizzle } = await import('drizzle-orm/libsql');
       const { drizzleSqliteStorage } =
         await import('@1hubengineering/receipt-verifier-adapter-drizzle/sqlite');
       const client = createClient({ url: 'file:' + process.env.RECEIPT_TEST_SQLITE_FILE });
-      storage = drizzleSqliteStorage(drizzle(client));
+      storage = drizzleSqliteStorage(drizzle({ client }));
       const originalClose = close;
       close = async () => {
         client.close();

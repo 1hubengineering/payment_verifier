@@ -43,3 +43,25 @@ callers own BEGIN/isolation/commit/rollback/whole-transaction retries. SQLite sc
 check native transaction activity at construction and use; Drizzle checks actual
 transaction objects; Prisma requires its explicit Serializable policy and actual
 callback tx. No adapter releases or closes a supplied connection, pool or client.
+
+## Drizzle v1 RC local tooling
+
+The workspace installs drizzle-kit@rc (currently 1.0.0-rc.5) in the Drizzle adapter.
+There is no existing Drizzle config, migration SQL, snapshot chain or journal to
+back up or convert. `pnpm check:drizzle` runs local up/check and schema export in
+scratch directories for PostgreSQL, MySQL, SQLite and Turso. Empty histories stay
+empty, and exported SQL retains the two v1 tables. PostgreSQL's schema_changed
+warning is expected because the separate SQL migration owns the schema.
+
+No host database, applied migration history or deployment command was inspected
+or changed. The existing host entry remains `await storage.migrate()` through the
+chosen direct SQL adapter, with one owner. No new database/schema version or
+migration is required by this ORM API upgrade.
+
+For hosts that independently maintain a Kit migration history, the first later
+v1 migrator run adds name/applied_at and associates old rows with local folder
+names. Previously applied SQL is not rerun; old applied_at values remain NULL.
+Every missing local folder is then applied regardless of timestamp order. Missing
+historical files must be restored rather than deleting applied rows or snapshots.
+These are upstream migration semantics, not a claim that host history was upgraded.
+See the [official upgrade guide](https://orm.drizzle.team/docs/upgrade-v1).

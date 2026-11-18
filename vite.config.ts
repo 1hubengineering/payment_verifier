@@ -5,6 +5,7 @@ export default defineConfig({
     options: { typeAware: true, typeCheck: true },
     ignorePatterns: [
       'tests/reference-cli/**',
+      '**/.agents/skills/**',
       'docs/library-plan/init-plan.md',
       'docs/library-plan/library-plan.md',
       'docs/archive/**',
@@ -18,6 +19,7 @@ export default defineConfig({
     singleQuote: true,
     ignorePatterns: [
       'tests/reference-cli/**',
+      '**/.agents/skills/**',
       'docs/library-plan/init-plan.md',
       'docs/library-plan/library-plan.md',
       'docs/archive/**',

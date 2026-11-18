@@ -44,8 +44,10 @@ Repository `AGENTS.md` holds durable commands and invariants, and `PLANS.md`
 defines substantial task handoffs. This follows the official guidance for
 [repository instructions](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
 and [execution plans](https://developers.openai.com/cookbook/articles/codex_exec_plans).
-No global settings, model defaults, permissions, MCP servers, or paid integrations
-are changed. A project config is unnecessary for the current workflow.
+No global settings, model defaults, permissions or paid integrations are changed.
+The Drizzle v1 upgrade adds a project-local `.codex/config.toml` server entry and
+a bundled Drizzle skill; see plan 011 for CLI/stdio verification and the required
+client reload. Trust and approval settings remain user-owned.
 
 CI runs the same acceptance command on Node 26.13.1 and 24.22.3. Hosted checks are recorded in the roadmap. Branch protection and automatic review
 are separate account controls; do not infer them from the checked-in workflow.

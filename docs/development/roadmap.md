@@ -4,18 +4,19 @@ The [initial direction](../library-plan/init-plan.md) defines the embedded-libra
 target. This roadmap records implemented and validated support separately from
 publication. Historical examples are not additional compatibility promises.
 
-| Slice                        | State                                | Evidence                                                                                                                          |
-| ---------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
-| 0. Audit and foundation      | Complete                             | Pinned Node/pnpm/Vite+, Varlock startup schemas, frozen baseline, CI and installed consumers                                      |
-| 1. Domain and compare engine | Complete                             | Immutable host expectations, exact integer ETB, explicit fail-closed checks; settlement always UNCONFIRMED                        |
-| 2. Provider evidence         | Complete; synthetic/local validation | Bounded allowlisted IPv4/TLS, linear bounded extraction, isolated CBE inline rendering; no live-provider claim                    |
-| 3. Storage and direct SQL    | Complete                             | Atomic claims/evidence/results/outbox, idempotency, rollback and process races on three real engines                              |
-| 4. Drizzle and Prisma        | Complete                             | Native ORM queries/transactions; all nine direct/ORM cells pass the same 27 cases                                                 |
-| 5. CLI and durable worker    | Complete                             | Encrypted committed acceptance, bounds, retries/leases/fencing, actual crash/restart recovery, Varlock apps and graceful shutdown |
-| 6. Fastify checkout          | Complete                             | Host auth/order/admission callbacks, strict locator-only input, scoped status, independent settlement/fulfillment                 |
-| 7. Release readiness         | Complete; 0.1.0 published            | Five npm versions verified by publisher, both hashes and installed workflow; public GitHub tag/assets match reviewed source       |
+| Slice                           | State                                | Evidence                                                                                                                                               |
+| ------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0. Audit and foundation         | Complete                             | Pinned Node/pnpm/Vite+, Varlock startup schemas, frozen baseline, CI and installed consumers                                                           |
+| 1. Domain and compare engine    | Complete                             | Immutable host expectations, exact integer ETB, explicit fail-closed checks; settlement always UNCONFIRMED                                             |
+| 2. Provider evidence            | Complete; synthetic/local validation | Bounded allowlisted IPv4/TLS, linear bounded extraction, isolated CBE inline rendering; no live-provider claim                                         |
+| 3. Storage and direct SQL       | Complete                             | Atomic claims/evidence/results/outbox, idempotency, rollback and process races on three real engines                                                   |
+| 4. Drizzle and Prisma           | Complete                             | Native ORM queries/transactions; all nine direct/ORM cells pass the same 27 cases                                                                      |
+| 5. CLI and durable worker       | Complete                             | Encrypted committed acceptance, bounds, retries/leases/fencing, actual crash/restart recovery, Varlock apps and graceful shutdown                      |
+| 6. Fastify checkout             | Complete                             | Host auth/order/admission callbacks, strict locator-only input, scoped status, independent settlement/fulfillment                                      |
+| 7. Release readiness            | Complete; 0.1.0 published            | Five npm versions verified by publisher, both hashes and installed workflow; public GitHub tag/assets match reviewed source                            |
+| 8. Drizzle v1 RC source upgrade | Complete in source; not republished  | ORM/Kit 1.0.0-rc.5 from rc tags; full pnpm verify, all nine engine cells, installed relation-client types and local Kit checks pass; version unchanged |
 
-Current source acceptance: **237 fast/application/example/provider cases,
+Published 0.1.0 acceptance: **237 fast/application/example/provider cases,
 243 real-engine contract cases (nine cells × 27), and 11 frozen reference cases**,
 plus environment/schema generation, five builds, formatting/lint/strict types,
 publint and isolated installed npm consumers. The release source commit
@@ -29,10 +30,14 @@ receipt/idempotency/durable-job consumer passed. Settlement remains UNCONFIRMED.
 was published as 1hubengineering at 2026-11-18 16:22:13 UTC. Its tag points to the
 reviewed source above; anonymous downloads of all seven assets match the reviewed
 files. [Release evidence](releases/0.1.0.md) includes all package links and hashes.
-All roadmap slices are complete; no release blocker remains.
+The 0.1.0 release gates are complete. The post-release v1 RC source upgrade is
+tracked in [plan 011](plans/011-drizzle-v1-upgrade.md). It keeps package version
+fields at 0.1.0 by explicit user instruction; npm cannot overwrite the existing
+versions, so this source change is distinct from registry publication.
 
-The [compatibility matrix](compatibility.md) lists exact engine/client versions.
-Direct Kysely, Drizzle 0.45.4 and Prisma 7.10.1 each cover PostgreSQL, MySQL and
+The [workspace compatibility matrix](compatibility.md) lists the new RC boundary;
+the immutable v0.1.0 release uses Drizzle 0.45.4. Direct Kysely, Drizzle and
+Prisma 7.10.1 each cover PostgreSQL, MySQL and
 local SQLite. Real host transaction commit/rollback, independent clients/processes,
 claim races, response-loss replay and durable SIGKILL recovery run on every cell.
 Different SQLite native implementations must not hold one file in the same
@@ -77,4 +82,12 @@ Implementation plans retain detailed evidence:
 [domain](plans/002-domain-comparison.md), [providers](plans/003-provider-evidence.md),
 [SQL](plans/004-storage-contract.md), [ORMs](plans/005-orm-adapters.md),
 [parser bounds](plans/006-parser-resource-bounds.md), [jobs](plans/007-durable-jobs.md),
-[operator apps](plans/008-cli-worker.md), [checkout](plans/009-fastify-checkout.md).
+[operator apps](plans/008-cli-worker.md), [checkout](plans/009-fastify-checkout.md),
+[Drizzle v1 RC upgrade](plans/011-drizzle-v1-upgrade.md).
+
+The v1 RC source upgrade passed full local pnpm verify with the same 237/243/11
+case counts, plus four Kit local up/check/export checks. All 81 Drizzle cases use
+the new RC. Installed consumers verify relation-configured client types as well
+as transaction ownership. The bundled revision-15 skill is loaded; project-local
+MCP config and a direct tools-list handshake are verified. Reload Codex to activate
+the newly saved server in the current client. No host database migration was run.

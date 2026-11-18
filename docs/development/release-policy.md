@@ -45,3 +45,10 @@ same tarballs/checksums to the GitHub tag/release, with exact source commit, tes
 results, matrix, limits and npm links. Record publication in the roadmap/provenance
 and release notes. Failed or partially published versions must be reported as such;
 never overwrite a published version or claim an unapproved staged version is live.
+
+The Drizzle v1 RC source upgrade keeps package versions at 0.1.0 by explicit user
+instruction. Published 0.1.0 artifacts and tag remain the original Drizzle 0.45.4
+release. npm cannot replace an existing package/version, even after unpublishing;
+source publication and registry publication must be reported separately. Do not
+increment versions, overwrite release assets or claim the new source is installed
+from npm 0.1.0. A new registry release needs a separate version decision.

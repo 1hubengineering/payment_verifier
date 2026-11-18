@@ -21,7 +21,7 @@
     "@types/better-sqlite3": "9.6.0",
     "@types/pg": "8.23.1",
     "better-sqlite3": "13.2.0",
-    "drizzle-orm": "0.45.4",
+    "drizzle-orm": "rc",
     "kysely": "0.29.9",
     "mysql2": "3.24.6",
     "pg": "8.23.1",

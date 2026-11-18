@@ -16,6 +16,7 @@ const names = [
   'receipt-verifier-provider-cbe',
 ].map((name) => '@1hubengineering/' + name);
 assert.deepEqual(manifest.packages.map((pkg) => pkg.name).sort(), [...names].sort());
+let drizzlePeer;
 for (const pkg of manifest.packages) {
   const response = await fetch('https://registry.npmjs.org/' + encodeURIComponent(pkg.name));
   assert.equal(response.status, 200, `${pkg.name}: registry metadata unavailable`);
@@ -25,6 +26,11 @@ for (const pkg of manifest.packages) {
   assert.equal(version.dist.integrity, pkg.integrity);
   assert.ok(document.maintainers.some((owner) => owner.name === '1hubengineering'));
   assert.equal(version._npmUser.name, '1hubengineering');
+  if (pkg.name.endsWith('/receipt-verifier-adapter-drizzle')) {
+    drizzlePeer = version.peerDependencies?.['drizzle-orm'];
+    assert.equal(typeof drizzlePeer, 'string');
+    assert.ok(drizzlePeer.length > 0);
+  }
   assert.equal(new URL(version.dist.tarball).origin, 'https://registry.npmjs.org');
   const tarball = await fetch(version.dist.tarball);
   assert.equal(tarball.status, 200);
@@ -46,7 +52,7 @@ try {
       '--prefer-online',
       ...names.map((name) => `${name}@${manifest.version}`),
       'better-sqlite3@13.2.0',
-      'drizzle-orm@0.45.4',
+      `drizzle-orm@${drizzlePeer}`,
       '@libsql/client@0.17.4',
       '@prisma/client@7.10.1',
       'playwright@1.65.1',

@@ -40,7 +40,8 @@
   },
   "scripts": {
     "build": "vp pack",
-    "check:package": "publint --strict"
+    "check:package": "publint --strict",
+    "check:kit": "node ../../scripts/check-drizzle-kit.mjs"
   },
   "dependencies": {
     "@1hubengineering/receipt-verifier": "workspace:*"
@@ -48,13 +49,14 @@
   "devDependencies": {
     "@libsql/client": "0.17.4",
     "@types/pg": "8.23.1",
-    "drizzle-orm": "0.45.4",
+    "drizzle-kit": "rc",
+    "drizzle-orm": "rc",
     "mysql2": "3.24.6",
     "pg": "8.23.1"
   },
   "peerDependencies": {
     "@libsql/client": "0.17.4",
-    "drizzle-orm": "0.45.4",
+    "drizzle-orm": ">=1.0.0-rc <1.0.0",
     "mysql2": "3.24.6",
     "pg": "8.23.1"
   },
