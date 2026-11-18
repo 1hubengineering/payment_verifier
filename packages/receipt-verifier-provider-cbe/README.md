@@ -1,6 +1,6 @@
 # Optional CBE receipt browser
 
-Private development preview; locally tested with synthetic HTML and Playwright
+Version 0.1.0; locally tested with synthetic HTML and Playwright
 1.65.1 / its matching Chromium. No live provider availability is claimed.
 
 ```ts
@@ -40,3 +40,14 @@ further synthetic format evidence.
 Retrieved provenance includes the original HTML SHA-256, URL and retrieval time;
 extraction still supplies receipt evidence only. The host must compare against
 its immutable expectation. This package cannot claim, settle, credit or fulfill.
+
+Chromium OS sandboxing is explicitly enabled, independently of the page's CSP.
+The browser receives only LANG/TZ environment values, never inherited host
+credentials. Its context uses en-US and Africa/Addis_Ababa so local receipt dates
+remain Ethiopian time independent of the host timezone. Missing OS sandbox
+support fails unavailable, with no no-sandbox fallback or public bypass option.
+Run under an unprivileged, confined worker account with host-managed filesystem,
+memory and process limits; the library does not provision containers or claim a
+hard browser RSS quota. Restrict secret mounts/files separately. Linux tests
+inspect actual child environment, renderer seccomp filters and PID namespaces,
+then prove sandbox-launch failure releases capacity without unsafe retry.

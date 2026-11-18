@@ -1,6 +1,6 @@
 # @1hubengineering/receipt-verifier
 
-Private development preview. Exact ETB parsing, trusted expectation snapshots,
+Version 0.1.0. Exact ETB parsing, trusted expectation snapshots,
 pure receipt comparison, provider evidence and an atomic verification workflow are implemented.
 Storage is configured through separately tested adapters.
 

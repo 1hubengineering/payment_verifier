@@ -12,7 +12,7 @@ implementation; a target is not a supported integration until its gate passes.
 | 4. Drizzle and versioned Prisma               | Implemented; nine-cell matrix passed         | Explicit client/engine versions; all advertised engine cells pass the shared contract suite and caller transaction tests                                                             |
 | 5. CLI and optional durable worker            | Implemented; local gate passed               | Varlock at startup; durable acceptance, leases/retries, bounds, restart and crash recovery; no lost acknowledged work                                                                |
 | 6. Fastify checkout example                   | Implemented; local gate passed               | Host auth/order ownership; trusted expectation snapshot; structured outcomes; no fulfillment from receipt alone                                                                      |
-| 7. Release readiness                          | In progress; private candidate               | All three engines and advertised ORM paths proven, migration docs, packaging, provenance/licensing, release policy                                                                   |
+| 7. Release readiness                          | Browser process gate in progress             | All three engines and advertised ORM paths proven, migration docs, packaging, provenance/licensing, release policy                                                                   |
 
 PostgreSQL, MySQL, and SQLite remain first-release requirements. Delivery can be
 incremental. Direct PostgreSQL 18.7/pg 8.23.1, MySQL 8.4.13/mysql2 3.24.6, and
@@ -35,7 +35,7 @@ ETB evidence with explicit inclusive time bounds, and reports field checks.
 Missing, malformed and ambiguous required evidence remains unable to verify.
 All comparison results retain settlement `UNCONFIRMED`. Provider extraction and bounded retrieval are implemented in the provider
 subpath and optional CBE package; atomic storage claims are implemented through
-the configured verifier and direct SQL adapters. The API remains private and provisional.
+the configured verifier and direct SQL adapters. The 0.1.0 API remains unpublished; release status is tracked below.
 
 Slice 2's [execution plan](plans/003-provider-evidence.md) records synthetic
 Telebirr/CBE parsing, bounded IPv4/TLS retrieval, explicit provenance and real
@@ -96,8 +96,11 @@ Slice 7's [release plan](plans/010-release-readiness.md) records the private
 The release audit verified all ten frozen originals, tracked-data hygiene and
 selected external licenses; production dependency audit found zero advisories.
 SQLite caller scopes now reject inactive/ended transactions. The private 0.1.0 candidate passed full local `pnpm verify`, including
-installed inactive/ended SQLite scope regressions. Clean-commit artifact preparation
-and exact-commit hosted gates remain pending before eligibility.
+installed inactive/ended SQLite scope regressions. Clean-commit artifact preparation passed for all five libraries; a repeated
+pack produced identical checksums. Commit 991ee9f passed both hosted runtimes.
+The final browser review reopened OS sandbox/environment requirements; the five
+libraries remain private until new local and hosted gates pass. Registry
+publication is pending. Root/apps/example/tests stay private.
 
 Execution access findings (18 November 2026): GitHub CLI and connector confirm
 `1hubengineering`. After the user refreshed token permissions, `GET /user/emails`
@@ -110,3 +113,8 @@ no package or release is published.
 
 Current naming and runtime decisions are recorded in [workspace conventions](conventions.md).
 The original initialization plan contains historical package-path examples.
+
+Release gate reopened during final browser review: library packages remain private
+while explicit Chromium OS sandbox/environment isolation receives hosted
+acceptance. Local `pnpm verify` passed 237 fast/provider/application cases,
+234 real-engine cases and all 11 frozen cases. Nothing is published.

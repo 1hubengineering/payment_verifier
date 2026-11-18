@@ -30,7 +30,10 @@ or arbitrary ORM majors from the selected cells above.
 
 Telebirr supports the saved synthetic bilingual/span/label-value/v5 invoice
 layouts and bounded allowlisted HTTPS. CBE adds Playwright 1.65.1 and its matching
-Chromium 159.0.8154.6 (build 1255), with mocked HTTPS and real browser failure tests.
+Chromium 159.0.8154.6 (build 1255), with mocked HTTPS and real browser failure tests. Chromium OS sandboxing and a
+locale/timezone-only browser environment are mandatory; Linux tests inspect real
+renderer seccomp/PID namespaces. The host must support unprivileged sandboxed
+Chromium and provide worker filesystem/memory/process confinement.
 Only inline-renderable CBE layouts are supported: external scripts/assets, IPv6,
 redirects and compressed provider responses are refused. Malformed or unsupported
 structures fail closed. No live bank compatibility, provider permission, service

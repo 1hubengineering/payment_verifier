@@ -14,6 +14,8 @@ export async function renderCbeHtml(
   const started = Date.now();
   const browser = await chromium.launch({
     headless: true,
+    chromiumSandbox: true,
+    env: { LANG: 'C.UTF-8', TZ: 'UTC' },
     timeout: timeoutMs,
     args: [
       '--disable-background-networking',
@@ -39,6 +41,8 @@ export async function renderCbeHtml(
     const work = async (): Promise<string> => {
       const context = await browser.newContext({
         serviceWorkers: 'block',
+        locale: 'en-US',
+        timezoneId: 'Africa/Addis_Ababa',
         acceptDownloads: false,
         permissions: [],
       });

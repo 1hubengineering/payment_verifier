@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 — release candidate
+## 0.1.0
 
 - Exact ETB comparison with immutable host expectations and explicit fail-closed
   evidence checks; receipt match always retains settlement UNCONFIRMED.

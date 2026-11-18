@@ -26,7 +26,7 @@ personal scope after andhub proved unavailable. No package/release is published.
 - [x] Verify frozen originals, tracked data hygiene, dependency licenses and audit.
 - [x] Document exact compatibility, migrations, retention and release policy.
 - [x] Prepare 0.1.0 metadata and reviewed artifact/checksum tooling while private.
-- [ ] Run pnpm verify, review installed artifacts, commit and pass hosted Node 24/26.
+- [x] Run pnpm verify, review installed artifacts, commit and pass hosted Node 24/26.
 - [ ] Remove private only from eligible libraries; verify/commit and pass exact-head CI.
 - [ ] Verify identities/scope again, publish repository and stage/publish artifacts.
 - [ ] Verify registry owners/integrity and installed registry consumers; create release.
@@ -107,3 +107,49 @@ condition object. Validate string/condition targets recursively and explicitly
 require all three distributed Prisma snippets. The SDK installed consumers had
 already passed; this was a release-checker failure, not missing package content.
 Artifacts remain private/ineligible until the corrected clean-commit run succeeds.
+
+## Eligibility gate
+
+Corrected clean-commit preparation at 991ee9f validated all five private tarballs
+and exported Prisma models. A repeated pack produced an identical manifest and
+archive checksums. Both hosted Node 24/26 jobs passed at that exact commit
+(run 44331393701). With implementation, review, source ownership, identity/scope,
+licenses, local/hosted matrix, installed consumers and artifact gates satisfied,
+remove private only from the five libraries. Root/apps/examples/tests stay private.
+The final eligibility commit still requires its own verify/hosted checks before
+any registry write. Registry ownership/integrity/installed verification tooling
+is added for the actual publication step; no publication is claimed yet.
+
+## Browser process gate reopened
+
+Final review found Playwright's chromiumSandbox defaults false and launch inherits
+process.env. CSP sandboxing is not Chromium OS sandboxing. A standalone actual
+launch with chromiumSandbox=true and a locale/timezone-only environment passed
+locally. Restore all five private flags while explicitly enabling the OS sandbox,
+allowlisting browser environment, and proving seccomp/no inherited host secret via
+actual process inspection of renderer seccomp filters/PID namespaces.
+Headless shell does not expose chrome://sandbox, so inspect its real Linux
+renderer state instead of changing the selected browser just for the test. Sandbox launch failures must stay
+unavailable with no unsafe fallback. The earlier eligible-metadata verify passed
+but does not satisfy this newly identified process gate; no registry write occurred.
+Source: https://playwright.dev/docs/api/class-browsertype#browser-type-launch-option-chromium-sandbox.
+
+Focused native browser validation passes with the sandbox enabled: renderer
+seccomp filters exceed the broker's filter count, PID namespace depth increases,
+and the actual child environment excludes an inherited synthetic host secret.
+A failed sandbox launch returns unavailable once and the next valid call recovers
+capacity. Explicit Ethiopian context time is also covered by a synthetic inline
+Date rendering regression. Full local/hosted acceptance follows before eligibility.
+
+All 12 focused CBE cases now pass with actual sandboxed Chromium, including the
+existing network/DOM/infinite-script tests and new native isolation, failure
+recovery and Ethiopian-date regressions. Environment assertions report booleans
+so a failing test cannot dump inherited secret values into diagnostics.
+
+The private sandboxed candidate passed full `pnpm verify` on Node 26.13.1:
+237 fast/application/example/provider cases, 234 nine-cell storage/ORM cases,
+11 frozen cases, all builds/checks/publint and installed consumers. The 12 CBE
+cases include native Linux isolation, no-unsafe-fallback recovery and explicit
+Ethiopian date rendering. The source remains private pending hosted sandbox
+acceptance and fresh eligible artifacts. The registry integrity/owner/consumer
+checker is ready but will only run against approved published versions.

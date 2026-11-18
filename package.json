@@ -23,7 +23,8 @@
     "cli": "vp run @1hubengineering/receipt-verifier-cli#start",
     "worker": "vp run @1hubengineering/receipt-verifier-worker#start",
     "checkout": "vp run @1hubengineering/receipt-verifier-fastify-checkout#start",
-    "release:prepare": "node scripts/prepare-release.mjs"
+    "release:prepare": "node scripts/prepare-release.mjs",
+    "release:check": "node scripts/check-published.mjs"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

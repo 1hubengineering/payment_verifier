@@ -1,6 +1,6 @@
 # Prisma 7 receipt storage
 
-Private development preview. The shared contract suite passes for Prisma CLI,
+Version 0.1.0. The shared contract suite passes for Prisma CLI,
 Client and official driver adapters **7.10.1** on PostgreSQL 18.7, MySQL 8.4.13 and
 local SQLite. No Prisma 8 prerelease, other client major or remote SQLite service
 is advertised.

@@ -1,12 +1,11 @@
 # Ethiopian receipt verification library
 
-A TypeScript library workspace for embedding receipt verification into an
-existing backend. Receipt comparison and bounded provider evidence retrieval are implemented with
-synthetic/local validation. Direct SQL, Drizzle and Prisma 7 adapters pass the real-engine PostgreSQL/MySQL/SQLite
-matrix. Optional durable jobs add bounded encrypted acceptance and crash recovery.
-All receipt results retain settlement UNCONFIRMED. Packages remain private; the
-CLI and optional worker are implemented as trusted operator tools; the Fastify checkout example demonstrates existing host auth/order boundaries.
-The private 0.1.0 candidate is undergoing final artifact/release checks.
+A TypeScript workspace for embedding receipt verification into an existing backend.
+Core comparison, bounded providers, nine real SQL/ORM integrations, durable jobs,
+operator apps and the checkout example are implemented and tested. Receipt results
+always retain settlement UNCONFIRMED. All five 0.1.0 library candidates remain
+private while the final browser process sandbox/environment gate is verified.
+No registry version or release has been published.
 
 ## Develop
 

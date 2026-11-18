@@ -35,8 +35,12 @@ dry runs and GitHub login do not establish registry publication. See the officia
 requirements. No npm OIDC/provenance attestation is claimed unless actually generated
 and verified; local source ownership and tarball integrity are separate evidence.
 
-After publication, verify each registry version, owner and dist.integrity against
-the reviewed archive and install registry packages in isolated consumers. Attach the
+After publication, run `pnpm release:check artifacts/<candidate>/manifest.json`.
+It verifies each registry version, owner and dist.integrity against the reviewed
+archive, downloads/checks both hashes and installs the registry versions in a
+temporary npm consumer. The consumer exercises receipt/idempotency and durable
+SQLite workflows, imports all five libraries and keeps settlement unconfirmed.
+This complements the full installed tarball/real-engine suite before release. Attach the
 same tarballs/checksums to the GitHub tag/release, with exact source commit, test
 results, matrix, limits and npm links. Record publication in the roadmap/provenance
 and release notes. Failed or partially published versions must be reported as such;
