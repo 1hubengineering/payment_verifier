@@ -65,6 +65,12 @@ assert.equal(core.compareReceipt(expected, {}).verificationStatus, 'UNABLE_TO_VE
 assert.equal(core.parseEtbAmount('0.29'), 29);
 assert.equal(core.parseEtbAmount('500.00'), 50000);
 assert.throws(() => core.parseEtbAmount('0.001'));
+const providers = await import('@andhub/receipt-verifier/providers');
+assert.equal(providers.normalizeReceiptLocator('telebirr', 'TEST1234AB').transactionId, 'TEST1234AB');
+const parsed = providers.parseReceiptHtml('telebirr', '<html>unsupported</html>');
+assert.equal(parsed.provenance.kind, 'SAVED_HTML');
+assert.equal(core.compareReceipt(expected, parsed.evidence).verificationStatus, 'UNABLE_TO_VERIFY');
+assert.equal(providers.isPublicDestination('127.0.0.1'), false);
 `,
   );
   run(process.execPath, ['consumer.mjs'], temporary);
@@ -73,6 +79,11 @@ assert.throws(() => core.parseEtbAmount('0.001'));
     join(temporary, 'consumer.ts'),
     `
 import { parseEtbAmount, type EtbMinorUnits, type VerificationStatus, type SettlementStatus, createPaymentExpectation, compareReceipt, type ReceiptComparison, type ReceiptEvidence }  from '@andhub/receipt-verifier';
+import { parseReceiptHtml, normalizeReceiptLocator, type ProviderResult } from '@andhub/receipt-verifier/providers';
+const parsed = parseReceiptHtml('telebirr', '');
+const locator = normalizeReceiptLocator('telebirr', 'TEST1234AB');
+const unavailable: ProviderResult = { kind: 'UNAVAILABLE', code: 'TIMEOUT' };
+void [parsed, locator, unavailable];
 const amount: EtbMinorUnits = parseEtbAmount('10.00');
 const verification: VerificationStatus = 'MATCHED_RECEIPT_ONLY';
 const settlement: SettlementStatus = 'UNCONFIRMED';
@@ -108,6 +119,37 @@ void [amount, verification, settlement, invalidAmount, invalidVerification, resu
     ],
     temporary,
   );
+  run(
+    'pnpm',
+    ['pack', '--pack-destination', temporary],
+    join(root, 'packages/receipt-verifier-provider-cbe'),
+  );
+  const cbeArchive = readdirSync(temporary).find(
+    (file) => file.includes('provider-cbe') && file.endsWith('.tgz'),
+  );
+  assert.ok(cbeArchive);
+  run(
+    'npm',
+    [
+      'install',
+      '--ignore-scripts',
+      '--no-audit',
+      '--no-fund',
+      '--package-lock=false',
+      resolve(temporary, cbeArchive),
+      'playwright@1.65.1',
+    ],
+    temporary,
+  );
+  writeFileSync(
+    join(temporary, 'optional.mjs'),
+    `
+import assert from 'node:assert/strict';
+const { createCbeProvider } = await import('@andhub/receipt-verifier-provider-cbe');
+assert.deepEqual(await createCbeProvider().retrieve('http://127.0.0.1/'), { kind: 'UNAVAILABLE', code: 'INVALID_LOCATOR' });
+`,
+  );
+  run(process.execPath, ['optional.mjs'], temporary);
   console.log(
     'Packed npm consumer: ESM comparison, exact money, declarations, and dependency boundary passed.',
   );

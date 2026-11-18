@@ -68,3 +68,33 @@ unchecked claim API.
 The core has no runtime dependencies and performs no import-time I/O. ESM only.
 Supported runtime ranges are `^24.22.3 || ^26.13.1`; CI is configured for both
 minimums. Development uses Node 26 LTS. Database and ORM compatibility is planned.
+
+## Provider evidence subpath
+
+`@andhub/receipt-verifier/providers` exports `parseReceiptHtml`,
+`normalizeReceiptLocator`, and `retrieveTelebirr`. The root import remains free of
+provider code. Parsing saved HTML returns `SAVED_HTML` provenance and cannot prove
+authenticity. `retrieveTelebirr` returns `EVIDENCE` with `OFFICIAL_HTTPS` provenance
+(URL, time, original HTML SHA-256, parser version), or `UNAVAILABLE` with a generic
+error code. Never interpret `EVIDENCE` as a match without comparison.
+
+Supported synthetic Telebirr formats are label/value table rows, bilingual rows,
+span pairs and the v5 invoice header/value table. Conflicting duplicates fail
+closed; invoice headings never become values and fees never become transferred
+amounts. Missing timestamps remain missing. Supported local date forms use
+UTC+03:00 with strict calendar validation; explicit ISO timezone offsets are
+validated separately. No live provider behavior has been tested.
+
+HTTPS retrieval checks official scheme/host/path before work, rejects credentials,
+ports, queries, fragments, unrelated links and conflicting IDs. DNS is checked
+inside socket lookup, the selected public IPv4 address is used for that socket,
+and each request owns a fresh agent. IPv6 is deliberately unsupported. Private,
+loopback, link-local, documentation, multicast and reserved IPv4 ranges are blocked;
+mixed public/private answers fail closed. TLS remains verified. There are no
+redirects, proxies, ambient configuration or decompression; HTML headers, UTF-8,
+16 KiB response headers, a 2 MB maximum body and 1–60000 ms total deadline are
+bounded. Retrieval accepts an abort signal. Timeouts remain unavailable.
+
+CBE extraction is also available through `parseReceiptHtml('cbe', html)`; actual
+browser execution belongs to the optional CBE package. Neither provider performs
+storage writes or authorizes settlement or fulfillment.

@@ -1,8 +1,8 @@
 # Ethiopian receipt verification library
 
 A TypeScript library workspace for embedding receipt verification into an
-existing backend. The pure receipt comparison engine is implemented; provider retrieval and database
-adapters are still planned. A receipt match will remain distinct from settlement.
+existing backend. Receipt comparison and bounded provider evidence retrieval are implemented with
+synthetic/local validation; database adapters are still planned. A receipt match will remain distinct from settlement.
 
 ## Develop
 
@@ -13,6 +13,8 @@ vp env install
 pnpm install --frozen-lockfile
 pnpm verify
 ```
+
+`pnpm setup:browsers` installs Chromium for the optional CBE integration tests.
 
 Node **26.13.1 LTS**, pnpm **12.21.0**, Vite+ **1.7.0**, and TypeScript **7.0.2**
 are pinned. CI also validates Node **24.22.3 LTS**. The original ISC manifest designation is
@@ -28,7 +30,7 @@ preserved; public licensing and reference provenance are release decisions.
 
 `pnpm verify` validates app configuration first, then runs formatting/lint/type checks, core tests, the original synthetic
 baseline, application configuration validation, library build, publint, and the
-installed-package checks. No bank requests or database services are required.
+installed-package checks. No bank requests or database services are required. Chromium tests use local mocks.
 
 Use the [documentation index](docs/README.md) to find active and archived material.
 The [workspace conventions](docs/development/conventions.md) explain package naming,

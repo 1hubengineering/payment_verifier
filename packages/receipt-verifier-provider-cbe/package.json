@@ -1,0 +1,36 @@
+{
+  "name": "@andhub/receipt-verifier-provider-cbe",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Optional isolated Chromium execution for CBE receipt evidence",
+  "license": "ISC",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "check:package": "publint --strict",
+    "setup:browsers": "playwright install chromium"
+  },
+  "dependencies": {
+    "@andhub/receipt-verifier": "workspace:*"
+  },
+  "devDependencies": {
+    "playwright": "1.65.1"
+  },
+  "peerDependencies": {
+    "playwright": "1.65.1"
+  },
+  "engines": {
+    "node": "^24.22.3 || ^26.13.1"
+  }
+}

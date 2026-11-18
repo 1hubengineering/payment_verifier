@@ -186,7 +186,7 @@ importers:
         version: 7.0.2
       vite-plus:
         specifier: 1.7.0
-        version: 1.7.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(publint@0.3.25)(typescript@7.0.2)
+        version: 1.7.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(playwright@1.65.1)(publint@0.3.25)(typescript@7.0.2)
 
   apps/cli:
     devDependencies:
@@ -195,6 +195,16 @@ importers:
         version: 1.25.0
 
   packages/receipt-verifier: {}
+
+  packages/receipt-verifier-provider-cbe:
+    dependencies:
+      '@andhub/receipt-verifier':
+        specifier: workspace:*
+        version: link:../receipt-verifier
+    devDependencies:
+      playwright:
+        specifier: 1.65.1
+        version: 1.65.1
 
 packages:
 
@@ -1134,6 +1144,16 @@ packages:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
     engines: {node: '>=12'}
 
+  playwright-core@1.65.1:
+    resolution: {integrity: sha512-hqPpz7blSMPxWVdoeE1yiBSzXsKiVOd2k+kjCvmUywD2GPO2Dd9HfcWnq9NN0GHbNZDFgZ9JfBFr+X5/BLo0qw==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.65.1:
+    resolution: {integrity: sha512-vJ1FuoOrNwOKHUIVEvSt3jT1L+wjjDpwhwIstKtfvTh8XIG4FG4bIFuvNdMxi81LGfAhUgUZleVFaOLY4RIUUw==}
+    engines: {node: '>=20'}
+    hasBin: true
+
   pngjs@7.0.0:
     resolution: {integrity: sha512-LKWqWJRhstyYo9pGvgor/ivk2w94eSjE3RGVuzLGlr3NmD8bf7RcYGze1mNdEHRP6TRP6rMuDHk5t44hnTRyow==}
     engines: {node: '>=14.19.0'}
@@ -1823,7 +1843,7 @@ snapshots:
 
   obug@3.0.0: {}
 
-  oxfmt@0.79.0(vite-plus@1.7.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(publint@0.3.25)(typescript@7.0.2)):
+  oxfmt@0.79.0(vite-plus@1.7.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(playwright@1.65.1)(publint@0.3.25)(typescript@7.0.2)):
     dependencies:
       tinypool: 2.2.0
     optionalDependencies:
@@ -1846,9 +1866,9 @@ snapshots:
       '@oxfmt/binding-win32-arm64-msvc': 0.79.0
       '@oxfmt/binding-win32-ia32-msvc': 0.79.0
       '@oxfmt/binding-win32-x64-msvc': 0.79.0
-      vite-plus: 1.7.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(publint@0.3.25)(typescript@7.0.2)
+      vite-plus: 1.7.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(playwright@1.65.1)(publint@0.3.25)(typescript@7.0.2)
 
-  oxlint@1.94.0(vite-plus@1.7.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(publint@0.3.25)(typescript@7.0.2)):
+  oxlint@1.94.0(vite-plus@1.7.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(playwright@1.65.1)(publint@0.3.25)(typescript@7.0.2)):
     optionalDependencies:
       '@oxlint/binding-android-arm-eabi': 1.94.0
       '@oxlint/binding-android-arm64': 1.94.0
@@ -1869,7 +1889,7 @@ snapshots:
       '@oxlint/binding-win32-arm64-msvc': 1.94.0
       '@oxlint/binding-win32-ia32-msvc': 1.94.0
       '@oxlint/binding-win32-x64-msvc': 1.94.0
-      vite-plus: 1.7.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(publint@0.3.25)(typescript@7.0.2)
+      vite-plus: 1.7.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(playwright@1.65.1)(publint@0.3.25)(typescript@7.0.2)
 
   package-manager-detector@1.9.0: {}
 
@@ -1878,6 +1898,12 @@ snapshots:
   picocolors@1.1.1: {}
 
   picomatch@4.0.7: {}
+
+  playwright-core@1.65.1: {}
+
+  playwright@1.65.1:
+    dependencies:
+      playwright-core: 1.65.1
 
   pngjs@7.0.0: {}
 
@@ -1974,7 +2000,7 @@ snapshots:
       '@varlock/native-helper-linux-x64': 1.24.0
       '@varlock/native-helper-win32-x64': 1.24.0
 
-  vite-plus@1.7.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(publint@0.3.25)(typescript@7.0.2):
+  vite-plus@1.7.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(playwright@1.65.1)(publint@0.3.25)(typescript@7.0.2):
     dependencies:
       '@oxc-project/runtime': 0.159.0
       '@oxc-project/types': 0.159.0
@@ -1986,8 +2012,8 @@ snapshots:
       '@vitest/snapshot': 5.1.0
       '@vitest/spy': 5.1.0
       '@vitest/utils': 5.1.0
-      oxfmt: 0.79.0(vite-plus@1.7.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(publint@0.3.25)(typescript@7.0.2))
-      oxlint: 1.94.0(vite-plus@1.7.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(publint@0.3.25)(typescript@7.0.2))
+      oxfmt: 0.79.0(vite-plus@1.7.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(playwright@1.65.1)(publint@0.3.25)(typescript@7.0.2))
+      oxlint: 1.94.0(vite-plus@1.7.0(@types/node@24.19.2)(@vitest/ui@5.1.0)(playwright@1.65.1)(publint@0.3.25)(typescript@7.0.2))
       tsrs: 7.1.0-beta.tsrs2
       vite: '@voidzero-dev/vite-plus-core@8.3.8000(@types/node@24.19.2)(publint@0.3.25)(typescript@7.0.2)'
       vitest: 5.1.0(@types/node@24.19.2)(@vitest/browser-preview@5.1.0)(@vitest/ui@5.1.0)(@voidzero-dev/vite-plus-core@8.3.8000(@types/node@24.19.2)(publint@0.3.25)(typescript@7.0.2))
@@ -2000,6 +2026,7 @@ snapshots:
       '@voidzero-dev/vite-plus-linux-x64-musl': 1.7.0
       '@voidzero-dev/vite-plus-win32-arm64-msvc': 1.7.0
       '@voidzero-dev/vite-plus-win32-x64-msvc': 1.7.0
+      playwright: 1.65.1
     transitivePeerDependencies:
       - '@arethetypeswrong/core'
       - '@astrojs/compiler-rs'

@@ -28,4 +28,5 @@ jobs:
           node-version: ${{ matrix.node }}
           run-install: false
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @andhub/receipt-verifier-provider-cbe exec playwright install --with-deps chromium
       - run: pnpm verify

@@ -54,7 +54,9 @@ For future independently installed integrations, use a consistent product prefix
 | `packages/receipt-verifier-adapter-prisma`  | `@andhub/receipt-verifier-adapter-prisma`  | Versioned Prisma client and transaction contract    |
 | `packages/receipt-verifier-provider-cbe`    | `@andhub/receipt-verifier-provider-cbe`    | Optional browser execution dependencies             |
 
-Create these only with actual implementation. Small providers may remain core
+Create these only with actual implementation. Telebirr retrieval and shared extraction use the dependency-free core `/providers`
+subpath; CBE browser execution is now implemented in its optional package.
+Small providers may remain core
 subpath exports when their dependencies and release needs do not justify a new
 package. A future worker belongs in `apps/worker`, not a published provider package.
 Use actual workspace dependencies with `workspace:*` when implementation needs
@@ -93,3 +95,19 @@ installation, and the same acceptance command as local development.
 Update action SHAs from verified official release tags when maintaining the
 workflow. Local checks validate the package; hosted CI has not run in this workspace.
 Current automation is exercised on Linux; no macOS or Windows validation is claimed.
+
+## Provider execution and verification
+
+Playwright is pinned to stable 1.65.1 in the CBE package, with its matching Chromium
+installed by `pnpm setup:browsers`; CI uses Playwright's documented `--with-deps`
+installation. The core has no browser dependency. Provider transport currently
+supports public IPv4 only and refuses redirects and compressed bodies. CBE browser
+network is disabled; inline rendering is supported, external assets are blocked.
+These boundaries are locally tested, with no live provider compatibility claim.
+
+`pnpm verify` now builds before checking/testing so a clean checkout resolves
+workspace package exports and declarations. Explicit build filters preserve Vite+
+dependency ordering (confirmed by task-plan JSON); recursive and filter flags
+cannot be combined. Packed checks first install the core alone offline, then
+install the CBE tarball with its exact Playwright peer from npm. No workspace
+aliases or symlinks are used by the installed consumer.
