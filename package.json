@@ -8,7 +8,7 @@
   "scripts": {
     "check": "vp check",
     "check:fix": "vp check --fix",
-    "check:env": "vp run @1hubengineering/receipt-verifier-cli#check:env && vp run @1hubengineering/receipt-verifier-adapter-contract#check:env && vp run @1hubengineering/receipt-verifier-worker#check:env",
+    "check:env": "vp run @1hubengineering/receipt-verifier-cli#check:env && vp run @1hubengineering/receipt-verifier-adapter-contract#check:env && vp run @1hubengineering/receipt-verifier-worker#check:env && vp run @1hubengineering/receipt-verifier-fastify-checkout#check:env",
     "check:package": "vp run --filter \"./packages/*\" --fail-if-no-match check:package && node scripts/check-package.mjs",
     "typecheck": "tsc --noEmit && tsc --noEmit --project packages/receipt-verifier/tsconfig.json && tsc --noEmit --project packages/receipt-verifier-provider-cbe/tsconfig.json && tsc --noEmit --project packages/receipt-verifier-storage-sql/tsconfig.json && tsc --noEmit --project packages/receipt-verifier-adapter-drizzle/tsconfig.json && tsc --noEmit --project packages/receipt-verifier-adapter-prisma/tsconfig.json",
     "test": "vp test run && vp run @1hubengineering/receipt-verifier-adapter-contract#test",
@@ -21,7 +21,8 @@
     "db:down": "docker compose down",
     "generate": "vp run @1hubengineering/receipt-verifier-adapter-contract#generate",
     "cli": "vp run @1hubengineering/receipt-verifier-cli#start",
-    "worker": "vp run @1hubengineering/receipt-verifier-worker#start"
+    "worker": "vp run @1hubengineering/receipt-verifier-worker#start",
+    "checkout": "vp run @1hubengineering/receipt-verifier-fastify-checkout#start"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

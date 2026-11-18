@@ -1,4 +1,4 @@
-import { fork } from 'node:child_process';
+import { fork, execFile } from 'node:child_process';
 import { once } from 'node:events';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -33,6 +33,25 @@ export interface DirectHarness extends AdapterHarness {
   readonly postgresPool?: Pool;
   readonly mysqlPool?: MysqlPool;
   readonly sqliteFilename?: string;
+  detachSqlite?(): void;
+}
+
+/** Isolate the direct migration owner from the ORM's different native SQLite build. */
+export function sqliteMaintenance(
+  filename: string,
+  operation: 'migrate' | 'reset' | 'incompatible' | 'missing-key',
+): Promise<void> {
+  return new Promise((resolve, reject) =>
+    execFile(
+      process.execPath,
+      [fileURLToPath(new URL('./sqlite-maintenance.mjs', import.meta.url)), filename, operation],
+      { timeout: 15000 },
+      (error) => {
+        if (error) reject(new Error(`Synthetic SQLite maintenance failed: ${operation}`));
+        else resolve();
+      },
+    ),
+  );
 }
 
 function localTestUrl(value: string): string {
@@ -262,6 +281,9 @@ export async function directSqliteHarness(): Promise<DirectHarness> {
   const storage = sqliteStorage(database);
   return {
     sqliteFilename: filename,
+    detachSqlite() {
+      for (const db of opened) if (db.open) db.close();
+    },
     storage,
     fork() {
       const db = new Database(filename, { timeout: 20 });
@@ -311,7 +333,7 @@ export async function directSqliteHarness(): Promise<DirectHarness> {
     race: (inputs) => children('sqlite', inputs, 'race', filename),
     crashJob: (input, now) => crashedWorker('sqlite', input, now, filename),
     async close() {
-      for (const db of opened) db.close();
+      for (const db of opened) if (db.open) db.close();
       rmSync(directory, { recursive: true, force: true });
     },
   };

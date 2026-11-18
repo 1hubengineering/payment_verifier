@@ -12,6 +12,9 @@ Read the active library documents in this order:
 [Durable jobs](development/durable-jobs.md) documents optional queue policy,
 encryption, leases and maintenance ownership.
 
+[Checkout example](../examples/fastify-checkout/README.md) demonstrates host
+auth/order integration while keeping settlement and fulfillment independent.
+
 [Execution plans](development/plans/) record substantial implementation work.
 
 ## Historical standalone material

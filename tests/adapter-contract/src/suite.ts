@@ -59,6 +59,7 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
     });
     beforeEach(async () => {
       await harness.reset();
+      expect(await harness.storage.read(storageKey('jobcontrol', 'v1'))).toBeUndefined();
       provider.retrieve.mockReset().mockImplementation(async (url) => providerResult(url));
     });
     afterEach(async () => {

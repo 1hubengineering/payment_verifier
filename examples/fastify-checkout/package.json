@@ -1,0 +1,20 @@
+{
+  "name": "@1hubengineering/receipt-verifier-fastify-checkout",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "varlock run -- node src/main.ts",
+    "check:env": "varlock load"
+  },
+  "dependencies": {
+    "@1hubengineering/receipt-verifier": "workspace:*",
+    "@1hubengineering/receipt-verifier-storage-sql": "workspace:*",
+    "better-sqlite3": "13.2.0",
+    "fastify": "5.12.8"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "9.6.0",
+    "varlock": "1.25.0"
+  }
+}

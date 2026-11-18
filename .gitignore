@@ -26,3 +26,6 @@ tests/adapter-contract/generated/
 
 # Registry credentials never belong in source control.
 .npmrc
+
+# Generated example-local environment types.
+examples/*/env.ts

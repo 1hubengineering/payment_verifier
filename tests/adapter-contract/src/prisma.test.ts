@@ -12,6 +12,7 @@ import type { AdapterHarness } from './suite.ts';
 import {
   children,
   crashedWorker,
+  sqliteMaintenance,
   directPostgresHarness,
   directMysqlHarness,
   directSqliteHarness,
@@ -37,6 +38,14 @@ function harness(
   return {
     ...base,
     storage: prismaStorage(client),
+    ...(base.sqliteFilename
+      ? {
+          migrate: () => sqliteMaintenance(base.sqliteFilename!, 'migrate'),
+          reset: () => sqliteMaintenance(base.sqliteFilename!, 'reset'),
+          incompatibleVersion: () => sqliteMaintenance(base.sqliteFilename!, 'incompatible'),
+          missingPrimaryKey: () => sqliteMaintenance(base.sqliteFilename!, 'missing-key'),
+        }
+      : {}),
     fork: () => prismaStorage(open()),
     hostTransaction: (work) =>
       client.$transaction((tx) => work(prismaTransaction(tx, { isolationLevel: 'Serializable' })), {
@@ -45,7 +54,7 @@ function harness(
         timeout: 5000,
       }),
     async assertOwnerOpen() {
-      await base.assertOwnerOpen();
+      if (!base.sqliteFilename) await base.assertOwnerOpen();
       await client.$queryRawUnsafe('SELECT 1');
     },
     restart: async (input) =>
@@ -79,6 +88,7 @@ adapterContract('Prisma 7.10.1 / MySQL 8.4.13 / official MariaDB adapter 3.5.4',
 });
 adapterContract('Prisma 7.10.1 / SQLite / official better-sqlite3 12.11.1 adapter', async () => {
   const base = await directSqliteHarness();
+  base.detachSqlite!();
   return harness(
     base,
     () =>

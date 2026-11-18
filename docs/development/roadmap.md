@@ -11,7 +11,7 @@ implementation; a target is not a supported integration until its gate passes.
 | 3. Storage contract and direct SQL            | Implemented; direct matrix gate passed       | Prototype Kysely; shared real PostgreSQL/MySQL/SQLite tests; atomic claims/evidence/results/outbox; idempotency and rollback; caller-owned connections                               |
 | 4. Drizzle and versioned Prisma               | Implemented; nine-cell matrix passed         | Explicit client/engine versions; all advertised engine cells pass the shared contract suite and caller transaction tests                                                             |
 | 5. CLI and optional durable worker            | Implemented; local gate passed               | Varlock at startup; durable acceptance, leases/retries, bounds, restart and crash recovery; no lost acknowledged work                                                                |
-| 6. Fastify checkout example                   | Planned                                      | Host auth/order ownership; trusted expectation snapshot; structured outcomes; no fulfillment from receipt alone                                                                      |
+| 6. Fastify checkout example                   | Implemented; local gate passed               | Host auth/order ownership; trusted expectation snapshot; structured outcomes; no fulfillment from receipt alone                                                                      |
 | 7. Release readiness                          | Planned                                      | All three engines and advertised ORM paths proven, migration docs, packaging, provenance/licensing, release policy                                                                   |
 
 PostgreSQL, MySQL, and SQLite remain first-release requirements. Delivery can be
@@ -78,9 +78,18 @@ pauses, stale-owner fencing, retry rollback, atomic terminal jobs and explicit
 retention. The shared matrix now passes 234 cases (26 per cell), including actual
 SIGKILL recovery and repeated crash exhaustion. Full `pnpm verify` and installed-package acceptance passed on Node 26;
 CLI/worker applications pass six offline cases and full `pnpm verify` on Node 26,
-including actual process handoff and graceful SIGTERM exit. Hosted acceptance
-for that commit is pending. See [operations](durable-jobs.md) and the
+including actual process handoff and graceful SIGTERM exit. Hosted CI passed that commit (6d1ced9) on Node 24 and 26. See [operations](durable-jobs.md) and the
 [operator application plan](plans/008-cli-worker.md).
+
+Slice 6's [checkout plan](plans/009-fastify-checkout.md) implements injected host
+authentication, tenant/order ownership and admission, strict locator-only bodies,
+trusted immutable snapshots and separately read host settlement/fulfillment.
+Seventeen local tests pass, including actual SQLite-backed injected requests,
+durable admission/status and a real loopback Varlock demo with no providers.
+Full `pnpm verify` passed on Node 26 with 234 fast/application cases and
+234 real-engine cases after isolating native SQLite implementations per process.
+The ORM suites additionally passed three repeated SQLite crash/transaction runs.
+Hosted two-runtime acceptance is pending; no public deployment is claimed.
 
 Execution access findings (18 November 2026): GitHub CLI and connector confirm
 `1hubengineering`. After the user refreshed token permissions, `GET /user/emails`

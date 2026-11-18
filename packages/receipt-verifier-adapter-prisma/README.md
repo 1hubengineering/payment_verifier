@@ -86,3 +86,13 @@ bank request or settlement proof is claimed.
 The shared suite also tests encrypted durable acceptance, queue/alias bounds,
 retry rollback, persisted provider pause, lease fencing, atomic job completion,
 retention and actual SIGKILL recovery/exhaustion on this integration.
+
+For a given SQLite file, use only one native SQLite implementation in each
+process. Opening better-sqlite3 13, Prisma's separate native build or libSQL
+against that file together in one process is unsupported: SQLite documents
+POSIX locking hazards for multiple linked copies. Run a different migration
+owner in a separate process, then use the selected host ORM/client normally.
+Our ORM tests isolate direct-SQL maintenance in short-lived processes and keep
+actual ORM connections caller-owned throughout. Different processes coordinate
+through the file's normal locks; no adapter reconnects a supplied client. See
+[SQLite's locking guidance](https://www.sqlite.org/howtocorrupt.html#multiple_copies_of_sqlite_linked_into_the_same_application).

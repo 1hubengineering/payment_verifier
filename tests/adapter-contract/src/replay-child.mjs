@@ -4,7 +4,8 @@ import { createReceiptVerifier, parseEtbAmount } from '@1hubengineering/receipt-
 
 const [engine, inputText, mode, jobTime] = process.argv.slice(2);
 const input = JSON.parse(inputText);
-let storage, close;
+let storage,
+  close = async () => {};
 try {
   const baseEngine = engine.replace(/^(?:drizzle|prisma)-/, '');
   let host;
@@ -23,7 +24,7 @@ try {
     storage = mysqlStorage(pool);
     host = pool;
     close = () => pool.promise().end();
-  } else {
+  } else if (engine === 'sqlite') {
     const { default: Database } = await import('better-sqlite3');
     const { sqliteStorage } = await import('@1hubengineering/receipt-verifier-storage-sql/sqlite');
     const database = new Database(process.env.RECEIPT_TEST_SQLITE_FILE, { timeout: 20 });

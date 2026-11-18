@@ -174,3 +174,27 @@ apps share the workspace SQLite default, explicit queue key and timeout-derived
 lease policy. Traffic defaults disabled, and CBE requires a second opt-in. CLI
 saved-HTML diagnosis opens no database and cannot claim. The worker emits safe
 outcome classes and handles SIGINT/SIGTERM with abort and owned-handle cleanup.
+
+## Embedded example
+
+The private `examples/fastify-checkout` package pins stable Fastify 5.12.8
+(registry next 6.0.0-alpha.6 is excluded). Its factory receives host-owned auth,
+orders, admission and independent settlement/fulfillment state. Additional body
+fields are rejected by explicit AJV configuration. The loopback-only Varlock
+demo selects SQLite directly and has no providers. `pnpm checkout` starts it;
+its public synthetic session token is documented solely for local demonstration.
+Official [testing](https://fastify.dev/docs/latest/Guides/Testing/) and
+[validation](https://fastify.dev/docs/latest/Reference/Validation-and-Serialization/)
+documentation informed the injection tests and strict schema configuration.
+
+## SQLite native ownership
+
+Use one native SQLite implementation per process for any one database file.
+The direct driver, Prisma's selected 12.x driver and libSQL embed different copies
+of SQLite; overlapping handles to one file in one process violate SQLite's
+[documented POSIX locking boundary](https://www.sqlite.org/howtocorrupt.html#multiple_copies_of_sqlite_linked_into_the_same_application).
+The ORM harness detaches its initial direct handle and runs SQL migration/reset
+maintenance in separate short-lived processes. ORM race/replay/crash children open
+only their selected client, not a parallel direct-SQL handle. Public connection
+ownership is unchanged; hosts using a different migration driver should likewise
+run that migration owner as a separate process. Local files only are tested.

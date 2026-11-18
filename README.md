@@ -5,8 +5,8 @@ existing backend. Receipt comparison and bounded provider evidence retrieval are
 synthetic/local validation. Direct SQL, Drizzle and Prisma 7 adapters pass the real-engine PostgreSQL/MySQL/SQLite
 matrix. Optional durable jobs add bounded encrypted acceptance and crash recovery.
 All receipt results retain settlement UNCONFIRMED. Packages remain private; the
-CLI and optional worker are implemented as trusted operator tools; the checkout
-example and release gates remain.
+CLI and optional worker are implemented as trusted operator tools; the Fastify checkout example demonstrates existing host auth/order boundaries.
+Release gates remain.
 
 ## Develop
 
@@ -34,6 +34,7 @@ see [provenance](docs/development/provenance.md).
 | `packages/receipt-verifier-adapter-drizzle` / `packages/receipt-verifier-adapter-prisma` | Versioned real-engine ORM integrations                                                                 |
 | `apps/cli`                                                                               | Trusted operator commands with app-local Varlock validation                                            |
 | `apps/worker`                                                                            | Optional bounded SQLite worker with durable recovery                                                   |
+| `examples/fastify-checkout`                                                              | Private embedded host-auth/order example; loopback demo has no providers                               |
 | `tests/reference-cli`                                                                    | Frozen 11-test offline reference, including a cross-process SQLite race                                |
 | `scripts/check-package.mjs`                                                              | Pack the library, install with npm in a temporary consumer, validate JavaScript and TypeScript exports |
 | `docs/development`                                                                       | Audit, roadmap, workflow, review criteria, and execution plans                                         |
@@ -56,3 +57,7 @@ Operator commands: `pnpm cli help` and `pnpm worker --help`. See the
 [CLI](apps/cli/README.md), [worker](apps/worker/README.md), and
 [durable job operations](docs/development/durable-jobs.md). Provider traffic
 defaults disabled and queue commands require an explicit encryption key.
+
+`pnpm checkout` starts the [local Fastify example](examples/fastify-checkout/README.md).
+Receipt verification and host settlement/fulfillment remain separate records and
+authority decisions. The example has no settlement or delivery write endpoint.

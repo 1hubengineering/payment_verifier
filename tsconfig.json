@@ -21,7 +21,8 @@
     "vite.config.ts",
     "packages/**/*.ts",
     "apps/**/*.ts",
-    "tests/adapter-contract/**/*.ts"
+    "tests/adapter-contract/**/*.ts",
+    "examples/**/*.ts"
   ],
   "exclude": ["**/node_modules", "**/dist", "tests/reference-cli"]
 }

@@ -19,6 +19,7 @@ import type { AdapterHarness } from './suite.ts';
 import {
   children,
   crashedWorker,
+  sqliteMaintenance,
   directPostgresHarness,
   directMysqlHarness,
   directSqliteHarness,
@@ -66,6 +67,7 @@ adapterContract(
   'Drizzle 0.45.4 / local SQLite files / libSQL client 0.17.4',
   async (): Promise<AdapterHarness> => {
     const base = await directSqliteHarness();
+    base.detachSqlite!();
     const clients: ReturnType<typeof createClient>[] = [];
     const open = (): ReturnType<typeof sqlite> => {
       const client = createClient({ url: `file:${base.sqliteFilename}` });
@@ -76,6 +78,13 @@ adapterContract(
     return {
       ...base,
       storage: drizzleSqliteStorage(db),
+      migrate: () => sqliteMaintenance(base.sqliteFilename!, 'migrate'),
+      reset: () => sqliteMaintenance(base.sqliteFilename!, 'reset'),
+      incompatibleVersion: () => sqliteMaintenance(base.sqliteFilename!, 'incompatible'),
+      missingPrimaryKey: () => sqliteMaintenance(base.sqliteFilename!, 'missing-key'),
+      async assertOwnerOpen() {
+        await db.run('SELECT 1');
+      },
       fork: () => drizzleSqliteStorage(open()),
       hostTransaction: (work) => db.transaction((tx) => work(drizzleSqliteTransaction(tx))),
       restart: async (input) =>
