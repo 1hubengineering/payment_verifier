@@ -1,0 +1,12 @@
+{
+  "name": "@andhub/receipt-verifier-cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:env": "varlock load"
+  },
+  "devDependencies": {
+    "varlock": "1.25.0"
+  }
+}

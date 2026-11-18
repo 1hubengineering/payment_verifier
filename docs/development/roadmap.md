@@ -1,0 +1,45 @@
+# Library roadmap
+
+`docs/library-plan/init-plan.md` is the starting direction. This document tracks
+implementation; a target is not a supported integration until its gate passes.
+
+| Slice                                         | State                                        | Acceptance gate                                                                                                                                                                      |
+| --------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0. Audit and development foundation           | Complete; verified locally on Node 24 and 26 | Pinned workspace, offline baseline, Codex instructions, CI definition, and packed consumer                                                                                           |
+| 1. Provider-neutral domain and compare engine | Implemented; local gate passed               | Trusted immutable expectations; exact minor units; explicit field checks; missing/ambiguous evidence fails closed; separate settlement states                                        |
+| 2. Provider extraction and retrieval          | Next                                         | Port Telebirr v5 synthetic regression behavior; provider-neutral errors and provenance; bounded allowlisted HTTP; separately packaged CBE browser execution with local failure tests |
+| 3. Storage contract and direct SQL            | Planned                                      | Prototype Kysely; shared real PostgreSQL/MySQL/SQLite tests; atomic claims/evidence/results/outbox; idempotency and rollback; caller-owned connections                               |
+| 4. Drizzle and versioned Prisma               | Planned                                      | Explicit client/engine versions; all advertised engine cells pass the shared contract suite and caller transaction tests                                                             |
+| 5. CLI and optional durable worker            | Planned                                      | Varlock at startup; durable acceptance, leases/retries, bounds, restart and crash recovery; no lost acknowledged work                                                                |
+| 6. Fastify checkout example                   | Planned                                      | Host auth/order ownership; trusted expectation snapshot; structured outcomes; no fulfillment from receipt alone                                                                      |
+| 7. Release readiness                          | Planned                                      | All three engines and advertised ORM paths proven, migration docs, packaging, provenance/licensing, release policy                                                                   |
+
+PostgreSQL, MySQL, and SQLite remain first-release requirements. Delivery can be
+incremental; none is currently supported by the new library. The legacy SQLite
+test proves the old CLI's local behavior only. Prisma versions must be selected
+and verified when the adapter is implemented; assertions in the initial research
+about future major versions are not adopted as a compatibility guarantee.
+
+Create `packages/receipt-verifier-storage-sql`, `packages/receipt-verifier-adapter-drizzle`,
+`packages/receipt-verifier-adapter-prisma`, `packages/receipt-verifier-provider-cbe`, `apps/worker`,
+`examples/fastify-checkout`, and `tests/adapter-contract` as their slices begin.
+Do not publish empty packages or install every optional driver into the core.
+
+Slice 1 is implemented in `packages/receipt-verifier/src/comparison.ts`; its
+[execution plan](plans/002-domain-comparison.md) records the contract and evidence.
+The core now validates frozen host expectation snapshots, compares exact integer
+ETB evidence with explicit inclusive time bounds, and reports field checks.
+Missing, malformed and ambiguous required evidence remains unable to verify.
+All comparison results retain settlement `UNCONFIRMED`. Retrieval provenance and
+storage claims are not implemented. The API remains private and provisional.
+
+Execution access findings (18 November 2026): GitHub CLI and connector confirm
+`1hubengineering`. After the user refreshed token permissions, `GET /user/emails`
+confirmed its primary `andhubengineering@gmail.com` address is verified. Commits
+use that account's identity in repository-local Git configuration. `npm whoami`
+returns ENEEDAUTH; scope access is unverified. Original archive redistribution
+rights and public license remain unresolved. These are separate release gates;
+no package or release is published.
+
+Current naming and runtime decisions are recorded in [workspace conventions](conventions.md).
+The original initialization plan contains historical package-path examples.

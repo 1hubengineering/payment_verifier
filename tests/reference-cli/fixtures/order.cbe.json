@@ -1,0 +1,11 @@
+{
+  "merchantId": "demo-merchant",
+  "orderId": "DEMO-CBE-001",
+  "provider": "cbe",
+  "amount": 230,
+  "recipientName": "Example Merchant",
+  "recipientAccountLast4": "4867",
+  "reference": "AH-TEST-5932",
+  "createdAt": "2026-11-13T12:00:00+03:00",
+  "expiresAt": "2026-11-13T18:00:00+03:00"
+}

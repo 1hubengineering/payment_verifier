@@ -1,0 +1,27 @@
+{
+  "name": "@andhub/receipt-verifier",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Receipt-only comparison and exact ETB domain primitives; private development preview",
+  "license": "ISC",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "check:package": "publint --strict"
+  },
+  "engines": {
+    "node": "^24.22.3 || ^26.13.1"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "merchantId": "demo-merchant",
+  "orderId": "DEMO-TELEBIRR-001",
+  "provider": "telebirr",
+  "amount": 10,
+  "recipientName": "Example Merchant",
+  "recipientAccountLast4": "1123",
+  "reference": "AH-TEST-4821"
+}

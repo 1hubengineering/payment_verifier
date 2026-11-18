@@ -1,0 +1,30 @@
+{
+  "name": "receipt-verifier-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Development workspace for an embedded Ethiopian payment receipt verification library",
+  "license": "ISC",
+  "type": "module",
+  "scripts": {
+    "check": "vp check",
+    "check:fix": "vp check --fix",
+    "check:env": "vp run @andhub/receipt-verifier-cli#check:env",
+    "check:package": "vp run --filter \"./packages/*\" --fail-if-no-match check:package && node scripts/check-package.mjs",
+    "typecheck": "tsc --noEmit && tsc --noEmit --project packages/receipt-verifier/tsconfig.json",
+    "test": "vp test run",
+    "test:watch": "vp test",
+    "test:reference": "node --test tests/reference-cli/tests/verify.test.ts",
+    "build": "vp run --filter \"./packages/*\" --fail-if-no-match build",
+    "verify": "vp run check:env && vp run check && vp run typecheck && vp run test && vp run test:reference && vp run build && vp run check:package"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "publint": "0.3.25",
+    "typescript": "7.0.2",
+    "vite-plus": "1.7.0"
+  },
+  "engines": {
+    "node": "^24.22.3 || ^26.13.1"
+  },
+  "packageManager": "pnpm@12.21.0"
+}

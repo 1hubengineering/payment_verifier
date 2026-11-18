@@ -1,0 +1,21 @@
+node_modules/
+dist/
+coverage/
+.vite/
+.vite-plus/
+.cache/
+*.tsbuildinfo
+*.tgz
+.env
+.env.*
+!.env.schema
+!.env.example
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+**/*:Zone.Identifier
+# Original archive includes node_modules and user receipt/order data.
+reference/*.zip
+# Generated app-local Varlock types.
+apps/*/env.ts
