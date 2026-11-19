@@ -33,7 +33,7 @@ its original child-process arguments to preserve the regression baseline.
 
 | Location                                                  | npm name / role                                                                        |
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `packages/receipt-verifier`                               | `@1hubengineering/verifier`: public library API and provider-neutral domain            |
+| `packages/verifier`                                       | `@1hubengineering/verifier`: public library API and provider-neutral domain            |
 | `apps/cli`                                                | `@1hubengineering/receipt-verifier-cli`: private trusted operator application boundary |
 | `tests/reference-cli`                                     | Frozen synthetic source and regression evidence; never a runtime dependency            |
 | `scripts`                                                 | Workspace verification utilities                                                       |
@@ -49,14 +49,14 @@ scope after finding the provisional `@andhub` name unavailable. All packages rem
 private until release gates pass; no registry publication or name reservation is
 claimed before publishing succeeds.
 
-Implemented optional integrations use a consistent product prefix:
+Public package folders match the unscoped npm names.
 
-| Folder                                      | npm name                           | Reason to split                                     |
-| ------------------------------------------- | ---------------------------------- | --------------------------------------------------- |
-| `packages/receipt-verifier-storage-sql`     | `@1hubengineering/storage-sql`     | SQL drivers, migrations, and connection integration |
-| `packages/receipt-verifier-adapter-drizzle` | `@1hubengineering/adapter-drizzle` | Drizzle peer/version and transaction contract       |
-| `packages/receipt-verifier-adapter-prisma`  | `@1hubengineering/adapter-prisma`  | Versioned Prisma client and transaction contract    |
-| `packages/receipt-verifier-provider-cbe`    | `@1hubengineering/provider-cbe`    | Optional browser execution dependencies             |
+| Folder                     | npm name                           | Reason to split                                     |
+| -------------------------- | ---------------------------------- | --------------------------------------------------- |
+| `packages/storage-sql`     | `@1hubengineering/storage-sql`     | SQL drivers, migrations, and connection integration |
+| `packages/adapter-drizzle` | `@1hubengineering/adapter-drizzle` | Drizzle peer/version and transaction contract       |
+| `packages/adapter-prisma`  | `@1hubengineering/adapter-prisma`  | Versioned Prisma client and transaction contract    |
+| `packages/provider-cbe`    | `@1hubengineering/provider-cbe`    | Optional browser execution dependencies             |
 
 Each of these packages now has actual implementation and installed-consumer checks. Telebirr retrieval and shared extraction use the dependency-free core `/providers`
 subpath; CBE browser execution is now implemented in its optional package.

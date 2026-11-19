@@ -1,9 +1,9 @@
 {
-  "name": "@1hubengineering/provider-cbe",
+  "name": "@1hubengineering/adapter-prisma",
   "version": "0.1.1",
   "private": false,
-  "description": "Optional isolated Chromium execution for CBE receipt evidence",
-  "homepage": "https://github.com/1hubengineering/payment_verifier/tree/main/packages/receipt-verifier-provider-cbe",
+  "description": "Prisma 7.10.1 transaction integration for receipt-only verification",
+  "homepage": "https://github.com/1hubengineering/payment_verifier/tree/main/packages/adapter-prisma",
   "bugs": {
     "url": "https://github.com/1hubengineering/payment_verifier/issues"
   },
@@ -11,11 +11,13 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/1hubengineering/payment_verifier.git",
-    "directory": "packages/receipt-verifier-provider-cbe"
+    "directory": "packages/adapter-prisma"
   },
   "files": [
     "dist",
-    "README.md"
+    "schema",
+    "README.md",
+    "LICENSE"
   ],
   "type": "module",
   "sideEffects": false,
@@ -23,7 +25,8 @@
     ".": {
       "types": "./dist/index.d.mts",
       "import": "./dist/index.mjs"
-    }
+    },
+    "./schema/*": "./schema/*"
   },
   "publishConfig": {
     "access": "public",
@@ -31,17 +34,16 @@
   },
   "scripts": {
     "build": "vp pack",
-    "check:package": "publint --strict",
-    "setup:browsers": "playwright install chromium"
+    "check:package": "publint --strict"
   },
   "dependencies": {
     "@1hubengineering/verifier": "workspace:*"
   },
   "devDependencies": {
-    "playwright": "1.65.1"
+    "@prisma/client": "7.10.1"
   },
   "peerDependencies": {
-    "playwright": "1.65.1"
+    "@prisma/client": "7.10.1"
   },
   "engines": {
     "node": "^24.22.3 || ^26.13.1"

@@ -207,13 +207,13 @@ importers:
     dependencies:
       '@1hubengineering/provider-cbe':
         specifier: workspace:*
-        version: link:../../packages/receipt-verifier-provider-cbe
+        version: link:../../packages/provider-cbe
       '@1hubengineering/storage-sql':
         specifier: workspace:*
-        version: link:../../packages/receipt-verifier-storage-sql
+        version: link:../../packages/storage-sql
       '@1hubengineering/verifier':
         specifier: workspace:*
-        version: link:../../packages/receipt-verifier
+        version: link:../../packages/verifier
       better-sqlite3:
         specifier: 13.2.0
         version: 13.2.0
@@ -232,7 +232,7 @@ importers:
         version: link:../cli
       '@1hubengineering/verifier':
         specifier: workspace:*
-        version: link:../../packages/receipt-verifier
+        version: link:../../packages/verifier
     devDependencies:
       varlock:
         specifier: 1.25.0
@@ -294,10 +294,10 @@ importers:
     dependencies:
       '@1hubengineering/storage-sql':
         specifier: workspace:*
-        version: link:../../packages/receipt-verifier-storage-sql
+        version: link:../../packages/storage-sql
       '@1hubengineering/verifier':
         specifier: workspace:*
-        version: link:../../packages/receipt-verifier
+        version: link:../../packages/verifier
       better-sqlite3:
         specifier: 13.2.0
         version: 13.2.0
@@ -312,13 +312,11 @@ importers:
         specifier: 1.25.0
         version: 1.25.0
 
-  packages/receipt-verifier: {}
-
-  packages/receipt-verifier-adapter-drizzle:
+  packages/adapter-drizzle:
     dependencies:
       '@1hubengineering/verifier':
         specifier: workspace:*
-        version: link:../receipt-verifier
+        version: link:../verifier
     devDependencies:
       '@libsql/client':
         specifier: 0.17.4
@@ -339,31 +337,31 @@ importers:
         specifier: 8.23.1
         version: 8.23.1
 
-  packages/receipt-verifier-adapter-prisma:
+  packages/adapter-prisma:
     dependencies:
       '@1hubengineering/verifier':
         specifier: workspace:*
-        version: link:../receipt-verifier
+        version: link:../verifier
     devDependencies:
       '@prisma/client':
         specifier: 7.10.1
         version: 7.10.1(prisma@7.10.1(@types/node@24.19.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(better-sqlite3@13.2.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@7.0.2))(typescript@7.0.2)
 
-  packages/receipt-verifier-provider-cbe:
+  packages/provider-cbe:
     dependencies:
       '@1hubengineering/verifier':
         specifier: workspace:*
-        version: link:../receipt-verifier
+        version: link:../verifier
     devDependencies:
       playwright:
         specifier: 1.65.1
         version: 1.65.1
 
-  packages/receipt-verifier-storage-sql:
+  packages/storage-sql:
     dependencies:
       '@1hubengineering/verifier':
         specifier: workspace:*
-        version: link:../receipt-verifier
+        version: link:../verifier
       kysely:
         specifier: 0.29.9
         version: 0.29.9
@@ -384,20 +382,22 @@ importers:
         specifier: 8.23.1
         version: 8.23.1
 
+  packages/verifier: {}
+
   tests/adapter-contract:
     devDependencies:
       '@1hubengineering/adapter-drizzle':
         specifier: workspace:*
-        version: link:../../packages/receipt-verifier-adapter-drizzle
+        version: link:../../packages/adapter-drizzle
       '@1hubengineering/adapter-prisma':
         specifier: workspace:*
-        version: link:../../packages/receipt-verifier-adapter-prisma
+        version: link:../../packages/adapter-prisma
       '@1hubengineering/storage-sql':
         specifier: workspace:*
-        version: link:../../packages/receipt-verifier-storage-sql
+        version: link:../../packages/storage-sql
       '@1hubengineering/verifier':
         specifier: workspace:*
-        version: link:../../packages/receipt-verifier
+        version: link:../../packages/verifier
       '@libsql/client':
         specifier: 0.17.4
         version: 0.17.4

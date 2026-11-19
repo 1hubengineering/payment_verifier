@@ -6,7 +6,7 @@ Install the renamed core in an existing Node.js backend:
 npm install @1hubengineering/verifier@0.1.1
 ```
 
-The [core SDK quickstart](../packages/receipt-verifier/README.md) shows the imports,
+The [core SDK quickstart](../packages/verifier/README.md) shows the imports,
 receipt comparison, explicit verifier setup, and durable jobs. The published
 libraries are ESM; the tested Node versions and exact integration candidates are
 listed in the [compatibility matrix](development/compatibility.md).
@@ -26,13 +26,13 @@ independently through your host application.
 
 ## Supported integrations
 
-- [Direct SQL](../packages/receipt-verifier-storage-sql/README.md): PostgreSQL,
+- [Direct SQL](../packages/storage-sql/README.md): PostgreSQL,
   MySQL, and SQLite with explicit migrations and caller-owned connections.
-- [Drizzle](../packages/receipt-verifier-adapter-drizzle/README.md) and
-  [Prisma](../packages/receipt-verifier-adapter-prisma/README.md): tested SQL
+- [Drizzle](../packages/adapter-drizzle/README.md) and
+  [Prisma](../packages/adapter-prisma/README.md): tested SQL
   integrations. The renamed Drizzle adapter targets the tested v1 release
   candidate; the old 0.1.0 adapter targeted `0.45.4`. Check the matrix before installing peers.
-- [CBE provider](../packages/receipt-verifier-provider-cbe/README.md): optional
+- [CBE provider](../packages/provider-cbe/README.md): optional
   browser-backed retrieval with host confinement and the Chromium sandbox.
   Do not probe live providers to test a checkout.
 - [Durable jobs](development/durable-jobs.md): bounded asynchronous work with

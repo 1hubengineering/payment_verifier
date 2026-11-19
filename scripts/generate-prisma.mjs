@@ -7,7 +7,7 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const testRoot = join(root, 'tests/adapter-contract');
 for (const engine of ['postgres', 'mysql', 'sqlite']) {
   const models = readFileSync(
-    join(root, `packages/receipt-verifier-adapter-prisma/schema/${engine}.prisma`),
+    join(root, `packages/adapter-prisma/schema/${engine}.prisma`),
     'utf8',
   );
   const schema = readFileSync(join(testRoot, `prisma/${engine}.prisma`), 'utf8');

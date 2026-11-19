@@ -1,6 +1,6 @@
-import { parseEtbAmount } from '../../../packages/receipt-verifier/src/money.ts';
-import { normalizeReceiptLocator } from '../../../packages/receipt-verifier/src/providers/locator.ts';
-import type { ProviderId } from '../../../packages/receipt-verifier/src/types.ts';
+import { parseEtbAmount } from '../../../packages/verifier/src/money.ts';
+import { normalizeReceiptLocator } from '../../../packages/verifier/src/providers/locator.ts';
+import type { ProviderId } from '../../../packages/verifier/src/types.ts';
 
 export type EvidenceKind = 'transaction' | 'url' | 'sms';
 export type { ProviderId };

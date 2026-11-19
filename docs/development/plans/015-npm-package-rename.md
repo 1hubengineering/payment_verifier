@@ -2,11 +2,11 @@
 
 ## Outcome and scope
 
-Publish the five names in the [name assessment](../npm-name-assessment.md)
-as 0.1.1, as requested. Keep repository folders, export subpaths, schema, private package
-names and the existing GitHub v0.1.0 archive unchanged. Remove the old npm
-versions only after all replacements are approved and verified, and only if
-npm permits unpublishing.
+The five names in the [name assessment](../npm-name-assessment.md) are published
+as 0.1.1. Align the folders on main with those names and update the workspace
+references. Preserve the export subpaths, schema, private package names, and
+existing npm and GitHub release artifacts. Remove the old npm versions only after
+all replacements are approved and verified, and only if npm permits unpublishing.
 
 ## Evidence and decisions
 
@@ -27,6 +27,9 @@ after a registry unpublish. No provider or storage behavior changes in this slic
       when the old npm tarball endpoints return HTTP 404.
 - [ ] Unpublish eligible old versions in reverse dependency order. Check every result.
 - [x] Update installation docs and release evidence after confirming public availability.
+- [x] Move the five folders, update the workspace links, and verify frozen
+      installation, the full suite, and local release packaging. Resolve
+      documentation source links using the paths at each release tag.
 
 ## Handoff
 
@@ -46,10 +49,16 @@ requests returning HTTP 404.
 | `@1hubengineering/provider-cbe`    | `21ea8f22-4afc-488d-a002-54f2894e45bf` |
 
 All five approved 0.1.1 versions are public with `latest=0.1.1`. The registry
-consumer passed integrity and installed workflow checks. Removing the old CBE
-package returned npm `EOTP`: unpublishing requires a separate interactive 2FA
-approval. No old 0.1.0 package was removed.
+consumer passed integrity and installed workflow checks. npm requires separate
+interactive 2FA approval for removal. The registry no longer lists
+`@1hubengineering/receipt-verifier-storage-sql@0.1.0`. The old CBE, Drizzle,
+Prisma, and core versions are still available.
 
 The [GitHub v0.1.1 release](https://github.com/1hubengineering/payment_verifier/releases/tag/v0.1.1)
 contains the verified archives, manifest and checksums. Current installation
 docs and API reference target 0.1.1; the docs MCP can still answer 0.1.0 queries.
+
+The folder move passed frozen installation, all 525 tests in `pnpm verify`,
+and local release packaging for all five folders. All 26 unique API source
+links resolve at their tags. The published 0.1.0 and 0.1.1 release trees retain
+their original paths.

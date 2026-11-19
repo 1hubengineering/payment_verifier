@@ -6,7 +6,7 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const cwd = join(root, 'packages/receipt-verifier-adapter-drizzle');
+const cwd = join(root, 'packages/adapter-drizzle');
 const temporary = mkdtempSync(join(tmpdir(), 'receipt-drizzle-kit-'));
 function kit(verb, dialect, file, out) {
   const args = ['exec', 'drizzle-kit', verb, '--dialect', dialect, '--output', 'json'];

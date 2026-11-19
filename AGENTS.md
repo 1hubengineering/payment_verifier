@@ -36,7 +36,7 @@ older planning examples may describe superseded conventions.
 
 ## Boundaries
 
-- `packages/receipt-verifier` is explicitly configured and has no runtime dependencies.
+- `packages/verifier` is explicitly configured and has no runtime dependencies.
   No environment loading, ORM/driver imports, filesystem state, browser launches,
   network requests, or connection ownership at import time.
 - Runnable apps own Varlock schemas. Storage and provider dependencies belong in

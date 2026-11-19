@@ -15,7 +15,7 @@ const entries = [];
 
 async function prepareRelease(version, packages) {
   const current = version === currentVersion;
-  const core = current ? 'verifier' : 'receipt-verifier';
+  const core = Object.hasOwn(packages, 'verifier') ? 'verifier' : 'receipt-verifier';
   const examplePath = `docs/${version}/examples/compare-receipt.mjs`;
   const example = await readFile(join(root, examplePath), 'utf8');
   for (const [id, title] of guides) {
@@ -120,11 +120,13 @@ async function prepareRelease(version, packages) {
         const subpathName = subpath === '.' ? 'index' : subpath.slice(2);
         const sourceEntry = subpathName === 'providers' ? 'providers/index' : subpathName;
         const id = `api-${name}-${subpathName}-${title}`;
-        const folder = current
-          ? name === 'verifier'
-            ? 'receipt-verifier'
-            : `receipt-verifier-${name}`
-          : name;
+        // The 0.1.1 npm names shipped before the repository folder move.
+        const folder =
+          version === '0.1.1'
+            ? name === 'verifier'
+              ? 'receipt-verifier'
+              : `receipt-verifier-${name}`
+            : name;
         const sourceUrl = `${repository}/blob/v${version}/packages/${folder}/src/${sourceEntry}.ts`;
         entries.push({
           id,

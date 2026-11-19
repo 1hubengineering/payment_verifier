@@ -18,7 +18,7 @@ publication. Historical examples are not additional compatibility promises.
 | 9. Repository and web checkout  | Complete; static Pages deployed      | Reusable React checkout, guide and contributor setup, synthetic results, and verified Pages deployment; no live backend or npm changes                 |
 | 10. Developer documentation     | Complete; static Pages deployed      | 0.1.0 guide and API index from release declarations, public skills install, tested local stdio MCP, and read-only npm naming assessment                |
 | 11. Ethiopian checkout demo     | Complete; static Pages deployed      | CBE and Telebirr instructions, three evidence tabs and verified synthetic flows; no provider requests or durable SMS storage                           |
-| 12. Short npm names             | 0.1.1 published and verified         | Five renamed packages installed from npm with matching hashes; old npm versions await separate unpublish authorization from npm 2FA                    |
+| 12. Short npm names             | 0.1.1 published and verified         | Five renamed packages installed from npm with matching hashes; old SQL storage removed, four old versions await npm 2FA approval                      |
 
 Published 0.1.0 acceptance: **237 fast/application/example/provider cases,
 243 real-engine contract cases (nine cells × 27), and 11 frozen reference cases**,

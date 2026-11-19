@@ -15,14 +15,7 @@ assert.equal(
 execFileSync('pnpm', ['build'], { cwd: root, stdio: 'pipe' });
 assert.equal(git('status', '--porcelain'), '', 'Release build changed tracked source');
 const commit = git('rev-parse', 'HEAD');
-const folders = [
-  'receipt-verifier',
-  'receipt-verifier-storage-sql',
-  'receipt-verifier-adapter-drizzle',
-  'receipt-verifier-adapter-prisma',
-  'receipt-verifier-provider-cbe',
-];
-const names = ['verifier', 'storage-sql', 'adapter-drizzle', 'adapter-prisma', 'provider-cbe'];
+const folders = ['verifier', 'storage-sql', 'adapter-drizzle', 'adapter-prisma', 'provider-cbe'];
 const manifests = folders.map((folder) =>
   JSON.parse(readFileSync(join(root, 'packages', folder, 'package.json'), 'utf8')),
 );
@@ -34,7 +27,7 @@ const packages = [];
 for (let index = 0; index < folders.length; index++) {
   const folder = folders[index],
     manifest = manifests[index];
-  assert.equal(manifest.name, `@1hubengineering/${names[index]}`);
+  assert.equal(manifest.name, `@1hubengineering/${folder}`);
   assert.equal(manifest.version, version);
   assert.equal(manifest.license, 'ISC');
   assert.equal(
@@ -47,7 +40,7 @@ for (let index = 0; index < folders.length; index++) {
     cwd: join(root, 'packages', folder),
     stdio: 'pipe',
   });
-  const filename = `1hubengineering-${names[index]}-${version}.tgz`,
+  const filename = `1hubengineering-${folder}-${version}.tgz`,
     file = join(directory, filename);
   const paths = execFileSync('tar', ['-tzf', file], { encoding: 'utf8' }).trim().split('\n');
   for (const path of paths) {

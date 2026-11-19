@@ -10,7 +10,7 @@
     "check:fix": "vp check --fix",
     "check:env": "vp run @1hubengineering/receipt-verifier-cli#check:env && vp run @1hubengineering/receipt-verifier-adapter-contract#check:env && vp run @1hubengineering/receipt-verifier-worker#check:env && vp run @1hubengineering/receipt-verifier-fastify-checkout#check:env",
     "check:package": "vp run --filter \"./packages/*\" --fail-if-no-match check:package && node scripts/check-package.mjs",
-    "typecheck": "tsc --noEmit && tsc --noEmit --project packages/receipt-verifier/tsconfig.json && tsc --noEmit --project packages/receipt-verifier-provider-cbe/tsconfig.json && tsc --noEmit --project packages/receipt-verifier-storage-sql/tsconfig.json && tsc --noEmit --project packages/receipt-verifier-adapter-drizzle/tsconfig.json && tsc --noEmit --project packages/receipt-verifier-adapter-prisma/tsconfig.json && tsc --noEmit --project examples/checkout-web/tsconfig.json",
+    "typecheck": "tsc --noEmit && tsc --noEmit --project packages/verifier/tsconfig.json && tsc --noEmit --project packages/provider-cbe/tsconfig.json && tsc --noEmit --project packages/storage-sql/tsconfig.json && tsc --noEmit --project packages/adapter-drizzle/tsconfig.json && tsc --noEmit --project packages/adapter-prisma/tsconfig.json && tsc --noEmit --project examples/checkout-web/tsconfig.json",
     "test": "vp test run && vp run @1hubengineering/receipt-verifier-checkout-web#test && vp run @1hubengineering/receipt-verifier-adapter-contract#test",
     "test:watch": "vp test",
     "test:reference": "node --test tests/reference-cli/tests/verify.test.ts",

@@ -18,7 +18,7 @@ const temporary = mkdtempSync(join(tmpdir(), 'receipt-package-'));
 const run = (command, args, cwd) => execFileSync(command, args, { cwd, stdio: 'inherit' });
 
 try {
-  run('pnpm', ['pack', '--pack-destination', temporary], join(root, 'packages/receipt-verifier'));
+  run('pnpm', ['pack', '--pack-destination', temporary], join(root, 'packages/verifier'));
   const archives = readdirSync(temporary).filter((file) => file.endsWith('.tgz'));
   assert.equal(archives.length, 1, 'Expected one packed library');
   writeFileSync(join(temporary, 'package.json'), JSON.stringify({ private: true, type: 'module' }));
@@ -139,11 +139,7 @@ void [amount, verification, settlement, invalidAmount, invalidVerification, resu
     ],
     temporary,
   );
-  run(
-    'pnpm',
-    ['pack', '--pack-destination', temporary],
-    join(root, 'packages/receipt-verifier-provider-cbe'),
-  );
+  run('pnpm', ['pack', '--pack-destination', temporary], join(root, 'packages/provider-cbe'));
   const cbeArchive = readdirSync(temporary).find(
     (file) => file.includes('provider-cbe') && file.endsWith('.tgz'),
   );
@@ -170,11 +166,7 @@ assert.deepEqual(await createCbeProvider().retrieve('http://127.0.0.1/'), { kind
 `,
   );
   run(process.execPath, ['optional.mjs'], temporary);
-  run(
-    'pnpm',
-    ['pack', '--pack-destination', temporary],
-    join(root, 'packages/receipt-verifier-storage-sql'),
-  );
+  run('pnpm', ['pack', '--pack-destination', temporary], join(root, 'packages/storage-sql'));
   const sqlArchive = readdirSync(temporary).find(
     (file) => file.includes('storage-sql') && file.endsWith('.tgz'),
   );
@@ -268,18 +260,14 @@ void verifier;
     ],
     temporary,
   );
-  run(
-    'pnpm',
-    ['pack', '--pack-destination', temporary],
-    join(root, 'packages/receipt-verifier-adapter-drizzle'),
-  );
+  run('pnpm', ['pack', '--pack-destination', temporary], join(root, 'packages/adapter-drizzle'));
   const drizzleArchive = readdirSync(temporary).find(
     (file) => file.includes('adapter-drizzle') && file.endsWith('.tgz'),
   );
   assert.ok(drizzleArchive);
   const drizzleVersion = JSON.parse(
     readFileSync(
-      join(root, 'packages/receipt-verifier-adapter-drizzle/node_modules/drizzle-orm/package.json'),
+      join(root, 'packages/adapter-drizzle/node_modules/drizzle-orm/package.json'),
       'utf8',
     ),
   ).version;
@@ -387,11 +375,7 @@ ${cleanup}
       directory,
     );
   }
-  run(
-    'pnpm',
-    ['pack', '--pack-destination', temporary],
-    join(root, 'packages/receipt-verifier-adapter-prisma'),
-  );
+  run('pnpm', ['pack', '--pack-destination', temporary], join(root, 'packages/adapter-prisma'));
   const prismaArchive = readdirSync(temporary).find(
     (file) => file.includes('adapter-prisma') && file.endsWith('.tgz'),
   );

@@ -44,7 +44,7 @@ manifest). The installed bundled agent skill is the only new upstream source
 copied into this repository. Its unmodified guides come from the official
 [Drizzle skill source](https://github.com/drizzle-team/drizzle-orm/tree/beta/drizzle-kit/skills/drizzle).
 The upstream repository's Apache-2.0 license is retained alongside those guides
-in packages/receipt-verifier-adapter-drizzle/.agents/skills/drizzle/LICENSE.
+in packages/adapter-drizzle/.agents/skills/drizzle/LICENSE.
 These guides are outside the project's ISC grant and all npm library archives.
 No Drizzle Kit code or dependencies are bundled into the SDK.
 

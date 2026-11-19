@@ -3,7 +3,7 @@
   "version": "0.1.1",
   "private": false,
   "description": "Receipt-only comparison and exact ETB domain primitives",
-  "homepage": "https://github.com/1hubengineering/payment_verifier/tree/main/packages/receipt-verifier",
+  "homepage": "https://github.com/1hubengineering/payment_verifier/tree/main/packages/verifier",
   "bugs": {
     "url": "https://github.com/1hubengineering/payment_verifier/issues"
   },
@@ -11,7 +11,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/1hubengineering/payment_verifier.git",
-    "directory": "packages/receipt-verifier"
+    "directory": "packages/verifier"
   },
   "files": [
     "dist",
