@@ -4,7 +4,8 @@ Start with the [developer guide](https://1hubengineering.github.io/payment_verif
 and [searchable API reference](https://1hubengineering.github.io/payment_verifier/api/).
 The [0.3.0 guide sources](0.3.0/) describe the current npm release. The
 [0.2.0 guides](0.2.0/), [0.1.1 guides](0.1.1/) and [0.1.0 guides](0.1.0/) remain available. The [workspace guide](guide.md)
-covers development, checkout customization and deployment.
+covers development and checkout customization. Use the [deployment guide](deployment.md)
+to choose a runtime and check provider connectivity from that environment.
 Try the [synthetic checkout](https://1hubengineering.github.io/payment_verifier/demo/)
 or connect an editor using the [Payment Verifier skills and docs MCP](0.3.0/agents.md).
 See [contributor setup](development/skills-and-mcp.md) for Drizzle and shadcn tooling.

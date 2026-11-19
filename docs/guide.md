@@ -68,6 +68,9 @@ See [development conventions](development/conventions.md) for commands and
 
 ## Deployment
 
+Use the [live deployment guide](deployment.md) to choose a verification
+runtime and check provider access from that environment.
+
 Run `pnpm build:site` to build static HTML, CSS, and JavaScript from this guide
 and the checkout example. GitHub Pages serves `examples/checkout-web/dist` via
 the [Pages workflow](../.github/workflows/pages.yml). On a fork, enable Pages and

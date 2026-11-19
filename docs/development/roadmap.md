@@ -32,6 +32,10 @@ retains the original release artifact hashes. The [VPS validation report](report
 describes the separate 0.2.0 deployment snapshot. The [web redesign](plans/027-web-redesign.md)
 records the site, report and benchmark design checks.
 
+The [deployment guide](../deployment.md) covers provider connectivity checks
+and runtime requirements. The [deployment readiness plan](plans/029-deployment-readiness.md)
+records local diagnostics and validation.
+
 The [0.2.0 hardening plan](plans/020-verification-release-hardening-0.2.0.md)
 records bound-key conflict handling, typed Chromium startup failures, and
 fresh-install release scope. Active 0.1.1 stores require a claim-preserving cutover.
