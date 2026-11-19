@@ -12,6 +12,8 @@ import type {
 } from '@1hubengineering/verifier';
 import { JobError } from '@1hubengineering/verifier/jobs';
 import type { DurableVerifier } from '@1hubengineering/verifier/jobs';
+import { checkoutLocator } from './checkout-evidence.ts';
+import type { CheckoutEvidence } from './checkout-evidence.ts';
 
 export interface Principal {
   readonly tenantId: string;
@@ -41,6 +43,26 @@ const orderParams = {
   additionalProperties: false,
   properties: { orderId: { type: 'string', pattern: '^[A-Za-z0-9_-]{1,128}$' } },
 };
+const evidenceText = { type: 'string', minLength: 1, maxLength: 4096 };
+const verificationBody = {
+  oneOf: [
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['receiptLocator'],
+      properties: { receiptLocator: evidenceText },
+    },
+    {
+      type: 'object',
+      additionalProperties: false,
+      required: ['kind', 'reference'],
+      properties: {
+        kind: { type: 'string', enum: ['transaction', 'url', 'sms'] },
+        reference: evidenceText,
+      },
+    },
+  ],
+};
 const retry = (reply: FastifyReply): FastifyReply =>
   reply.header('retry-after', '1').code(429).send({ error: 'CAPACITY' });
 
@@ -60,6 +82,7 @@ export function createCheckoutApp(services: CheckoutServices): FastifyInstance {
   const principals = new WeakMap<FastifyRequest, Principal>();
   let active = 0;
   app.addHook('onRequest', async (request, reply) => {
+    reply.header('cache-control', 'no-store');
     const principal = await services.authenticate(request);
     if (!principal) return reply.code(401).send({ error: 'UNAUTHENTICATED' });
     const trusted = Object.freeze({ tenantId: principal.tenantId, userId: principal.userId });
@@ -90,19 +113,21 @@ export function createCheckoutApp(services: CheckoutServices): FastifyInstance {
     async (request, reply) => {
       const order = await owned(request, reply, request.params.orderId);
       if (!order) return reply;
-      const state = await services.readOrderState(order);
+      const { settlementStatus, fulfillmentStatus } = await services.readOrderState(order);
       return {
         orderId: order.orderId,
         paymentId: order.expectation.paymentId,
+        provider: order.expectation.provider,
         amountMinor: order.expectation.amountMinor,
         currency: order.expectation.currency,
-        ...state,
+        settlementStatus,
+        fulfillmentStatus,
       };
     },
   );
   app.post<{
     Params: { orderId: string };
-    Body: { receiptLocator: string };
+    Body: CheckoutEvidence;
     Headers: { 'idempotency-key': string };
   }>(
     '/orders/:orderId/receipt-verifications',
@@ -114,12 +139,7 @@ export function createCheckoutApp(services: CheckoutServices): FastifyInstance {
           required: ['idempotency-key'],
           properties: { 'idempotency-key': { type: 'string', minLength: 1, maxLength: 128 } },
         },
-        body: {
-          type: 'object',
-          additionalProperties: false,
-          required: ['receiptLocator'],
-          properties: { receiptLocator: { type: 'string', minLength: 1, maxLength: 4096 } },
-        },
+        body: verificationBody,
       },
     },
     async (request, reply) => {
@@ -128,13 +148,22 @@ export function createCheckoutApp(services: CheckoutServices): FastifyInstance {
       try {
         const order = await owned(request, reply, request.params.orderId);
         if (!order) return reply;
+        const resolved = checkoutLocator(order.expectation.provider, request.body);
+        if ('error' in resolved) {
+          if (resolved.error === 'CBE_RECEIPT_URL_REQUIRED') {
+            return reply
+              .code(422)
+              .send({ error: resolved.error, message: 'Paste the official CBE receipt URL.' });
+          }
+          return reply.code(400).send({ error: resolved.error });
+        }
         // Idempotent host snapshot registration rejects subsequent order mutations.
         await services.verifier.registerExpectation(order.expectation);
         const input = {
           tenantId: order.expectation.tenantId,
           paymentId: order.expectation.paymentId,
           idempotencyKey: request.headers['idempotency-key'],
-          receiptLocator: request.body.receiptLocator,
+          receiptLocator: resolved.locator,
         };
         if (services.jobs) return reply.code(202).send({ job: await services.jobs.enqueue(input) });
         const receipt = await services.verifier.submit(input);

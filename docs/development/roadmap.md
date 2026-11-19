@@ -19,6 +19,7 @@ publication. Historical examples are not additional compatibility promises.
 | 10. Developer documentation     | Complete; static Pages deployed      | 0.1.0 guide and API index from release declarations, public skills install, tested local stdio MCP, and read-only npm naming assessment                |
 | 11. Ethiopian checkout demo     | Complete; static Pages deployed      | CBE and Telebirr instructions, three evidence tabs and verified synthetic flows; no provider requests or durable SMS storage                           |
 | 12. Short npm names             | 0.1.1 published and verified         | Five renamed packages installed from npm with matching hashes; old SQL storage removed, four old versions await npm 2FA approval                       |
+| 13. Staging checkout            | Complete locally                     | Order-scoped number, URL, and SMS intake; canonical replay, CBE receipt-link prompt, synthetic receipts, and independent settlement                    |
 
 Published 0.1.0 acceptance: **237 fast/application/example/provider cases,
 243 real-engine contract cases (nine cells × 27), and 11 frozen reference cases**,
@@ -76,6 +77,9 @@ The [GitHub Pages guide](https://1hubengineering.github.io/payment_verifier/) an
 [React checkout demo](https://1hubengineering.github.io/payment_verifier/demo/)
 are deployed separately from that loopback backend. The demo uses local mock
 responses and does not confirm settlement or authorize fulfillment.
+The [staging endpoint](plans/016-authenticated-staging-checkout.md) extends the
+Fastify example with typed evidence intake and uses the host's authentication
+and order callbacks.
 
 Release identity is independently verified: GitHub 1hubengineering with its
 verified primary commit email; npm 1hubengineering with verified email and 2FA,

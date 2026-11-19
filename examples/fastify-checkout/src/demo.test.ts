@@ -48,7 +48,7 @@ it('runs the loopback Varlock demo without providers and closes its owned databa
           'content-type': 'application/json',
           'idempotency-key': 'synthetic-test',
         },
-        body: JSON.stringify({ receiptLocator: 'SYNTH1234' }),
+        body: JSON.stringify({ kind: 'transaction', reference: 'SYNTH1234' }),
       },
     );
     expect(await response.json()).toMatchObject({
