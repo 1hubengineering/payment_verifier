@@ -31,10 +31,10 @@ writers together. Active 0.1.1 stores still require a claim-preserving cutover.
 
 - [x] Compare GitHub, Pages, npm and the local source.
 - [x] Reconcile and review release changes and migrations.
-- [ ] Verify workspace, clean archives, and a fresh installed consumer.
-- [ ] Confirm hosted Node 24 and 26 checks on the exact release commit.
-- [ ] Publish all five npm packages and verify owners, hashes, and install.
-- [ ] Publish the GitHub tag and release, deploy Pages and confirm public links.
+- [x] Verify workspace, clean archives, and a fresh installed consumer.
+- [x] Confirm hosted Node 24 and 26 checks on the exact release commit.
+- [x] Publish all five npm packages and verify owners, hashes, and install.
+- [x] Publish the GitHub tag and release with the reviewed archives.
 
 ## Validation
 
@@ -44,3 +44,9 @@ isolated consumer to exercise the browser export, receipt and replay workflow,
 and an upgrade from persisted npm 0.2.0 data. Compare npm archives and GitHub
 assets against the clean build. Check production Pages routes and examples over
 HTTP after the Pages job succeeds.
+
+## Handoff
+
+The [release evidence](../releases/0.3.0.md) records local, hosted, and registry
+checks. The [public GitHub release](https://github.com/1hubengineering/payment_verifier/releases/tag/v0.3.0)
+records the production Pages deployment.
