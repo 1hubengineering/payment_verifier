@@ -154,11 +154,32 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
       const v = verifier();
       await v.registerExpectation(expectation());
       await v.registerExpectation(expectation('tenant-a', 'payment-b'));
+      const malformed = { ...submission(), receiptLocator: 'v2-' };
+      const preparedInvalid = await v.prepare(malformed);
+      expect(await v.complete(preparedInvalid)).toMatchObject({
+        status: 'INVALID_INPUT',
+        code: 'INVALID_IDENTIFIER',
+      });
+      expect(provider.retrieve).not.toHaveBeenCalled();
       const first = await v.submit(submission());
+      provider.retrieve.mockClear();
       await expect(
         v.submit(submission('tenant-a', 'payment-b', 'key-a', 'OTHER1234')),
       ).rejects.toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
-      expect(await v.submit(submission())).toEqual(first);
+      for (const receiptLocator of ['v2-', 'v2-Synthetic_42']) {
+        await expect(v.prepare({ ...submission(), receiptLocator })).rejects.toMatchObject({
+          code: 'IDEMPOTENCY_CONFLICT',
+          stage: 'idempotency',
+          details: {},
+        });
+      }
+      await expect(v.complete(preparedInvalid)).rejects.toMatchObject({
+        code: 'IDEMPOTENCY_CONFLICT',
+      });
+      expect(
+        await v.submit({ ...submission(), receiptLocator: 'Transaction ID: synth1234' }),
+      ).toEqual(first);
+      expect(provider.retrieve).not.toHaveBeenCalled();
       expect(await v.events()).toHaveLength(1);
     });
     it('replays a tolerated payment and prevents claiming that receipt under another policy', async () => {

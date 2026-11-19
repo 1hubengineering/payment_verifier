@@ -12,9 +12,11 @@ Do not ask for real receipt links, account data, secrets, or unredacted logs.
   and [storage matrix](https://1hubengineering.github.io/payment_verifier/docs/#storage).
   For Prisma, check that the receipt model exists in the generated client.
   For SQLite, verify the exact native runtime and keep different engines in separate processes.
-- `UNABLE_TO_VERIFY`: check locator format, fixture layout and deadline. For CBE,
-  check the matching Chromium install and OS sandbox. Do not work around sandboxing.
-  `MISMATCHED` means complete evidence disagreed with the order.
+- For 0.2.0 `UNAVAILABLE`, inspect the stage, code, fixture layout, and deadline.
+  For `INVALID_INPUT`, check locator format and expected provider. For CBE launch
+  failures, check the matching Chromium install and OS sandbox. In 0.2.0
+  `MISMATCH` records a definite disagreement. Use the archived outcome guides for
+  `UNABLE_TO_VERIFY` and `MISMATCHED` in older versions.
 - Lost response: reuse the original key for the same request. For a committed
   unavailable result, use a fresh key for a deliberate later attempt.
 - Storage conflict: verify the actual transaction and isolation level. Retry the

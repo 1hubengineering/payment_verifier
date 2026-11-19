@@ -1,6 +1,9 @@
 # Direct SQL receipt storage
 
-Version 0.1.1. The shared contract suite passes on PostgreSQL 18.7
+Version 0.2.0. Initialize a fresh verifier store for new installations. Active
+0.1.1 stores require a supported cutover that preserves receipt claims.
+
+The shared contract suite passes on PostgreSQL 18.7
 with pg 8.23.1, MySQL 8.4.13 with mysql2 3.24.6, and SQLite 3.54.1 with
 better-sqlite3 13.2.0. Kysely 0.29.9 is an internal query/transaction boundary.
 Other versions, platforms and ORM clients are not implied by these results.

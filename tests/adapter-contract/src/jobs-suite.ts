@@ -146,6 +146,11 @@ export function jobContract(getHarness: () => AdapterHarness): void {
     const accepted = await jobs.enqueue(original);
     expect(await jobs.enqueue(alias)).toEqual(accepted);
     await expect(verifier.submit(alias)).rejects.toMatchObject({ code: 'JOB_IN_PROGRESS' });
+    const malformedAlias = { ...alias, receiptLocator: 'v2-' };
+    await expect(verifier.submit(malformedAlias)).rejects.toMatchObject({
+      code: 'IDEMPOTENCY_CONFLICT',
+    });
+    expect(retrieve).not.toHaveBeenCalled();
     retrieve.mockResolvedValueOnce({ kind: 'NOT_FOUND' });
     expect(await jobs.runOnce()).toBe('COMPLETED');
     const completed = await jobs.status(original, accepted.jobId);
@@ -155,6 +160,9 @@ export function jobContract(getHarness: () => AdapterHarness): void {
     expect(await jobs.pruneCompleted(clock())).toBe(1);
     expect(await jobs.enqueue(alias)).toEqual(completed);
     expect(await verifier.submit(alias)).toEqual(completed.result);
+    await expect(verifier.submit(malformedAlias)).rejects.toMatchObject({
+      code: 'IDEMPOTENCY_CONFLICT',
+    });
     const fresh = await jobs.enqueue(submission('tenant-a', 'payment-a', 'fresh'));
     expect(fresh.jobId).not.toBe(accepted.jobId);
     expect(fresh.state).toBe('QUEUED');

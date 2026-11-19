@@ -1,6 +1,9 @@
 # Prisma 7 receipt storage
 
-Version 0.1.1. The shared contract suite passes for Prisma CLI,
+Version 0.2.0. Initialize a fresh verifier store for new installations. Active
+0.1.1 stores require a supported cutover that preserves receipt claims.
+
+The shared contract suite passes for Prisma CLI,
 Client and official driver adapters **7.10.1** on PostgreSQL 18.7, MySQL 8.4.13 and
 local SQLite. No Prisma 8 prerelease, other client major or remote SQLite service
 is advertised.

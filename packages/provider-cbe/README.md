@@ -1,7 +1,8 @@
-# Optional CBE receipt browser
+# CBE receipt adapter
 
-Version 0.1.1; locally tested with synthetic HTML and Playwright
-1.65.1 / its matching Chromium. No live provider availability is claimed.
+Version 0.2.0 workspace. Current CBE receipt pages load transaction data from
+CBE's public JSON service. The adapter uses Playwright 1.65.1 and its matching
+Chromium for current and older receipt layouts.
 
 ```ts
 import { createCbeProvider } from '@1hubengineering/provider-cbe';
@@ -17,35 +18,41 @@ Install the explicit Playwright peer and its Chromium with `playwright install
 chromium` (CI uses `--with-deps`). Importing the package starts no browser. Each
 accepted call owns and closes its browser; admission is per provider instance,
 bounded to 1–4 active calls. Create one instance per worker and apply host admission
-limits. Excess calls return `UNAVAILABLE/BUSY`; there is no in-memory queue.
+limits. Excess calls return `UNAVAILABLE` with code `PROVIDER_BUSY`.
 
-The shared HTTPS transport retrieves only the exact official receipt URL, using
-validated public IPv4 DNS results, TLS verification, no redirects and bounded
-bytes/deadline. Chromium receives those bytes by intercepted route fulfillment.
+The adapter starts at the official, validated receipt URL. For the current
+client-rendered receipt layout, a fresh sandboxed browser requests the fixed
+CBE JSON URL from the official receipt page origin. The browser omits
+credentials, uses normal CORS and verifies TLS. The adapter pins a validated
+public IPv4 result for the data host, permits only the exact data GET and its
+CORS preflight, and blocks provider page scripts, redirects and extra assets.
+Receipt HTML and decoded JSON share the configured byte and time budget.
+
+For older inline receipts, Chromium receives the HTML by intercepted route fulfillment.
 All browser subresources and additional navigation are blocked, service workers
 and downloads are disabled, and a sandbox CSP permits only inline rendering.
 Chromium also has a nonworking local proxy, disabled DNS resolution and restricted
 WebRTC; it cannot independently connect to the provider or arbitrary destinations.
 The rendered DOM has a separate byte cap. Raw retrieval and rendering share one
-time budget. Cancellation, timeout, missing browser installation or provider
-failure remain unavailable, never a mismatch or payment success.
+time budget. Caller cancellation rejects with `OPERATION_CANCELLED`. Renderer
+timeouts return retryable `UNAVAILABLE` with code `RECEIPT_RENDER_TIMEOUT`.
 
-Supported evidence is the frozen CBE span layout, including recipient name and
-account suffix, explicit successful status, A2A transfer type, reference, exact
-ETB transferred amount and strict Ethiopian local timestamp. Pages requiring
-external scripts or assets may remain unavailable; no unrestricted browser
-fallback is provided. This is a deliberate supported-layout boundary pending
-further synthetic format evidence.
-
-Retrieved provenance includes the original HTML SHA-256, URL and retrieval time;
-extraction still supplies receipt evidence only. The host must compare against
-its immutable expectation. This package cannot claim, settle, credit or fulfill.
+The JSON path uses the credited amount and currency, bank transaction ID,
+credited recipient, transfer type, status, transaction timestamp, and payment
+description or note. Missing, invalid, or contradictory values remain
+unverified through SDK comparison. The older span layout uses the same
+comparison contract. Retrieved provenance includes the official receipt URL,
+retrieval time, and SHA-256 of the source body used for evidence. The host
+compares evidence against its own immutable expectation and owns settlement
+and fulfillment.
 
 Chromium OS sandboxing is explicitly enabled, independently of the page's CSP.
 The browser receives only LANG/TZ environment values, never inherited host
 credentials. Its context uses en-US and Africa/Addis_Ababa so local receipt dates
 remain Ethiopian time independent of the host timezone. Missing OS sandbox
-support fails unavailable, with no no-sandbox fallback or public bypass option.
+support or a missing Chromium installation returns `UNAVAILABLE` with code
+`RECEIPT_BROWSER_UNAVAILABLE` at `receipt_rendering`. Restore the browser runtime
+or sandbox before starting a fresh attempt. Browser exception text stays private.
 Run under an unprivileged, confined worker account with host-managed filesystem,
 memory and process limits; the library does not provision containers or claim a
 hard browser RSS quota. Restrict secret mounts/files separately. Linux tests

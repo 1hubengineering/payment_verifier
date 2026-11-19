@@ -4,21 +4,22 @@ Verify official Telebirr and CBE receipts against orders in your Node.js backend
 Payment Verifier checks the payment details and records an atomic claim in a shared store.
 Your application owns fulfillment and other business effects.
 
-The source checkout targets 0.2.0. The latest published version documented here is 0.1.1.
-For the new input and response contract, see the [SDK guide](packages/verifier/README.md).
+The current npm release is **0.2.0**. Use a fresh verifier store for a new
+installation. Existing 0.1.1 stores require a cutover that preserves receipt claims.
+[0.2.0 release evidence](docs/development/releases/0.2.0.md)
 
 [Developer guide](https://1hubengineering.github.io/payment_verifier/docs/) ·
 [API reference](https://1hubengineering.github.io/payment_verifier/api/) ·
 [Interactive checkout demo](https://1hubengineering.github.io/payment_verifier/demo/) ·
-[Release v0.1.1](https://github.com/1hubengineering/payment_verifier/releases/tag/v0.1.1)
+[npm package](https://www.npmjs.com/package/@1hubengineering/verifier/v/0.2.0)
 
 ## Install
 
 ```sh
-npm install @1hubengineering/verifier@0.1.1
+npm install @1hubengineering/verifier@0.2.0
 ```
 
-Run the [0.1.1 quickstart](https://1hubengineering.github.io/payment_verifier/docs/#quickstart)
+Run the [0.2.0 quickstart](docs/0.2.0/quickstart.md)
 to compare two synthetic records without a bank connection or database. To wire up
 your application, choose [direct SQL, Drizzle, or Prisma](https://1hubengineering.github.io/payment_verifier/docs/#storage).
 The [0.1.1 package migration](docs/development/npm-name-assessment.md#migration)
@@ -27,7 +28,7 @@ lists the shorter names and the upgrade from Drizzle `0.45.4` to the tested
 
 ## Agent tools
 
-The [agent setup guide](docs/0.1.1/agents.md) covers the Payment Verifier skills
+The [agent setup guide](docs/0.2.0/agents.md) covers the Payment Verifier skills
 and a local MCP server for the current and archived docs.
 
 ## Examples

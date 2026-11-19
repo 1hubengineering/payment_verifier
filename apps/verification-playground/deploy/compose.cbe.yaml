@@ -1,0 +1,11 @@
+services:
+  playground:
+    image: verification-playground:chromium-local
+    build:
+      target: chromium
+    environment:
+      PLAYGROUND_LIVE: 'true'
+      PLAYGROUND_CBE: 'true'
+    security_opt: !override
+      - no-new-privileges:true
+      - seccomp:${PLAYGROUND_SECCOMP_PROFILE:?Set the absolute path to the generated Chromium seccomp profile}

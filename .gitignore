@@ -32,3 +32,6 @@ examples/*/env.ts
 
 # Reviewed release artifacts are attached to releases, not source commits.
 artifacts/
+
+# Private playground state.
+.playground-data/

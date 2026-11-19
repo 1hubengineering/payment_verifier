@@ -1,0 +1,44 @@
+{
+  "name": "@1hubengineering/verification-benchmarks",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "src/*.ts",
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    "./cli": {
+      "types": "./src/main.ts",
+      "import": "./dist/main.mjs"
+    },
+    "./performance": {
+      "types": "./src/performance.ts",
+      "import": "./dist/performance.mjs"
+    },
+    "./presets": {
+      "types": "./src/presets.ts",
+      "import": "./dist/presets.mjs"
+    },
+    "./synthetic": {
+      "types": "./src/synthetic.ts",
+      "import": "./dist/synthetic.mjs"
+    },
+    "./suite": {
+      "types": "./src/suite.ts",
+      "import": "./dist/suite.mjs"
+    }
+  },
+  "scripts": {
+    "benchmark": "node src/main.ts",
+    "build": "vp pack"
+  },
+  "dependencies": {
+    "@1hubengineering/storage-sql": "workspace:*",
+    "@1hubengineering/verifier": "workspace:*",
+    "better-sqlite3": "13.2.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "9.6.0"
+  }
+}

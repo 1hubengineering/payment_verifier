@@ -5,10 +5,12 @@ description: Select a supported storage adapter and integrate the Payment Verifi
 
 # Set up Payment Verifier
 
-1. Check the installed package release and backend driver. For published 0.1.1,
-   start with the [quickstart](https://1hubengineering.github.io/payment_verifier/docs/#quickstart)
-   and [release matrix](https://github.com/1hubengineering/payment_verifier/blob/v0.1.1/docs/development/compatibility.md).
-   For the old names and their Drizzle 0.45.4 peer, use the archived 0.1.0 docs.
+1. Check the installed package release and backend driver. For published 0.2.0,
+   use the [0.2.0 quickstart](https://github.com/1hubengineering/payment_verifier/blob/main/docs/0.2.0/quickstart.md)
+   and [versioned storage guide](https://github.com/1hubengineering/payment_verifier/blob/main/docs/0.2.0/storage.md).
+   Initialize a fresh store for 0.2.0. Keep active 0.1.1 stores on their existing
+   SDK until a tested cutover preserves receipt claims. Use archived guides for
+   0.1.1 and the original 0.1.0 package names.
 2. Keep the host's existing client. Use [direct SQL](https://1hubengineering.github.io/payment_verifier/docs/#direct-sql)
    for a driver pool, [Drizzle](https://1hubengineering.github.io/payment_verifier/docs/#drizzle)
    for Drizzle 1.0.0-rc.5, or [Prisma](https://1hubengineering.github.io/payment_verifier/docs/#prisma)

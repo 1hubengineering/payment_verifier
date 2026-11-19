@@ -1,8 +1,11 @@
 # Drizzle receipt storage
 
+Version 0.2.0. Initialize a fresh verifier store for new installations. Active
+0.1.1 stores require a supported cutover that preserves receipt claims.
+
 The workspace uses `drizzle-orm@rc` and development-only `drizzle-kit@rc`, both
 resolved to **1.0.0-rc.5** in pnpm-lock.yaml. Its Drizzle paths pass the same
-27-case contract suite on the integrations below. The renamed `@1hubengineering/adapter-drizzle@0.1.1`
+33-case contract suite on the integrations below. The renamed `@1hubengineering/adapter-drizzle@0.1.1`
 requires Drizzle v1 RC, unlike the old `receipt-verifier-adapter-drizzle@0.1.0`.
 See the [0.1.0 source](https://github.com/1hubengineering/payment_verifier/tree/v0.1.0/packages/receipt-verifier-adapter-drizzle)
 for its Drizzle 0.45.4 setup.

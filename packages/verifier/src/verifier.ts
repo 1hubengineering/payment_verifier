@@ -66,6 +66,22 @@ interface PreparedAttempt {
   readonly workerJobId: string | undefined;
 }
 
+interface PreparedInvalidInput {
+  readonly result: InvalidInputResult;
+  readonly idempotencyKey: string;
+}
+
+async function assertUnboundInput(
+  storage: VerificationStorage,
+  { tenantId, idempotencyKey }: Pick<VerificationSubmission, 'tenantId' | 'idempotencyKey'>,
+): Promise<void> {
+  if (
+    (await readRecord(storage, storageKey('attempt', tenantId, idempotencyKey))) !== undefined ||
+    (await readRecord(storage, storageKey('jobalias', tenantId, idempotencyKey))) !== undefined
+  )
+    throw operation('IDEMPOTENCY_CONFLICT', 'idempotency');
+}
+
 function observed(data: PreparedAttempt, expectation: PaymentExpectation): VerificationResult {
   const outcome = data.outcome;
   if (outcome === undefined) throw operation('CORRUPT_STATE', 'storage');
@@ -199,13 +215,13 @@ interface VerifierConfig {
 
 export function createWorkerReceiptVerifier(config: VerifierConfig): WorkerReceiptVerifier {
   const { storage } = config;
-  const preparations = new WeakMap<PreparedVerification, PreparedAttempt | InvalidInputResult>();
+  const preparations = new WeakMap<PreparedVerification, PreparedAttempt | PreparedInvalidInput>();
   const now = (): number => {
     const value = (config.now ?? Date.now)();
     if (!Number.isSafeInteger(value) || value < 0) throw operation('INVALID_REQUEST', 'request');
     return value;
   };
-  function prepareToken(data: PreparedAttempt | InvalidInputResult): PreparedVerification {
+  function prepareToken(data: PreparedAttempt | PreparedInvalidInput): PreparedVerification {
     const token = Object.freeze({}) as PreparedVerification;
     preparations.set(token, data);
     return token;
@@ -250,7 +266,10 @@ export function createWorkerReceiptVerifier(config: VerifierConfig): WorkerRecei
       const input = submission(source);
       const stored = expectationRecord(await readRecord(storage, scopeKey(input)), input);
       const parsed = detectSubmission(input, stored.expectation.provider);
-      if ('status' in parsed) return prepareToken(parsed);
+      if ('status' in parsed) {
+        await assertUnboundInput(storage, input);
+        return prepareToken({ result: parsed, idempotencyKey: input.idempotencyKey });
+      }
       const detected = worker === undefined ? parsed : { ...parsed, inputType: worker.inputType };
       const locator = officialLocator(detected);
       const fingerprint = canonicalFingerprint(input, detected);
@@ -294,7 +313,13 @@ export function createWorkerReceiptVerifier(config: VerifierConfig): WorkerRecei
     async complete(prepared, target = storage) {
       const data = preparations.get(prepared);
       if (!data) throw operation('INVALID_PREPARATION', 'completion');
-      if ('status' in data) return data;
+      if ('result' in data) {
+        await assertUnboundInput(target, {
+          tenantId: data.result.tenantId,
+          idempotencyKey: data.idempotencyKey,
+        });
+        return data.result;
+      }
       const { input } = data;
       const work = async (tx: RecordTransaction): Promise<VerificationResult> => {
         const key = scopeKey(input);

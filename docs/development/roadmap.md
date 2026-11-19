@@ -4,30 +4,39 @@ The [initial direction](../library-plan/init-plan.md) defines the embedded-libra
 target. This roadmap records implemented and validated support separately from
 publication. Historical examples are not additional compatibility promises.
 
-| Slice                           | State                                | Evidence                                                                                                                                               |
-| ------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0. Audit and foundation         | Complete                             | Pinned Node/pnpm/Vite+, Varlock startup schemas, frozen baseline, CI and installed consumers                                                           |
-| 1. Domain and compare engine    | Complete                             | Immutable host expectations, exact integer ETB, explicit fail-closed checks; settlement always UNCONFIRMED                                             |
-| 2. Provider evidence            | Complete; synthetic/local validation | Bounded allowlisted IPv4/TLS, linear bounded extraction, isolated CBE inline rendering; no live-provider claim                                         |
-| 3. Storage and direct SQL       | Complete                             | Atomic claims/evidence/results/outbox, idempotency, rollback and process races on three real engines                                                   |
-| 4. Drizzle and Prisma           | Complete                             | Native ORM queries/transactions; all nine direct/ORM cells pass the same 27 cases                                                                      |
-| 5. CLI and durable worker       | Complete                             | Encrypted committed acceptance, bounds, retries/leases/fencing, actual crash/restart recovery, Varlock apps and graceful shutdown                      |
-| 6. Fastify checkout             | Complete                             | Host auth/order/admission callbacks, strict locator-only input, scoped status, independent settlement/fulfillment                                      |
-| 7. Release readiness            | Complete; 0.1.0 published            | Five npm versions verified by publisher, both hashes and installed workflow; public GitHub tag/assets match reviewed source                            |
-| 8. Drizzle v1 RC source upgrade | Complete in source; not republished  | ORM/Kit 1.0.0-rc.5 from rc tags; full pnpm verify, all nine engine cells, installed relation-client types and local Kit checks pass; version unchanged |
-| 9. Repository and web checkout  | Complete; static Pages deployed      | Reusable React checkout, guide and contributor setup, synthetic results, and verified Pages deployment; no live backend or npm changes                 |
-| 10. Developer documentation     | Complete; static Pages deployed      | 0.1.0 guide and API index from release declarations, public skills install, tested local stdio MCP, and read-only npm naming assessment                |
-| 11. Ethiopian checkout demo     | Complete; static Pages deployed      | CBE and Telebirr instructions, three evidence tabs and verified synthetic flows; no provider requests or durable SMS storage                           |
-| 12. Short npm names             | 0.1.1 published and verified         | Five renamed packages installed from npm with matching hashes; old SQL storage removed, four old versions await npm 2FA approval                       |
-| 13. Staging checkout            | Complete locally                     | Order-scoped number, URL, and SMS intake; canonical replay, CBE receipt-link prompt, synthetic receipts, and independent settlement                    |
+| Slice                           | State                                | Evidence                                                                                                                                                                                                                 |
+| ------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0. Audit and foundation         | Complete                             | Pinned Node/pnpm/Vite+, Varlock startup schemas, frozen baseline, CI and installed consumers                                                                                                                             |
+| 1. Domain and compare engine    | Complete                             | Immutable host expectations, exact integer ETB, explicit fail-closed checks; settlement always UNCONFIRMED                                                                                                               |
+| 2. Provider evidence            | Complete; synthetic/local validation | Bounded allowlisted IPv4/TLS, linear bounded extraction, isolated CBE inline rendering; no live-provider claim                                                                                                           |
+| 3. Storage and direct SQL       | Complete                             | Atomic claims/evidence/results/outbox, idempotency, rollback and process races on three real engines                                                                                                                     |
+| 4. Drizzle and Prisma           | Complete                             | Native ORM queries/transactions; all nine direct/ORM cells pass the same 27 cases                                                                                                                                        |
+| 5. CLI and durable worker       | Complete                             | Encrypted committed acceptance, bounds, retries/leases/fencing, actual crash/restart recovery, Varlock apps and graceful shutdown                                                                                        |
+| 6. Fastify checkout             | Complete                             | Host auth/order/admission callbacks, strict locator-only input, scoped status, independent settlement/fulfillment                                                                                                        |
+| 7. Release readiness            | Complete; 0.1.0 published            | Five npm versions verified by publisher, both hashes and installed workflow; public GitHub tag/assets match reviewed source                                                                                              |
+| 8. Drizzle v1 RC source upgrade | Complete in source; not republished  | ORM/Kit 1.0.0-rc.5 from rc tags; full pnpm verify, all nine engine cells, installed relation-client types and local Kit checks pass; version unchanged                                                                   |
+| 9. Repository and web checkout  | Complete; static Pages deployed      | Reusable React checkout, guide and contributor setup, synthetic results, and verified Pages deployment; no live backend or npm changes                                                                                   |
+| 10. Developer documentation     | Complete; static Pages deployed      | 0.1.0 guide and API index from release declarations, public skills install, tested local stdio MCP, and read-only npm naming assessment                                                                                  |
+| 11. Ethiopian checkout demo     | Complete; static Pages deployed      | CBE and Telebirr instructions, three evidence tabs and verified synthetic flows; no provider requests or durable SMS storage                                                                                             |
+| 12. Short npm names             | 0.1.1 published and verified         | Five renamed packages installed from npm with matching hashes; old SQL storage removed, four old versions await npm 2FA approval                                                                                         |
+| 13. Staging checkout            | Complete locally                     | Order-scoped number, URL, and SMS intake; canonical replay, CBE receipt-link prompt, synthetic receipts, and independent settlement                                                                                      |
+| 14. Playground and benchmarks   | Deployed and synthetic-tested        | GitHub Pages playground, VPS portal and reviewed benchmarks. CBE retrieved through the scoped browser, and Telebirr retrieved through the workstation SSH tunnel. The Telebirr sample lacked a merchant order reference. |
 
 The [0.2.0 contract and automatic intake plan](plans/017-verification-contract-0.2.0.md)
 supersedes the historical response vocabulary for the source candidate. Published
 versions retain the contract described in their release guides.
 
-The local 0.2.0 candidate implements shared automatic receipt input, structured
-verification outcomes, and optional host-owned amount tolerance. Local checks
-passed on both supported Node versions. The candidate package manifests are private.
+The deployed 0.2.0 workspace implements automatic receipt intake, structured outcomes,
+host-owned amount tolerance, and a browser comparison export. The public site
+hosts the [playground](https://1hubengineering.github.io/payment_verifier/playground/)
+and [benchmark results](https://1hubengineering.github.io/payment_verifier/benchmarks/).
+All five packages are published as npm `0.2.0`. The [release evidence](releases/0.2.0.md)
+identifies their source and exact archives. The newer deployment snapshot uses private manifests. See the [VPS validation report](reports/v0.2.0-vps-validation.md)
+for exact builds, checks, and remaining live work.
+
+The [0.2.0 hardening plan](plans/020-verification-release-hardening-0.2.0.md)
+records bound-key conflict handling, typed Chromium startup failures, and
+fresh-install release scope. Active 0.1.1 stores require a claim-preserving cutover.
 
 Published 0.1.0 acceptance: **237 fast/application/example/provider cases,
 243 real-engine contract cases (nine cells × 27), and 11 frozen reference cases**,
@@ -65,7 +74,8 @@ and exclude inherited host secrets; failed sandbox launch never falls back to an
 unsafe browser. Ubuntu CI grants namespaces only to two pinned browser executables,
 keeps its global restriction enabled and removes temporary profiles afterward.
 External assets, IPv6, redirects, compressed bodies and unsupported layouts fail
-closed. No bank transfer or live provider probe was used.
+closed. The [VPS validation report](reports/v0.2.0-vps-validation.md#authorized-live-smoke)
+records the separate authorized live attempts.
 
 [Durable jobs](durable-jobs.md) share the configured store and atomically finish
 with verification effects. They bound admission/aliases/retention and provider

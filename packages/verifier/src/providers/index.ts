@@ -75,7 +75,7 @@ export function interpretOfficialHtml(
         url: locator.url,
         retrievedAt,
         sha256: createHash('sha256').update(retrievedHtml).digest('hex'),
-        parserVersion: '2',
+        parserVersion: locator.provider === 'telebirr' ? 'telebirr-html-3' : '2',
       },
     };
   } catch (error) {

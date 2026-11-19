@@ -103,6 +103,8 @@ export const providerMessages = {
   DESTINATION_BLOCKED: 'The receipt destination was blocked by network policy.',
   INVALID_PROVIDER_RESPONSE: 'The provider returned an invalid receipt response.',
   RECEIPT_TOO_LARGE: 'The receipt exceeded the configured size limit.',
+  RECEIPT_BROWSER_UNAVAILABLE:
+    'Sandboxed Chromium could not start. Check the browser runtime and sandbox configuration.',
   RECEIPT_RENDER_TIMEOUT: 'The receipt renderer exceeded the configured timeout.',
   UNSUPPORTED_RECEIPT_FORMAT: 'The official receipt uses an unsupported format.',
 } as const;
@@ -204,7 +206,8 @@ export const operationMessages = {
   STORAGE_FAILURE: 'The storage operation failed before committing.',
   STORAGE_OUTCOME_UNKNOWN: 'The commit outcome is unknown. Recover using the original key.',
   CORRUPT_STATE: 'A stored verification record is invalid or incompatible.',
-  INCOMPATIBLE_STORE: 'Archive the existing store and configure a new 0.2.0 store.',
+  INCOMPATIBLE_STORE:
+    'This store is incompatible with 0.2.0. Keep active stores on their supported SDK version. Use a fresh store for new installations.',
   INTERNAL_ERROR: 'Verification encountered an unexpected internal error.',
   JOB_NOT_FOUND: 'The local verification job was not found.',
   JOB_IN_PROGRESS: 'The idempotency key belongs to a pending verification job.',

@@ -4,7 +4,14 @@ import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from 'node:fs/promise
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import ts from 'typescript-docs-parser';
-import { guides, releases, pages, repository, version as currentVersion } from './docs-catalog.mjs';
+import {
+  guides,
+  releases,
+  pages,
+  repository,
+  sourceRefs,
+  version as currentVersion,
+} from './docs-catalog.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const cache = join(root, '.cache/payment-verifier-docs');
@@ -127,7 +134,8 @@ async function prepareRelease(version, packages) {
               ? 'receipt-verifier'
               : `receipt-verifier-${name}`
             : name;
-        const sourceUrl = `${repository}/blob/v${version}/packages/${folder}/src/${sourceEntry}.ts`;
+        const sourceRef = sourceRefs[version] ?? `v${version}`;
+        const sourceUrl = `${repository}/blob/${sourceRef}/packages/${folder}/src/${sourceEntry}.ts`;
         entries.push({
           id,
           title,

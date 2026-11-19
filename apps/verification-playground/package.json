@@ -1,0 +1,43 @@
+{
+  "name": "@1hubengineering/verification-playground",
+  "version": "0.0.0",
+  "private": true,
+  "files": [
+    "src/server",
+    "src/contracts.ts",
+    "src/presets.ts",
+    "dist",
+    "env.ts",
+    ".env.schema"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "vp dev",
+    "build": "vp build",
+    "start": "varlock run -- node src/server/main.ts",
+    "check:env": "varlock load",
+    "typecheck": "tsc --noEmit",
+    "admin": "varlock run -- node src/server/admin.ts"
+  },
+  "dependencies": {
+    "@1hubengineering/provider-cbe": "workspace:*",
+    "@1hubengineering/storage-sql": "workspace:*",
+    "@1hubengineering/verification-benchmarks": "workspace:*",
+    "@1hubengineering/verifier": "workspace:*",
+    "better-sqlite3": "13.2.0",
+    "fastify": "5.12.8",
+    "mysql2": "3.24.6",
+    "pg": "8.23.1",
+    "playwright": "1.65.1",
+    "varlock": "1.25.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "9.6.0",
+    "@types/pg": "8.23.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  }
+}

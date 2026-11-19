@@ -8,12 +8,14 @@ import {
   parseEtbAmount,
 } from '@1hubengineering/verifier';
 import { retrieveHtml, RetrievalError } from '@1hubengineering/verifier/providers';
+import { retrieveCbeDataInBrowser } from './browser-data.ts';
 import { createCbeProvider } from './index.ts';
 
 vi.mock('@1hubengineering/verifier/providers', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
   retrieveHtml: vi.fn(),
 }));
+vi.mock('./browser-data.ts', () => ({ retrieveCbeDataInBrowser: vi.fn() }));
 const html = readFileSync(
   new URL('../../../tests/reference-cli/fixtures/cbe.mock.html', import.meta.url),
   'utf8',
@@ -34,6 +36,114 @@ const expected = createPaymentExpectation({
 beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(retrieveHtml).mockResolvedValue({ html, bytes: Buffer.byteLength(html) });
+});
+
+describe('CBE public receipt data', () => {
+  const shell =
+    '<!doctype html><script type="module" src="/_nuxt/synthetic.js"></script><div id="__nuxt"></div><script>window.__NUXT__ = {};</script>';
+  const receipt = {
+    id: 'FTSYNTHETIC23',
+    creditCurrency: 'ETB',
+    amountCredited: '230.00',
+    amountDebited: '230.61',
+    creditAccountHolder: 'Example Merchant',
+    creditAccountNo: '100000004867',
+    description: 'AH-TEST-5932',
+    dateTimes: ['2026-11-13T14:20:00.250+03:00'],
+    status: 'COMPLETED',
+    platformTransactionType: 'A2A',
+    isOtherBank: false,
+  };
+  beforeEach(() => {
+    vi.mocked(retrieveHtml).mockResolvedValue({ html: shell, bytes: Buffer.byteLength(shell) });
+    vi.mocked(retrieveCbeDataInBrowser).mockResolvedValue(JSON.stringify(receipt));
+  });
+
+  it('routes the modern receipt through the scoped browser with the remaining budget', async () => {
+    const browser = vi.spyOn(chromium, 'launch');
+    try {
+      const result = await createCbeProvider().retrieve(url, { timeoutMs: 5000, maxBytes: 2000 });
+      expect(result.kind).toBe('EVIDENCE');
+      if (result.kind !== 'EVIDENCE') return;
+      expect(compareReceipt(expected, result.evidence).status).toBe('MATCH');
+      expect(result.evidence).toMatchObject({
+        amountMinor: 23_000,
+        recipientAccountLast4: '4867',
+        transactionAt: Date.parse('2026-11-13T11:20:00.250Z'),
+      });
+      expect(result.provenance).toMatchObject({
+        kind: 'OFFICIAL_HTTPS',
+        url,
+        parserVersion: 'cbe-json-1',
+      });
+      expect(browser).not.toHaveBeenCalled();
+      expect(retrieveCbeDataInBrowser).toHaveBeenCalledOnce();
+      expect(retrieveCbeDataInBrowser).toHaveBeenCalledWith(
+        expect.objectContaining({ provider: 'cbe', url }),
+        shell,
+        expect.objectContaining({
+          timeoutMs: expect.any(Number),
+          maxBytes: 2000 - Buffer.byteLength(shell),
+        }),
+      );
+    } finally {
+      browser.mockRestore();
+    }
+  });
+
+  it.each([
+    [{ amountCredited: '230.001' }, 'amountMinor', 'INVALID'],
+    [{ creditCurrency: undefined }, 'currency', 'MISSING'],
+    [{ status: undefined }, 'paymentStatus', 'MISSING'],
+    [{ thirdPartyStatus: 'FAILED' }, 'paymentStatus', 'AMBIGUOUS'],
+    [{ isOtherBank: true }, 'paymentType', 'FAIL'],
+    [{ description: undefined }, 'invoiceReference', 'MISSING'],
+    [{ dateTimes: ['2026-02-31T14:20:00.250Z'] }, 'transactionTime', 'MISSING'],
+  ])('fails closed when CBE contradicts or omits %j', async (change, field, status) => {
+    vi.mocked(retrieveCbeDataInBrowser).mockResolvedValue(
+      JSON.stringify({ ...receipt, ...change }),
+    );
+    const result = await createCbeProvider().retrieve(url);
+    expect(result.kind).toBe('EVIDENCE');
+    if (result.kind !== 'EVIDENCE') return;
+    const comparison = compareReceipt(expected, result.evidence);
+    expect(comparison.status).not.toBe('MATCH');
+    expect(comparison.checks).toContainEqual(expect.objectContaining({ field, status }));
+  });
+
+  it('reports unknown JSON without falling back to a browser', async () => {
+    vi.mocked(retrieveCbeDataInBrowser).mockResolvedValue('{"message":"unavailable"}');
+    expect(await createCbeProvider().retrieve(url)).toMatchObject({
+      kind: 'UNAVAILABLE',
+      code: 'UNSUPPORTED_RECEIPT_FORMAT',
+      stage: 'receipt_parsing',
+    });
+  });
+
+  it('preserves the bounded data fetch error and releases admission', async () => {
+    const provider = createCbeProvider();
+    vi.mocked(retrieveCbeDataInBrowser).mockRejectedValueOnce(
+      new RetrievalError('PROVIDER_TIMEOUT', {}, true),
+    );
+    expect(await provider.retrieve(url)).toMatchObject({
+      kind: 'UNAVAILABLE',
+      code: 'PROVIDER_TIMEOUT',
+      stage: 'receipt_retrieval',
+      retryable: true,
+    });
+    expect((await provider.retrieve(url)).kind).toBe('EVIDENCE');
+  });
+
+  it('stops when the receipt page uses the remaining response budget', async () => {
+    expect(
+      await createCbeProvider().retrieve(url, { maxBytes: Buffer.byteLength(shell) }),
+    ).toMatchObject({
+      kind: 'UNAVAILABLE',
+      code: 'RECEIPT_TOO_LARGE',
+      stage: 'receipt_retrieval',
+    });
+    expect(retrieveCbeDataInBrowser).not.toHaveBeenCalled();
+  });
 });
 
 describe('optional CBE execution with real Chromium and mocked provider transport', () => {
@@ -241,19 +351,64 @@ describe('optional CBE execution with real Chromium and mocked provider transpor
     expect(result.evidence.transactionAt).toBe(Date.parse('2026-11-13T11:20:00Z'));
     expect(compareReceipt(expected, result.evidence).status).toBe('MATCH');
   }, 20_000);
-  it('fails unavailable when the OS sandbox cannot launch, with no unsafe fallback', async () => {
+  it.each(['sandbox startup failed', 'Chromium executable is missing'])(
+    'reports a safe browser startup failure and releases admission when %s',
+    async (message) => {
+      const privateDetail = `synthetic private path: ${message}`;
+      const spy = vi.spyOn(chromium, 'launch').mockRejectedValue(new Error(privateDetail));
+      const provider = createCbeProvider();
+      try {
+        const result = await provider.retrieve(url);
+        expect(result).toEqual({
+          kind: 'UNAVAILABLE',
+          code: 'RECEIPT_BROWSER_UNAVAILABLE',
+          stage: 'receipt_rendering',
+          retryable: false,
+          details: {},
+        });
+        expect(JSON.stringify(result)).not.toContain(privateDetail);
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spy).toHaveBeenCalledWith(expect.objectContaining({ chromiumSandbox: true }));
+      } finally {
+        spy.mockRestore();
+      }
+      expect((await provider.retrieve(url)).kind).toBe('EVIDENCE');
+    },
+    20_000,
+  );
+  it('preserves the timeout outcome and retryability when Chromium launch times out', async () => {
     const spy = vi
       .spyOn(chromium, 'launch')
-      .mockRejectedValue(new Error('synthetic private sandbox detail'));
-    const provider = createCbeProvider();
+      .mockRejectedValue(Object.assign(new Error('synthetic timeout'), { name: 'TimeoutError' }));
     try {
-      await expect(provider.retrieve(url)).rejects.toMatchObject({ code: 'INTERNAL_ERROR' });
-      expect(spy).toHaveBeenCalledTimes(1);
+      expect(await createCbeProvider().retrieve(url, { timeoutMs: 1000 })).toEqual({
+        kind: 'UNAVAILABLE',
+        code: 'RECEIPT_RENDER_TIMEOUT',
+        stage: 'receipt_rendering',
+        retryable: true,
+        details: { timeoutMs: 1000 },
+      });
     } finally {
       spy.mockRestore();
     }
-    expect((await provider.retrieve(url)).kind).toBe('EVIDENCE');
-  }, 20_000);
+  });
+  it('preserves caller cancellation when Chromium startup is interrupted', async () => {
+    const controller = new AbortController();
+    const spy = vi.spyOn(chromium, 'launch').mockImplementation(async () => {
+      controller.abort();
+      throw new Error('synthetic interrupted launch');
+    });
+    try {
+      await expect(
+        createCbeProvider().retrieve(url, { signal: controller.signal }),
+      ).rejects.toMatchObject({
+        code: 'OPERATION_CANCELLED',
+        stage: 'request',
+      });
+    } finally {
+      spy.mockRestore();
+    }
+  });
   it('rejects invalid concurrency', () => {
     expect(() => createCbeProvider({ maxConcurrency: 0 })).toThrow();
     expect(() => createCbeProvider({ maxConcurrency: 1.5 })).toThrow();

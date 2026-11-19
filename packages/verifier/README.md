@@ -3,6 +3,11 @@
 Payment Verifier checks Telebirr and CBE receipts against trusted order data in a Node.js backend.
 The host supplies a configured storage adapter, provider adapters, and its own payment expectations.
 
+**0.2.0 requires a fresh verifier store for new installations.** Keep active 0.1.1 stores on
+0.1.1 until a supported cutover preserves their existing receipt claims. Rehearse the
+[development cutover](https://github.com/1hubengineering/payment_verifier/blob/main/docs/development/plans/017-verification-contract-0.2.0.md#development-and-testing-store-cutover)
+with disposable test data.
+
 ```ts
 import { createReceiptVerifier, VerificationOperationError } from '@1hubengineering/verifier';
 import { retrieveTelebirr } from '@1hubengineering/verifier/providers';
@@ -61,7 +66,9 @@ available receipt and source. Branch on `status` and `code`. Checks report the r
 expected and observed values. Account comparisons use the recipient's last four digits. CBE
 requires an account-to-account payment and an official bank transaction ID independent of its
 lookup token. `compareReceipt` and `parseReceiptHtml` are offline utilities. Pure comparison
-returns `MATCH`, `MISMATCH`, or `INCOMPLETE`.
+returns `MATCH`, `MISMATCH`, or `INCOMPLETE`. Use
+`@1hubengineering/verifier/comparison` for those pure comparison and ETB helpers in a
+browser bundle. Official receipt retrieval and claims use the Node.js SDK.
 
 Operation failures reject with `VerificationOperationError`. Use `toJSON()` for safe structured
 diagnostics. They include expectation state, idempotency conflicts, duplicate claims, caller
@@ -112,6 +119,12 @@ known completed unverified outcome with a fresh key when appropriate. Use the or
 recover from `STORAGE_OUTCOME_UNKNOWN` or response loss. `retryable` describes whether another
 bounded verification may obtain a different observation without correcting an input or updating
 the integration. The host owns authentication, fulfillment, and repeat-safe business effects.
+
+An invalid synchronous submission with a new key leaves that key unbound. Invalid evidence on a
+key already bound to an attempt or a durable job returns `IDEMPOTENCY_CONFLICT`. Replay durable
+submissions through `enqueue` to retain its handling of completed invalid jobs. Concurrent
+synchronous submissions can make separate provider requests before an attempt commits. Apply host
+admission limits to bound provider traffic.
 
 The `/jobs` entry takes the same trusted expectations, providers, and storage. It persists queue
 admission, protects locator/key data before completion, bounds retries, and fences stale workers.

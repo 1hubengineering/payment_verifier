@@ -1,0 +1,69 @@
+name: verification-playground
+services:
+  playground:
+    image: verification-playground:local
+    build:
+      context: ../../..
+      dockerfile: apps/verification-playground/deploy/Dockerfile
+      target: standard
+    init: true
+    environment:
+      PLAYGROUND_HOST: 0.0.0.0
+      PLAYGROUND_ORIGIN: ${PLAYGROUND_ORIGIN:-https://localhost:4443}
+      PLAYGROUND_LIVE: ${PLAYGROUND_LIVE:-false}
+      PLAYGROUND_LIVE_DATABASE_URL: ${PLAYGROUND_LIVE_DATABASE_URL:-}
+      PLAYGROUND_TIMEOUT_MS: ${PLAYGROUND_TIMEOUT_MS:-15000}
+      PLAYGROUND_RETENTION_DAYS: ${PLAYGROUND_RETENTION_DAYS:-7}
+      PLAYGROUND_SOURCE_ID: ${PLAYGROUND_SOURCE_ID:-local-source}
+      PLAYGROUND_DEPLOYMENT_ENGINE: ${PLAYGROUND_DEPLOYMENT_ENGINE:-docker-compose}
+      PLAYGROUND_STORAGE_DETAILS: ${PLAYGROUND_STORAGE_DETAILS:-local-volume}
+    volumes:
+      - playground-data:/data
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:4080/health').then(r => {if (!r.ok) process.exitCode = 1}, () => {process.exitCode = 1})",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 4
+      start_period: 15s
+    security_opt: ['no-new-privileges:true']
+    cap_drop: [ALL]
+    cpus: 2
+    mem_limit: 768m
+    shm_size: 128m
+    pids_limit: 192
+    restart: unless-stopped
+    stop_grace_period: 75s
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
+
+  https:
+    image: caddy:2.11.9-alpine@sha256:003a97808e781aa9f7e75cc2f43d34d461099031faf5e20faefb9f61126836f0
+    depends_on:
+      playground:
+        condition: service_healthy
+    environment:
+      PLAYGROUND_SITE: ${PLAYGROUND_SITE:-localhost}
+    ports:
+      - '127.0.0.1:4443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - https-data:/data
+      - https-config:/config
+    cpus: 0.5
+    mem_limit: 128m
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '3' }
+
+volumes:
+  playground-data:
+  https-data:
+  https-config:

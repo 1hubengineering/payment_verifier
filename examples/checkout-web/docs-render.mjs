@@ -33,6 +33,9 @@ function navigation(prefix, current) {
     ['Guide', 'docs/'],
     ['API', 'api/'],
     ['Checkout demo', 'demo/'],
+    ['Playground', 'playground/'],
+    ['Benchmarks', 'benchmarks/'],
+    ['Workspace preview', 'candidate/'],
   ];
   return `<a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header"><nav class="site-shell site-nav" aria-label="Main">
@@ -49,7 +52,7 @@ export function documentation() {
     async transformIndexHtml(html, context) {
       if (!html.includes('<!-- developer-nav -->')) return html;
       const route =
-        ['docs/', 'api/', 'demo/'].find((path) =>
+        ['docs/', 'api/', 'demo/', 'playground/', 'benchmarks/', 'candidate/'].find((path) =>
           context.filename.split(sep).join('/').endsWith(`/${path}index.html`),
         ) ?? './';
       const page = html.replace('<!-- developer-nav -->', () =>
@@ -82,7 +85,7 @@ export function documentation() {
             `<details class="api-entry" id="${escape(id)}" data-api-entry>
           <summary><code>${escape(title)}</code><span>${escape(summary)}</span></summary>
           <pre tabindex="0" aria-label="${escape(title)} declaration"><code>${escape(body)}</code></pre>
-          <p><a href="${escape(source)}">Tagged source</a> · <a href="#${escape(id)}">Link to export</a></p></details>`,
+          <p><a href="${escape(source)}">Release source</a> · <a href="#${escape(id)}">Link to export</a></p></details>`,
         )
         .join('');
       return page.replace(

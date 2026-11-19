@@ -55,6 +55,9 @@ slice after the comparison contract and before the final adapter and release che
 
 ## Release gate
 
+See [0.2.0 release hardening](020-verification-release-hardening-0.2.0.md) for
+bound-key conflicts, CBE startup errors, and the fresh-install approval scope.
+
 Keep preparation local until implementation and all applicable pre-publication checks in the
 release policy are complete. Report the commands and actual results, provider fixture findings,
 and development cutover instructions. Publishing and deployment remain a separate release

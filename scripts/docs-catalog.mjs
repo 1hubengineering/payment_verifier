@@ -1,4 +1,4 @@
-export const version = '0.1.1';
+export const version = '0.2.0';
 export const repository = 'https://github.com/1hubengineering/payment_verifier';
 export const pages = 'https://1hubengineering.github.io/payment_verifier/';
 
@@ -27,6 +27,8 @@ export const packages = {
     'b375b9dd376115c4f5e12f6fc559956512c48275fed26330b53d8b8c4ed069c3',
 };
 
+export const sourceRefs = { '0.2.0': 'a876f119fa0da2670b7b2312698cbd538f676b9a' };
+
 export const releases = {
   '0.1.0': packages,
   '0.1.1': {
@@ -35,6 +37,13 @@ export const releases = {
     'adapter-drizzle': '31aed56c663434d9908f61c70c6113b823606f90369d3c196ee76583d4ce0cc0',
     'adapter-prisma': 'bbf10cba35962105e6f6ae1c39a347e909aeb716cb36038a5b4daf673cffaf68',
     'provider-cbe': '02e8a0982a45f277796457998d099ed7ed0150429f0b2cf4338bd76afe26aecf',
+  },
+  '0.2.0': {
+    verifier: '8bcdac81b5b645f4e7de5f7264f160001fea897ca6cf91a64bb0439192d9c8c5',
+    'storage-sql': '743a1afbb8c6b24f15c6415f2bdaeac7da05c89cc2c5129dc19324434ae9e43a',
+    'adapter-drizzle': '3cc9ebf3f9b270bb6327e5dbe84f6b02ebd47fee048f46fe41fa1c0a579c2d63',
+    'adapter-prisma': '87f296ae931542eabdeafd842dc4c6868fa423fd43ddee9f1ff614cd25088a7c',
+    'provider-cbe': 'ac70697ec425c9ee2bcb255df21174f35e421a4e8e593362966039e4703bbbd5',
   },
 };
 

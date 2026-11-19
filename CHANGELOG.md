@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- Reject malformed evidence on bound idempotency keys.
+- Report Chromium startup failures as `RECEIPT_BROWSER_UNAVAILABLE`.
+- Add the browser-safe `/comparison` export and expand provider fixture handling.
+- Add private verification playground and benchmark packages.
+
+## 0.2.0
+
+- Support receipt IDs, official receipt URLs, and SMS through a shared browser-safe
+  input parser. Report structured verification outcomes and check details.
+- Match exact ETB amounts by default and support optional host-configured tolerance.
+- Initialize a fresh verifier store for new installations. Keep active 0.1.1
+  stores on 0.1.1 until a supported cutover preserves their existing claims.
+  See the [0.2.0 npm release evidence](docs/development/releases/0.2.0.md).
+
 ## 0.1.1
 
 - Publish the core as `@1hubengineering/verifier` and shorten its four

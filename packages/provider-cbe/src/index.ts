@@ -10,7 +10,10 @@ import type {
   ProviderResult,
   RetrievalOptions,
   ReceiptLocator,
+  RetrievedHtml,
 } from '@1hubengineering/verifier/providers';
+import { retrieveCbeDataInBrowser } from './browser-data.ts';
+import { interpretCbeData, isClientReceipt } from './data.ts';
 import { renderCbeHtml } from './render.ts';
 
 export interface CbeProvider {
@@ -44,15 +47,36 @@ export function createCbeProvider(options: { readonly maxConcurrency?: number } 
         } catch (cause) {
           throw new VerificationOperationError('INVALID_REQUEST', 'adapter', { cause });
         }
-        let html: string;
+        let receipt: RetrievedHtml;
         try {
-          ({ html } = await retrieveHtml(locator, bounds));
+          receipt = await retrieveHtml(locator, bounds);
         } catch (error) {
           return providerFailure(error, 'receipt_retrieval');
         }
         const retrievedAt = Date.now();
         const timeoutMs = bounds.timeoutMs ?? 15_000;
         const remaining = timeoutMs - (retrievedAt - started);
+        const { html } = receipt;
+        if (isClientReceipt(html)) {
+          let json: string;
+          try {
+            if (remaining <= 0) throw new RetrievalError('PROVIDER_TIMEOUT', { timeoutMs }, true);
+            const maxBytes = (bounds.maxBytes ?? 2_000_000) - receipt.bytes;
+            if (maxBytes <= 0) throw new RetrievalError('RECEIPT_TOO_LARGE');
+            json = await retrieveCbeDataInBrowser(locator, html, {
+              ...bounds,
+              timeoutMs: remaining,
+              maxBytes,
+            });
+          } catch (error) {
+            const stage =
+              error instanceof RetrievalError && error.code === 'RECEIPT_BROWSER_UNAVAILABLE'
+                ? 'receipt_rendering'
+                : 'receipt_retrieval';
+            return providerFailure(error, stage);
+          }
+          return interpretCbeData(locator, json, Date.now());
+        }
         let rendered: string;
         try {
           if (remaining <= 0)

@@ -34,14 +34,19 @@ try {
   assert.match(api.source, /\/blob\/v0\.1\.0\//);
   const quickstart = content(await invoke('get_doc', { id: 'quickstart' }));
   assert.match(quickstart.body, /compareReceipt/);
-  assert.match(quickstart.body, /@1hubengineering\/verifier@0\.1\.1/);
+  assert.match(quickstart.body, /@1hubengineering\/verifier@0\.2\.0/);
+  const previous = content(await invoke('get_doc', { id: 'quickstart', version: '0.1.1' }));
+  assert.match(previous.body, /verifier@0\.1\.1/);
   const archived = content(await invoke('get_doc', { id: 'quickstart', version: '0.1.0' }));
   assert.match(archived.body, /receipt-verifier@0\.1\.0/);
   const [current] = content(
     await invoke('search_docs', { query: 'drizzlePostgresTransaction', kind: 'api' }),
   );
   assert.equal(current.summary, '@1hubengineering/adapter-drizzle/postgres');
-  assert.match(current.source, /\/blob\/v0\.1\.1\/packages\/receipt-verifier-adapter-drizzle\//);
+  assert.match(
+    current.source,
+    /\/blob\/a876f119fa0da2670b7b2312698cbd538f676b9a\/packages\/adapter-drizzle\//,
+  );
   const [example] = content(await invoke('search_docs', { query: 'runnable', kind: 'example' }));
   assert.match(content(await invoke('get_doc', { id: example.id })).body, /assert\.equal/);
   assert.ok((await invoke('get_doc', { id: '../../.env' })).isError);

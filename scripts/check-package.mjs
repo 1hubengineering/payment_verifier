@@ -91,6 +91,10 @@ async function verifyBrowserModule(url) {
 }
 await verifyBrowserModule(new URL(import.meta.resolve('@1hubengineering/verifier/input')));
 assert.equal(detectPaymentInput('v2-Synthetic_42').value.identifier, 'v2-Synthetic_42');
+await verifyBrowserModule(new URL(import.meta.resolve('@1hubengineering/verifier/comparison')));
+const browserComparison = await import('@1hubengineering/verifier/comparison');
+assert.deepEqual(Object.keys(browserComparison).sort(), ['comparePaymentAmount', 'compareReceipt', 'createPaymentExpectation', 'parseEtbAmount']);
+assert.equal(browserComparison.parseEtbAmount('0.29'), 29);
 const providers = await import('@1hubengineering/verifier/providers');
 assert.equal(providers.normalizeReceiptLocator('telebirr', 'TEST1234AB').transactionId, 'TEST1234AB');
 const parsed = providers.parseReceiptHtml('telebirr', '<html>unsupported</html>');
@@ -108,6 +112,9 @@ import { parseEtbAmount, type EtbMinorUnits, type VerificationStatus, type Verif
 import { parseReceiptHtml, normalizeReceiptLocator, type ProviderResult } from '@1hubengineering/verifier/providers';
 import { createDurableVerifier, type VerificationJob } from '@1hubengineering/verifier/jobs';
 import type { VerificationStorage } from '@1hubengineering/verifier';
+import { parseEtbAmount as parseBrowserAmount, type EtbMinorUnits as BrowserMinorUnits } from '@1hubengineering/verifier/comparison';
+const browserAmount: BrowserMinorUnits = parseBrowserAmount('10.00');
+void browserAmount;
 declare const storage: VerificationStorage;
 const jobs = createDurableVerifier({storage,providers:{},encryptionKey:new Uint8Array(32)});
 const accepted: Promise<VerificationJob> = jobs.enqueue({tenantId:'synthetic',paymentId:'synthetic',idempotencyKey:'synthetic',receiptLocator:'SYNTH1234'});

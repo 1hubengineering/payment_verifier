@@ -2,6 +2,7 @@ import { lookup } from 'node:dns';
 import { request } from 'node:https';
 import { BlockList, isIPv4 } from 'node:net';
 import type { LookupFunction } from 'node:net';
+import { posix } from 'node:path';
 import { RECEIPT_MAX_BYTES } from './extraction.ts';
 import { outboundLocator } from './locator.ts';
 import type { ReceiptLocator } from './locator.ts';
@@ -24,6 +25,8 @@ export interface RetrievalOptions {
   readonly timeoutMs?: number;
   readonly maxBytes?: number;
   readonly signal?: AbortSignal;
+  /** Host-configured Unix socket forwarding only to the official Telebirr endpoint. */
+  readonly telebirrTunnelSocket?: string;
 }
 export interface RetrievedHtml {
   readonly html: string;
@@ -98,9 +101,16 @@ function transportDetails(code: unknown): DiagnosticDetails {
     ? { transportCode: code }
     : {};
 }
-function transportFailure(error: Error): RetrievalError {
+function transportFailure(error: Error, throughTunnel: boolean): RetrievalError {
   if (error instanceof RetrievalError) return error;
   const code = (error as NodeJS.ErrnoException).code;
+  if (throughTunnel && (code === 'ENOENT' || code === 'ECONNREFUSED'))
+    return new RetrievalError(
+      'PROVIDER_NETWORK_ERROR',
+      { transportCode: 'TELEBIRR_TUNNEL_OFFLINE' },
+      true,
+      { cause: error },
+    );
   const tls = code !== undefined && (tlsCodes.has(code) || /^ERR_(?:TLS|SSL)_/.test(code));
   return new RetrievalError(
     tls ? 'PROVIDER_TLS_ERROR' : 'PROVIDER_NETWORK_ERROR',
@@ -120,7 +130,7 @@ function retryAfter(value: string | undefined): number | undefined {
   return Number.isFinite(delay) && delay >= 0 ? Math.min(delay, 60_000) : undefined;
 }
 
-/** HTTPS only, with DNS checked in the socket lookup, TLS verification and no redirects/proxies. */
+/** HTTPS only, with TLS verification and no redirects. Direct connections pin checked DNS. */
 export async function retrieveHtml(
   locator: ReceiptLocator,
   options: RetrievalOptions = {},
@@ -131,6 +141,15 @@ export async function retrieveHtml(
   } catch {
     throw new RetrievalError('INVALID_LOCATOR');
   }
+  const socketPath = options.telebirrTunnelSocket;
+  if (
+    socketPath !== undefined &&
+    (normalized.provider !== 'telebirr' ||
+      !posix.isAbsolute(socketPath) ||
+      socketPath.includes('\0') ||
+      Buffer.byteLength(socketPath) > 100)
+  )
+    throw new TypeError('Invalid Telebirr tunnel socket');
   const timeoutMs = options.timeoutMs ?? 15_000,
     maxBytes = options.maxBytes ?? RECEIPT_MAX_BYTES;
   if (
@@ -158,8 +177,9 @@ export async function retrieveHtml(
       {
         method: 'GET',
         agent: false,
-        family: 4,
-        lookup: publicLookup,
+        ...(socketPath
+          ? { socketPath, servername: new URL(normalized.url).hostname }
+          : { family: 4, lookup: publicLookup }),
         rejectUnauthorized: true,
         minVersion: 'TLSv1.2',
         maxHeaderSize: 16_384,
@@ -212,7 +232,7 @@ export async function retrieveHtml(
           }
           chunks.push(chunk);
         });
-        res.on('error', (error) => finish(transportFailure(error)));
+        res.on('error', (error) => finish(transportFailure(error, socketPath !== undefined)));
         res.on('end', () => {
           if (total === 0) {
             fail('INVALID_PROVIDER_RESPONSE');
@@ -236,7 +256,7 @@ export async function retrieveHtml(
       req.destroy();
     }, timeoutMs);
     options.signal?.addEventListener('abort', cancel, { once: true });
-    req.on('error', (error: Error) => finish(transportFailure(error)));
+    req.on('error', (error: Error) => finish(transportFailure(error, socketPath !== undefined)));
     req.end();
   });
 }

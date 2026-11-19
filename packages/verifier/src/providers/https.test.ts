@@ -20,6 +20,7 @@ let hang = false;
 let connections = 0;
 let destroyed = false;
 let capturedOptions: RequestOptions;
+let socketError: NodeJS.ErrnoException | undefined;
 
 function fakeRequest(
   _url: unknown,
@@ -33,7 +34,7 @@ function fakeRequest(
     return req;
   };
   req.end = (() => {
-    options.lookup!('transactioninfo.ethiotelecom.et', {}, (error) => {
+    const respond = (error?: Error | null) => {
       if (error) {
         req.emit('error', error);
         return;
@@ -46,7 +47,9 @@ function fakeRequest(
       callback(response);
       for (const chunk of chunks) response.push(chunk);
       response.push(null);
-    });
+    };
+    if (options.socketPath) queueMicrotask(() => respond(socketError));
+    else options.lookup!('transactioninfo.ethiotelecom.et', {}, respond);
     return req;
   }) as ClientRequest['end'];
   return req;
@@ -61,6 +64,7 @@ beforeEach(() => {
   hang = false;
   connections = 0;
   destroyed = false;
+  socketError = undefined;
   vi.mocked(request).mockImplementation(fakeRequest as typeof request);
   vi.mocked(lookup).mockImplementation(((
     _host: unknown,
@@ -91,6 +95,54 @@ describe('bounded HTTPS with local transport/DNS mocks', () => {
       minVersion: 'TLSv1.2',
       maxHeaderSize: 16384,
     });
+  });
+  it('uses the configured Unix socket and still checks the official Telebirr TLS name', async () => {
+    const telebirrTunnelSocket = '/run/andhub-telebirr/receipt.sock';
+    await expect(retrieveHtml(locator, { telebirrTunnelSocket })).resolves.toMatchObject({
+      html: '<html>synthetic</html>',
+    });
+    expect(request).toHaveBeenCalledExactlyOnceWith(
+      locator.url,
+      expect.objectContaining({
+        socketPath: telebirrTunnelSocket,
+        servername: 'transactioninfo.ethiotelecom.et',
+        rejectUnauthorized: true,
+      }),
+      expect.any(Function),
+    );
+    expect(lookup).not.toHaveBeenCalled();
+  });
+  it.each(['ENOENT', 'ECONNREFUSED'])(
+    'reports an offline tunnel (%s) without direct fallback',
+    async (code) => {
+      socketError = Object.assign(new Error('private socket path'), { code });
+      await expect(
+        retrieveTelebirr('TEST1234AB', {
+          telebirrTunnelSocket: '/run/andhub-telebirr/receipt.sock',
+        }),
+      ).resolves.toMatchObject({
+        kind: 'UNAVAILABLE',
+        code: 'PROVIDER_NETWORK_ERROR',
+        stage: 'receipt_retrieval',
+        retryable: true,
+        details: { transportCode: 'TELEBIRR_TUNNEL_OFFLINE' },
+      });
+      expect(lookup).not.toHaveBeenCalled();
+      expect(request).toHaveBeenCalledTimes(1);
+    },
+  );
+  it('rejects the tunnel option for other providers and invalid socket paths', async () => {
+    const cbe = normalizeReceiptLocator(
+      'cbe',
+      'https://mbreciept.cbe.com.et/v2-SyntheticReceipt0001',
+    );
+    await expect(retrieveHtml(cbe, { telebirrTunnelSocket: '/tmp/receipt.sock' })).rejects.toThrow(
+      TypeError,
+    );
+    await expect(retrieveHtml(locator, { telebirrTunnelSocket: 'receipt.sock' })).rejects.toThrow(
+      TypeError,
+    );
+    expect(request).not.toHaveBeenCalled();
   });
   it.each([
     '127.0.0.1',
@@ -239,7 +291,7 @@ describe('bounded HTTPS with local transport/DNS mocks', () => {
     ];
     expect(await retrieveTelebirr('TEST1234AB')).toMatchObject({
       kind: 'EVIDENCE',
-      provenance: { kind: 'OFFICIAL_HTTPS', url: locator.url, parserVersion: '2' },
+      provenance: { kind: 'OFFICIAL_HTTPS', url: locator.url, parserVersion: 'telebirr-html-3' },
       evidence: { transactionId: 'TEST1234AB' },
     });
   });

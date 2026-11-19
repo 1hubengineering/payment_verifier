@@ -1,0 +1,11 @@
+services:
+  playground:
+    environment:
+      PLAYGROUND_TELEBIRR_TUNNEL_SOCKET: /run/andhub-telebirr/receipt.sock
+    volumes:
+      - type: bind
+        source: ${PLAYGROUND_TELEBIRR_TUNNEL_DIR:?Set the absolute VPS tunnel directory}
+        target: /run/andhub-telebirr
+        read_only: true
+        bind:
+          create_host_path: false

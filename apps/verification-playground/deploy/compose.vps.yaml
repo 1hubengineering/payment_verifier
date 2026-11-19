@@ -1,0 +1,8 @@
+services:
+  playground:
+    image: andhub-portal:${PLAYGROUND_SOURCE_ID:?Set the reviewed source commit}
+    cpus: 2
+    mem_limit: 768m
+  https:
+    security_opt: ['no-new-privileges:true']
+    pids_limit: 64

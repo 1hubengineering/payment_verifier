@@ -225,6 +225,77 @@ importers:
         specifier: 1.25.0
         version: 1.25.0
 
+  apps/verification-benchmarks:
+    dependencies:
+      '@1hubengineering/storage-sql':
+        specifier: workspace:*
+        version: link:../../packages/storage-sql
+      '@1hubengineering/verifier':
+        specifier: workspace:*
+        version: link:../../packages/verifier
+      better-sqlite3:
+        specifier: 13.2.0
+        version: 13.2.0
+    devDependencies:
+      '@types/better-sqlite3':
+        specifier: 9.6.0
+        version: 9.6.0
+
+  apps/verification-playground:
+    dependencies:
+      '@1hubengineering/provider-cbe':
+        specifier: workspace:*
+        version: link:../../packages/provider-cbe
+      '@1hubengineering/storage-sql':
+        specifier: workspace:*
+        version: link:../../packages/storage-sql
+      '@1hubengineering/verification-benchmarks':
+        specifier: workspace:*
+        version: link:../verification-benchmarks
+      '@1hubengineering/verifier':
+        specifier: workspace:*
+        version: link:../../packages/verifier
+      better-sqlite3:
+        specifier: 13.2.0
+        version: 13.2.0
+      fastify:
+        specifier: 5.12.8
+        version: 5.12.8
+      mysql2:
+        specifier: 3.24.6
+        version: 3.24.6(@types/node@24.19.2)
+      pg:
+        specifier: 8.23.1
+        version: 8.23.1
+      playwright:
+        specifier: 1.65.1
+        version: 1.65.1
+      varlock:
+        specifier: 1.25.0
+        version: 1.25.0
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@types/better-sqlite3':
+        specifier: 9.6.0
+        version: 9.6.0
+      '@types/pg':
+        specifier: 8.23.1
+        version: 8.23.1
+      '@types/react':
+        specifier: 19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      react:
+        specifier: 19.3.1
+        version: 19.3.1
+      react-dom:
+        specifier: 19.3.1
+        version: 19.3.1(react@19.3.1)
+
   apps/worker:
     dependencies:
       '@1hubengineering/receipt-verifier-cli':

@@ -92,6 +92,45 @@ describe('ported synthetic extraction', () => {
     expect(parsed.evidence.ambiguousFields).toContain('transactionId');
     expect(parsed.evidence.ambiguousFields).toContain('amountMinor');
   });
+  it('extracts Telebirr receipt tables inside presentation tables', () => {
+    const receiptTable = v5.slice(v5.indexOf('<table>'), v5.lastIndexOf('</table>') + 8);
+    const html = `<table><tr><td>Receipt information<td style="text-align: center" "><table><tr><td>${receiptTable}</table><tr><div><table><tr><td>Footer</td></tr></table></div></tr></table>`;
+    const parsed = parseReceiptHtml('telebirr', html);
+    expect(compareReceipt(expectation('telebirr'), parsed.evidence).status).toBe('MATCH');
+  });
+  it('preserves invoice and recipient fields across omitted Telebirr cell and row ends', () => {
+    const html = v5.replaceAll('</td>', '').replaceAll('</tr>', '');
+    const parsed = parseReceiptHtml('telebirr', html);
+    expect(compareReceipt(expectation('telebirr'), parsed.evidence).status).toBe('MATCH');
+  });
+  it('skips Telebirr fee and empty summary rows while retaining later conflicting invoices', () => {
+    const summary = `<tr><td></td><td>ማህተም/Stamp Duty</td><td>0.0 Birr</td></tr>
+      <tr><td>Service fee</td><td>0.87 Birr</td></tr>
+      <tr><td></td><td>Total Paid Amount</td><td>11.00 Birr</td></tr>
+      <tr><td></td><td></td><td></td></tr>`;
+    const secondInvoice =
+      '<tr><td>OTHER1234</td><td>13-11-2026 14:20:00</td><td>99.00 Birr</td></tr>';
+    const insert = (rows: string) =>
+      v5.replace('<tr><td>Customer Note', rows + '<tr><td>Customer Note');
+    const parsed = parseReceiptHtml('telebirr', insert(summary));
+    expect(parsed.evidence.amountMinor).toBe(1000);
+    expect(compareReceipt(expectation('telebirr'), parsed.evidence).status).toBe('MATCH');
+    const conflict = parseReceiptHtml('telebirr', insert(summary + secondInvoice));
+    expect(conflict.evidence.ambiguousFields).toEqual(['transactionId', 'amountMinor']);
+  });
+  it('keeps an invoice header and values in separate tables unassociated', () => {
+    const html = `<table><tr><td>Invoice No.</td><td>Payment date</td><td>Settled Amount</td></tr></table>
+      <table><tr><td>TEST1234AB</td><td>13-11-2026 14:20:00</td><td>10.00 Birr</td></tr></table>`;
+    expect(parseReceiptHtml('telebirr', html).evidence).toMatchObject({
+      transactionId: null,
+      transactionAt: null,
+      amountMinor: null,
+    });
+  });
+  it('rejects nested markup that could hide a conflicting field', () => {
+    const html = `<table><tr><td>Credited Party Name</td><td>Other Merchant<table></table></td></tr></table>${v5}`;
+    expect(() => parseReceiptHtml('telebirr', html)).toThrow('Unsupported receipt HTML');
+  });
   it('parses exact cents without rounding and excludes fees', () => {
     expect(
       parseReceiptHtml('telebirr', v5.replace('10.00 Birr', '0.29 Birr')).evidence.amountMinor,

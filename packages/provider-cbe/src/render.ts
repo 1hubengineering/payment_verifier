@@ -1,6 +1,43 @@
 import { chromium } from 'playwright';
+import type { Browser } from 'playwright';
 import { RetrievalError } from '@1hubengineering/verifier/providers';
 import type { RetrievalOptions } from '@1hubengineering/verifier/providers';
+import { cbeDataHost } from './data.ts';
+
+export async function launchCbeBrowser(
+  timeoutMs: number,
+  options: RetrievalOptions,
+  publicAddress?: string,
+): Promise<Browser> {
+  return chromium
+    .launch({
+      headless: true,
+      chromiumSandbox: true,
+      env: { LANG: 'C.UTF-8', TZ: 'UTC' },
+      timeout: timeoutMs,
+      args: [
+        '--disable-background-networking',
+        '--disable-component-update',
+        '--disable-sync',
+        '--host-resolver-rules=' +
+          (publicAddress
+            ? `MAP ${cbeDataHost} ${publicAddress}, MAP * ~NOTFOUND`
+            : 'MAP * ~NOTFOUND'),
+        '--disable-quic',
+        '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
+        '--js-flags=--max-old-space-size=128',
+      ],
+      proxy: {
+        server: 'http://127.0.0.1:9',
+        bypass: '<-loopback>' + (publicAddress ? `,https://${cbeDataHost}:443` : ''),
+      },
+    })
+    .catch((cause: unknown) => {
+      if (options.signal?.aborted) throw new RetrievalError('CANCELLED', {}, false, { cause });
+      if (cause instanceof Error && cause.name === 'TimeoutError') throw cause;
+      throw new RetrievalError('RECEIPT_BROWSER_UNAVAILABLE', {}, false, { cause });
+    });
+}
 
 /** Internal browser boundary: no browser-owned provider connections. */
 export async function renderCbeHtml(
@@ -12,21 +49,7 @@ export async function renderCbeHtml(
     maxBytes = options.maxBytes ?? 2_000_000;
   if (options.signal?.aborted) throw new RetrievalError('CANCELLED');
   const started = Date.now();
-  const browser = await chromium.launch({
-    headless: true,
-    chromiumSandbox: true,
-    env: { LANG: 'C.UTF-8', TZ: 'UTC' },
-    timeout: timeoutMs,
-    args: [
-      '--disable-background-networking',
-      '--disable-component-update',
-      '--disable-sync',
-      '--host-resolver-rules=MAP * ~NOTFOUND',
-      '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
-      '--js-flags=--max-old-space-size=128',
-    ],
-    proxy: { server: 'http://127.0.0.1:9', bypass: '<-loopback>' },
-  });
+  const browser = await launchCbeBrowser(timeoutMs, options);
   let timer: ReturnType<typeof setTimeout> | undefined;
   let cancel: (() => void) | undefined;
   try {

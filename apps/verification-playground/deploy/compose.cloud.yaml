@@ -1,0 +1,10 @@
+services:
+  https:
+    environment:
+      PLAYGROUND_SITE: ${PLAYGROUND_DOMAIN:?Set the playground DNS hostname}
+    ports: !override
+      - '${PLAYGROUND_BIND_IP:-0.0.0.0}:${PLAYGROUND_HTTP_PORT:-80}:80'
+      - '${PLAYGROUND_BIND_IP:-0.0.0.0}:${PLAYGROUND_HTTPS_PORT:-443}:443'
+  playground:
+    environment:
+      PLAYGROUND_ORIGIN: ${PLAYGROUND_ORIGIN:-https://${PLAYGROUND_DOMAIN}}
