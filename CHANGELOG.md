@@ -1,11 +1,20 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
-- Reject malformed evidence on bound idempotency keys.
-- Report Chromium startup failures as `RECEIPT_BROWSER_UNAVAILABLE`.
-- Add the browser-safe `/comparison` export and expand provider fixture handling.
-- Add private verification playground and benchmark packages.
+- Export browser-safe comparison and ETB functions from `@1hubengineering/verifier/comparison`.
+- Compare merchant notes exactly after extraction. Accept nonblank reference text
+  up to 255 characters. An empty expectation requires explicit
+  `referenceRequired: false`, which matches a blank or absent receipt note.
+- Read Telebirr Customer Note in current receipt tables and support the current
+  CBE data-backed layout in sandboxed Chromium. Report Chromium startup failures
+  with `RECEIPT_BROWSER_UNAVAILABLE`.
+- Reject malformed submissions that reuse an already bound idempotency key.
+- Add `checkProviderConnectivity` for TLS diagnostics and `checkCbeBrowser` for an
+  offline browser diagnostic. These checks do not verify a payment.
+- Keep the 0.2.0 storage schema. Upgrade all SDK packages and workers together.
+  Older runtimes cannot read some expectations created with the new reference rules.
+  See the [release and upgrade notes](docs/development/releases/0.3.0.md).
 
 ## 0.2.0
 

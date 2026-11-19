@@ -1,6 +1,6 @@
 # Drizzle receipt storage
 
-Version 0.2.0. Initialize a fresh verifier store for new installations. Active
+Version 0.3.0. Initialize a fresh verifier store for new installations. Active
 0.1.1 stores require a supported cutover that preserves receipt claims.
 
 The workspace uses `drizzle-orm@rc` and development-only `drizzle-kit@rc`, both

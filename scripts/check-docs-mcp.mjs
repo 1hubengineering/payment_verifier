@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/client';
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
+import { version } from './docs-catalog.mjs';
 
 const client = new Client({ name: 'payment-verifier-docs-smoke', version: '1.0.0' });
 const transport = new StdioClientTransport({
@@ -34,7 +35,9 @@ try {
   assert.match(api.source, /\/blob\/v0\.1\.0\//);
   const quickstart = content(await invoke('get_doc', { id: 'quickstart' }));
   assert.match(quickstart.body, /compareReceipt/);
-  assert.match(quickstart.body, /@1hubengineering\/verifier@0\.2\.0/);
+  assert.ok(quickstart.body.includes(`@1hubengineering/verifier@${version}`));
+  const prior = content(await invoke('get_doc', { id: 'quickstart', version: '0.2.0' }));
+  assert.match(prior.body, /verifier@0\.2\.0/);
   const previous = content(await invoke('get_doc', { id: 'quickstart', version: '0.1.1' }));
   assert.match(previous.body, /verifier@0\.1\.1/);
   const archived = content(await invoke('get_doc', { id: 'quickstart', version: '0.1.0' }));
@@ -43,10 +46,14 @@ try {
     await invoke('search_docs', { query: 'drizzlePostgresTransaction', kind: 'api' }),
   );
   assert.equal(current.summary, '@1hubengineering/adapter-drizzle/postgres');
-  assert.match(
-    current.source,
-    /\/blob\/a876f119fa0da2670b7b2312698cbd538f676b9a\/packages\/adapter-drizzle\//,
+  assert.ok(current.source.includes(`/blob/v${version}/packages/adapter-drizzle/`));
+  const comparison = content(
+    await invoke('get_doc', {
+      id: 'api-verifier-comparison-compareReceipt',
+    }),
   );
+  assert.ok(comparison.source.endsWith('/packages/verifier/src/comparison-entry.ts'));
+  assert.match(comparison.body, /compareReceipt/);
   const [example] = content(await invoke('search_docs', { query: 'runnable', kind: 'example' }));
   assert.match(content(await invoke('get_doc', { id: example.id })).body, /assert\.equal/);
   assert.ok((await invoke('get_doc', { id: '../../.env' })).isError);

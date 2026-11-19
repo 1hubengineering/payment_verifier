@@ -22,6 +22,8 @@ export interface PaymentExpectation {
   readonly recipientName: string;
   readonly recipientAccountLast4: string;
   readonly reference: string;
+  /** Set to false to allow an empty expected reference. The receipt must match it. */
+  readonly referenceRequired?: boolean;
   readonly validFrom: number;
   readonly validUntil: number;
 }
@@ -120,9 +122,9 @@ export function createPaymentExpectation(
     typeof v.recipientAccountLast4 !== 'string' ||
     !/^\d{4}$/.test(v.recipientAccountLast4) ||
     typeof v.reference !== 'string' ||
-    !/^[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/.test(v.reference) ||
-    !/[A-Za-z]/.test(v.reference) ||
-    !/\d/.test(v.reference) ||
+    v.reference.length > 255 ||
+    (v.referenceRequired !== undefined && typeof v.referenceRequired !== 'boolean') ||
+    (v.reference === '' ? v.referenceRequired !== false : v.reference.trim() === '') ||
     !timestamp(v.validFrom) ||
     !timestamp(v.validUntil) ||
     v.validUntil < v.validFrom
@@ -142,6 +144,7 @@ export function createPaymentExpectation(
     recipientName: v.recipientName,
     recipientAccountLast4: v.recipientAccountLast4,
     reference: v.reference,
+    ...(v.referenceRequired === false ? { referenceRequired: false } : {}),
     validFrom: v.validFrom,
     validUntil: v.validUntil,
   });
@@ -158,6 +161,7 @@ interface Rule {
   readonly evidence: EvidenceField;
   readonly rule: CheckRule;
   readonly expected?: JsonValue;
+  readonly matchBlank?: boolean;
   readonly valid: boolean;
   readonly matches: boolean;
   readonly mismatch: MismatchCode;
@@ -179,7 +183,9 @@ function check(rule: Rule, evidence: Record<string, unknown>): VerificationCheck
   if (Array.isArray(evidence.invalidFields) && evidence.invalidFields.includes(rule.evidence))
     return { ...base, status: 'INVALID', code: 'INVALID_RECEIPT_FIELD' };
   if (value === null || value === undefined || value === '')
-    return { ...base, status: 'MISSING', code: 'REQUIRED_FIELD_MISSING' };
+    return rule.matchBlank
+      ? { ...base, status: 'PASS', code: null }
+      : { ...base, status: 'MISSING', code: 'REQUIRED_FIELD_MISSING' };
   if (!rule.valid) return { ...base, status: 'INVALID', code: 'INVALID_RECEIPT_FIELD' };
   if (!rule.matches) return { ...base, status: 'FAIL', code: rule.mismatch };
   return { ...base, status: 'PASS', code: null };
@@ -267,7 +273,8 @@ export function compareReceipt(
       field: 'invoiceReference',
       evidence: 'reference',
       rule: 'exact',
-      expected: expected.reference,
+      expected: expected.reference || null,
+      matchBlank: expected.referenceRequired === false && expected.reference === '',
       valid: text(v.reference),
       matches: v.reference === expected.reference,
       mismatch: 'INVOICE_REFERENCE_MISMATCH',

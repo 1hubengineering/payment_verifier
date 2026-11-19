@@ -3,84 +3,39 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>SDK workspace preview · Payment Verifier</title>
+    <title>SDK upgrade guide · Payment Verifier</title>
     <link rel="stylesheet" href="../src/site.css" />
   </head>
   <body class="developer-site">
     <!-- developer-nav -->
     <main id="main" class="site-shell docs-main" tabindex="-1">
-      <article class="docs-content">
-        <h1>SDK workspace preview</h1>
+      <article class="docs-prose">
+        <div class="page-heading">
+          <h1>Upgrade to SDK 0.3.0</h1>
+          <p>Review the reference policy and plan the upgrade across your backend and workers.</p>
+        </div>
+        <h2>Upgrade from 0.2.0</h2>
         <p>
-          This page describes the workspace used by the synthetic playground. The
-          <a href="../docs/">published guide</a> and <a href="../api/">API reference</a> cover the
-          npm 0.2.0 tarballs.
+          Keep the existing store and back it up before upgrading. Replace all installed SDK
+          packages together. Upgrade every SDK process that reads or writes expectations before
+          registering newly accepted references.
         </p>
-        <h2>Install from npm</h2>
-        <pre><code>npm install @1hubengineering/verifier@0.2.0</code></pre>
-        <h2>Try the workspace build</h2>
+        <h2>Configure the receipt reference</h2>
         <p>
-          Run <code>vp env install</code>, <code>pnpm install --frozen-lockfile</code>, and
-          <code>pnpm build</code> from a reviewed checkout. Use the workspace packages and a fresh
-          test database. The playground uses the workspace's browser-safe
-          <code>/comparison</code> export. Published 0.2.0 offers the browser-safe
-          <code>/input</code> export, and its comparison functions are available on the Node.js
-          entry point.
+          Use the Telebirr Customer Note or CBE Reason / Type of service. The SDK compares the
+          extracted text exactly. To expect a blank note, set
+          <code>referenceRequired: false</code> with an empty <code>reference</code>. A nonblank,
+          invalid or ambiguous note still fails.
         </p>
-        <h2>Receipt input and outcomes</h2>
+        <h2>Keep claims on 0.1.1</h2>
         <p>
-          For local candidate testing, use the workspace packages from a reviewed checkout. Hosts
-          register an immutable ETB expectation before submitting an official receipt. Automatic
-          input detection accepts Telebirr transaction IDs and CBE <code>v2-</code> receipt IDs,
-          official receipt URLs, and SMS with an unambiguous identifier.
+          An active 0.1.1 store needs a tested, claim-preserving cutover. On 0.3.0, continue to use
+          a version that accepts any newly registered reference formats before considering rollback.
         </p>
         <p>
-          Results include <code>VERIFIED</code>, <code>MISMATCH</code>, <code>NOT_FOUND</code>,
-          <code>UNAVAILABLE</code>, or <code>INVALID_INPUT</code>, plus a diagnostic code, stage,
-          retryability and individual checks. An official receipt match leaves settlement and
-          fulfillment with the host.
-        </p>
-        <p>
-          Browser interfaces can import <code>detectPaymentInput</code> from
-          <code>@1hubengineering/verifier/input</code> and use pure SDK comparison and ETB functions
-          from <code>@1hubengineering/verifier/comparison</code>. Official retrieval and atomic
-          claims run on the backend.
-        </p>
-        <h2>Amount and replay</h2>
-        <p>
-          Amounts use integer ETB minor units. Exact matching is the default. Host expectations can
-          set separate fixed or percentage allowances for underpayment and overpayment. The SDK
-          reports the accepted range and difference.
-        </p>
-        <p>
-          Replaying the original committed evidence returns the stored outcome without a provider
-          lookup. A bound key used with different or malformed evidence returns
-          <code>IDEMPOTENCY_CONFLICT</code>. A provider timeout is <code>UNAVAILABLE</code> with
-          <code>PROVIDER_TIMEOUT</code>. A missing or blocked Chromium runtime is
-          <code>RECEIPT_BROWSER_UNAVAILABLE</code> at <code>receipt_rendering</code>.
-        </p>
-        <h2>Storage and validation</h2>
-        <p>
-          Use a fresh store for this candidate. PostgreSQL, MySQL and local SQLite use the existing
-          SQL, Drizzle and Prisma adapter contracts. See the
-          <a
-            href="https://github.com/1hubengineering/payment_verifier/blob/main/docs/development/compatibility.md"
-            >tested database and adapter matrix</a
-          >. Existing stores require a tested claim-preserving cutover. Use the
-          <a href="../playground/">synthetic playground</a> to exercise comparisons and see the
-          <a href="../benchmarks/">benchmark observations</a> for measured workload scope.
-        </p>
-        <h2>Troubleshooting</h2>
-        <p>
-          Check the provider, input format and immutable order when input is rejected. For CBE, use
-          the pinned Playwright Chromium and a working OS sandbox. See the
-          <a
-            href="https://github.com/1hubengineering/payment_verifier/tree/main/packages/provider-cbe#readme"
-            >CBE runtime requirements</a
-          >
-          and the
-          <a href="https://github.com/1hubengineering/payment_verifier/blob/main/CHANGELOG.md"
-            >candidate changelog</a
+          Read the <a href="../docs/#storage">storage guide</a> and
+          <a href="https://github.com/1hubengineering/payment_verifier/releases/tag/v0.3.0"
+            >release notes</a
           >.
         </p>
       </article>

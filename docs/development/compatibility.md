@@ -1,12 +1,13 @@
 # Validated compatibility
 
-The matrix below describes the workspace and the renamed 0.1.1 npm release. The old npm 0.1.0 uses
+This matrix covers 0.3.0 on the same runtime, drivers and ORM versions selected for 0.2.0. The old npm 0.1.0 uses
 Drizzle 0.45.4; its immutable [release matrix](https://github.com/1hubengineering/payment_verifier/blob/v0.1.0/docs/development/compatibility.md)
 records that release's compatibility. The renamed packages do not replace those artifacts.
 
 The library is ESM-only for Node ^24.22.3 or ^26.13.1. Both minimum versions run
-full hosted CI on Linux. No CommonJS, browser runtime, Bun/Deno, macOS/Windows or
-other engine/client versions are advertised. The core has no npm runtime or peer
+full hosted CI on Linux. The `/input` and `/comparison` subpaths are browser-safe.
+Backend provider and storage entry points require Node. CommonJS, Bun/Deno,
+macOS/Windows and other engine/client versions are outside the tested matrix. The core has no npm runtime or peer
 dependencies. All adapters receive host-owned connections and open nothing at import.
 
 | Integration                                | PostgreSQL                    | MySQL                                    | Local SQLite                                             |
@@ -15,7 +16,7 @@ dependencies. All adapters receive host-owned connections and open nothing at im
 | Drizzle 1.0.0-rc.5                         | 18.7 / pg 8.23.1              | 8.4.13 / mysql2 3.24.6                   | 3.45.1 / @libsql/client 0.17.4                           |
 | Prisma CLI/Client/official adapters 7.10.1 | 18.7 / adapter-pg / pg 8.23.1 | 8.4.13 / adapter-mariadb / mariadb 3.5.4 | 3.53.2 / adapter-better-sqlite3 / better-sqlite3 12.11.1 |
 
-Each of the nine cells runs the same 27 contract cases: immutable expectations,
+Each of the nine cells runs the same 33 contract cases: immutable expectations,
 exact matches, atomic evidence/claim/result/event writes, tenant/idempotency/race
 protection, actual host rollback/commit, independent processes, stored-evidence privacy and
 durable jobs.
@@ -39,8 +40,7 @@ Chromium 159.0.8154.6 (build 1255), with mocked HTTPS and real browser failure t
 locale/timezone-only browser environment are mandatory; Linux tests inspect real
 renderer seccomp/PID namespaces. The host must support unprivileged sandboxed
 Chromium and provide worker filesystem/memory/process confinement.
-Only inline-renderable CBE layouts are supported: external scripts/assets, IPv6,
-redirects and compressed provider responses are refused. Malformed or unsupported
+Older CBE layouts render without provider connections. Current CBE receipts use a sandboxed browser restricted to the official data endpoint, with a provider-scoped fallback. Arbitrary assets, IPv6 and redirects are blocked. Malformed or unsupported
 structures fail closed. No live bank compatibility, provider permission, service
 availability, throughput, settlement or fulfillment guarantee is made.
 

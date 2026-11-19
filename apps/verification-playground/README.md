@@ -1,6 +1,6 @@
 # AndHub Payment Verifier admin portal
 
-Private Fastify and React application for the SDK 0.2.0 source candidate. One
+Private Fastify and React application for the SDK 0.3.0. One
 administrator can run **Live Verification** and **Benchmarking**. The SDK
 packages and protocol own expectations, verification, claims and idempotency.
 The portal uses separate live and simulated SDK stores. Neither a receipt match
@@ -72,7 +72,16 @@ window. Editing a saved draft leaves the registered expectation intact. Submit
 an identifier, receipt URL or SMS. The backend validates input independently and
 passes it to the SDK, which constructs an official provider locator.
 
-Review the status, code, stage, retryability, checks and timing. A timeout is
+Use the reference issued by your application. On a Telebirr receipt, it appears
+under **Customer Note**. On CBE, it appears under **Reason / Type of service**.
+Both providers support references from 1 to 255 characters. The verifier
+compares the note text exactly. **Allow a blank reference** lets you leave the
+expected reference empty. It matches only a blank receipt note. Choose a
+validity window that includes the receipt's payment time.
+
+Verification opens a result dialog with the outcome, checks, and expected and
+observed values. Open a completed history row to review its saved result. The
+diagnostics include codes, stages, retries, and timing. A timeout is
 `UNAVAILABLE` and may be retryable. A sandbox launch failure is
 `RECEIPT_BROWSER_UNAVAILABLE` at `receipt_rendering`. History omits raw SMS, full
 receipt HTML and full account numbers. **Reveal recipient and invoice values**
@@ -94,8 +103,10 @@ runs at most one subprocess, at most 600 scenarios, and at most four concurrent
 synthetic checks. A run has a 30-second deadline and a cancel button. The
 subprocess receives no portal credentials or provider configuration. It opens a
 disposable SQLite file and calls the actual SDK with local mock providers.
-History retains the last 20 runs. The UI shows resource samples, percentiles,
-attempt throughput, rates, and JSON reports.
+History retains the last 20 runs. The selected report shows throughput and tail
+latency, with a comparison when a run shares the workload, sample size and
+recorded environment. Run conditions and the full JSON report are available in
+the details.
 
 The Docker CPU and memory budgets are shared between the portal and benchmark
 subprocess. The subprocess also caps its V8 old-generation heap at 128 MiB.

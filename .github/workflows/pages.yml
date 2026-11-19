@@ -28,7 +28,7 @@ jobs:
           version: 1.7.0
           node-version: '26.13.1'
           run-install: false
-      - run: pnpm --filter receipt-verifier-workspace --filter @1hubengineering/receipt-verifier-checkout-web... install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       - run: pnpm build:site
       - run: pnpm --filter @1hubengineering/receipt-verifier-checkout-web test
       - run: pnpm docs:smoke

@@ -20,7 +20,8 @@ export const draftSchema = z.strictObject({
   amount: z.string().max(18),
   recipientName: z.string().trim().min(1).max(120),
   recipientAccountLast4: z.string().regex(/^\d{4}$/u),
-  reference: z.string().trim().min(1).max(120),
+  reference: z.string().max(255),
+  referenceRequired: z.boolean().optional(),
   validFrom: z.iso.datetime({ offset: true }),
   validUntil: z.iso.datetime({ offset: true }),
   tolerance: z.boolean(),
@@ -68,6 +69,7 @@ export function paymentExpectation(draft: Draft, tenantId: string, paymentId: st
     recipientName: draft.recipientName,
     recipientAccountLast4: draft.recipientAccountLast4,
     reference: draft.reference,
+    referenceRequired: draft.referenceRequired,
     validFrom: Date.parse(draft.validFrom),
     validUntil: Date.parse(draft.validUntil),
   });

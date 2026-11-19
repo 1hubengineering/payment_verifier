@@ -22,6 +22,11 @@ try {
   });
   const page = await context.newPage();
   const errors = [];
+  const resourceErrors = [];
+  page.on('response', (response) => {
+    if (response.url().includes('/assets/') && !response.ok())
+      resourceErrors.push(response.status());
+  });
   page.on('pageerror', (error) => errors.push(error.message));
   await page.goto(origin, { waitUntil: 'domcontentloaded' });
   await page.getByLabel('Administrator name').fill(username);
@@ -52,14 +57,40 @@ try {
   await page.getByRole('button', { name: 'Use synthetic ID' }).click();
   await page.getByText('Input parsed', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Verify payment' }).click();
-  const report = page.getByRole('region', { name: 'Verification report' });
-  await report.getByText('PAYMENT_VERIFIED', { exact: true }).waitFor();
-  await report.getByText('Difference −0.55 ETB', { exact: true }).waitFor();
+  const report = page.getByRole('dialog');
+  await report.getByRole('heading', { name: 'Simulated verification' }).waitFor();
+  await report.getByText('Accepted range ETB 99.95 to ETB 101.05').waitFor();
   await report.getByText('Performance diagnostics').click();
   await report.getByRole('row', { name: /Provider adapter/ }).waitFor();
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => document.activeElement?.textContent === 'Verify payment');
+  await page.getByRole('button', { name: /View result/ }).click();
+  await report.getByRole('heading', { name: 'Simulated verification' }).waitFor();
+  await report.getByRole('button', { name: 'Close' }).click();
+
+  for (const [selection, title] of [
+    ['recipient', 'Receipt details did not match'],
+    ['timeout', 'Receipt could not be checked'],
+  ]) {
+    await page.getByRole('button', { name: 'Reset defaults' }).click();
+    await page.getByLabel('Mock outcome').selectOption(selection);
+    await page.getByRole('button', { name: 'Use synthetic ID' }).click();
+    await page.getByRole('button', { name: 'Verify payment' }).click();
+    await report.getByRole('heading', { name: title }).waitFor();
+    if (selection === 'recipient') await report.getByText('1 failed', { exact: true }).waitFor();
+    else await report.getByText('No individual checks were available for this attempt.').waitFor();
+    await report.getByRole('button', { name: 'Close' }).click();
+  }
+
   await page.getByRole('button', { name: 'Benchmarking' }).click();
   await page.getByRole('button', { name: 'Run benchmark' }).click();
-  await page.getByText('Attempts/s', { exact: true }).waitFor();
+  await page.getByText('Tail latency (p95)', { exact: true }).waitFor();
+  await page.getByText('Run conditions, outcome counts and raw JSON').click();
+  await page.getByText(/60 measured attempts across 60 scenarios/).waitFor();
+  await page.getByLabel('Concurrent scenarios').fill('4');
+  await page.getByRole('button', { name: 'Run benchmark' }).click();
+  const comparison = page.getByRole('region', { name: 'Comparable benchmark runs' });
+  await comparison.getByRole('row', { name: /Selected 4/ }).waitFor();
   for (const viewport of [
     { width: 375, height: 812 },
     { width: 812, height: 375 },
@@ -74,6 +105,7 @@ try {
   await page.getByLabel('Administrator name').waitFor();
   assert.equal((await page.request.get(new URL('/api/history', origin).href)).status(), 401);
   assert.deepEqual(errors, []);
+  assert.deepEqual(resourceErrors, []);
   console.log(
     'Admin authentication, password change, protected routes, synthetic SDK verification, benchmarks, and responsive layout passed.',
   );

@@ -48,17 +48,20 @@ in packages/adapter-drizzle/.agents/skills/drizzle/LICENSE.
 These guides are outside the project's ISC grant and all npm library archives.
 No Drizzle Kit code or dependencies are bundled into the SDK.
 
-The separate static React example includes MIT-licensed shadcn/ui primitives.
-The [upstream notice](examples/checkout-web/public/shadcn-ui-LICENSE.txt) is
-preserved in the example and copied to its build output, alongside the bundled
-dependency licenses. No Shadcnblocks Pro source or assets are included.
+The web applications use MIT-licensed [shadcn/ui primitives](examples/checkout-web/public/shadcn-ui-LICENSE.txt).
+The static build includes the upstream notice and bundled dependency licenses.
 
-The public documentation site adapts the free [Shadcnblocks Hero 1](https://www.shadcnblocks.com/block/hero1)
-as part of the finished site under the [Free Blocks end-product terms](https://www.shadcnblocks.com/terms#free-blocks).
-The adaptation is only in the homepage, outside SDK packages, reusable checkout components,
-skills, and example source offered through MCP. No registry files or upstream images ship.
-Shadcnblocks retains its rights; this project's ISC license does not license that adaptation
-for extraction into a template or library.
+Payment Verifier uses the [Falcon theme](https://www.shadcnblocks.com/theme/falcon)
+and adapts Shadcnblocks [Hero 1](https://www.shadcnblocks.com/block/hero1),
+[Navbar 1](https://www.shadcnblocks.com/block/navbar1),
+[Feature 17](https://www.shadcnblocks.com/block/feature17),
+[Login 1](https://www.shadcnblocks.com/block/login1),
+[Chart Group 1](https://www.shadcnblocks.com/block/chart-group1),
+[Checkout 4](https://www.shadcnblocks.com/block/checkout4), and
+[Application Shell 4](https://www.shadcnblocks.com/block/application-shell4).
+These adaptations are used in the finished website and operator portal under
+the project’s Shadcnblocks license. Shadcnblocks retains its rights. The project’s
+ISC license applies to the project's own work.
 
 The checkout demo uses the [Commercial Bank of Ethiopia site mark](https://combanketh.et/)
 and the [Telebirr logo from Ethio telecom's brand page](https://www.ethiotelecom.et/logos/).

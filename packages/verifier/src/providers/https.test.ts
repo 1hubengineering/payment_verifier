@@ -2,15 +2,18 @@ import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { lookup } from 'node:dns';
 import { request } from 'node:https';
+import { connect } from 'node:tls';
+import type { ConnectionOptions, TLSSocket } from 'node:tls';
 import type { ClientRequest, IncomingMessage } from 'node:http';
 import type { RequestOptions } from 'node:https';
 import { beforeEach, describe, expect, it, vi } from 'vite-plus/test';
-import { isPublicDestination, retrieveHtml } from './https.ts';
+import { checkProviderConnectivity, isPublicDestination, retrieveHtml } from './https.ts';
 import { normalizeReceiptLocator } from './locator.ts';
 import { retrieveTelebirr } from './index.ts';
 
 vi.mock('node:https', () => ({ request: vi.fn() }));
 vi.mock('node:dns', () => ({ lookup: vi.fn() }));
+vi.mock('node:tls', () => ({ connect: vi.fn() }));
 const locator = normalizeReceiptLocator('telebirr', 'TEST1234AB');
 let addresses = ['8.8.8.8'];
 let responseStatus = 200;
@@ -291,7 +294,7 @@ describe('bounded HTTPS with local transport/DNS mocks', () => {
     ];
     expect(await retrieveTelebirr('TEST1234AB')).toMatchObject({
       kind: 'EVIDENCE',
-      provenance: { kind: 'OFFICIAL_HTTPS', url: locator.url, parserVersion: 'telebirr-html-3' },
+      provenance: { kind: 'OFFICIAL_HTTPS', url: locator.url, parserVersion: 'telebirr-html-5' },
       evidence: { transactionId: 'TEST1234AB' },
     });
   });
@@ -305,4 +308,75 @@ describe('public IPv4 destination classification', () => {
     'fails closed for %s',
     (address) => expect(isPublicDestination(address)).toBe(false),
   );
+});
+
+describe('receipt-free deployment preflight', () => {
+  function fakeSocket(event?: 'secureConnect' | 'error', code?: string) {
+    const socket = Object.assign(new EventEmitter(), { destroy: vi.fn(), write: vi.fn() });
+    vi.mocked(connect).mockImplementation(() => {
+      if (event)
+        queueMicrotask(() => socket.emit(event, Object.assign(new Error('private'), { code })));
+      return socket as unknown as TLSSocket;
+    });
+    return socket;
+  }
+
+  it('checks both pinned CBE hostnames without sending HTTP', async () => {
+    const socket = fakeSocket('secureConnect');
+    expect(await checkProviderConnectivity('cbe')).toEqual([
+      { hostname: 'mbreciept.cbe.com.et', route: 'direct' },
+      { hostname: 'mb.cbe.com.et', route: 'direct' },
+    ]);
+    const options = vi.mocked(connect).mock.calls.map(([value]) => value as ConnectionOptions);
+    expect(options.map(({ servername }) => servername)).toEqual([
+      'mbreciept.cbe.com.et',
+      'mb.cbe.com.et',
+    ]);
+    expect(options[0]).toMatchObject({
+      family: 4,
+      port: 443,
+      rejectUnauthorized: true,
+      minVersion: 'TLSv1.2',
+      lookup: expect.any(Function),
+    });
+    expect(socket.destroy).toHaveBeenCalledTimes(2);
+    expect(socket.write).not.toHaveBeenCalled();
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it('uses the Telebirr tunnel with official SNI and returns a safe offline diagnostic', async () => {
+    fakeSocket('error', 'ENOENT');
+    const path = '/run/test/receipt.sock';
+    expect(await checkProviderConnectivity('telebirr', { telebirrTunnelSocket: path })).toEqual([
+      {
+        hostname: 'transactioninfo.ethiotelecom.et',
+        route: 'telebirr-tunnel',
+        error: {
+          code: 'PROVIDER_NETWORK_ERROR',
+          details: { transportCode: 'TELEBIRR_TUNNEL_OFFLINE' },
+        },
+      },
+    ]);
+    expect(connect).toHaveBeenCalledExactlyOnceWith({
+      path,
+      servername: 'transactioninfo.ethiotelecom.et',
+      rejectUnauthorized: true,
+      minVersion: 'TLSv1.2',
+    });
+    await expect(checkProviderConnectivity('cbe', { telebirrTunnelSocket: path })).rejects.toThrow(
+      TypeError,
+    );
+  });
+
+  it('reports invalid provider certificates and bounds stalled handshakes', async () => {
+    fakeSocket('error', 'ERR_TLS_CERT_ALTNAME_INVALID');
+    expect(await checkProviderConnectivity('telebirr')).toMatchObject([
+      { error: { code: 'PROVIDER_TLS_ERROR' } },
+    ]);
+    const stalled = fakeSocket();
+    expect(await checkProviderConnectivity('telebirr', { timeoutMs: 5 })).toMatchObject([
+      { error: { code: 'PROVIDER_TIMEOUT' } },
+    ]);
+    expect(stalled.destroy).toHaveBeenCalled();
+  });
 });

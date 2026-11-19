@@ -21,11 +21,21 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import { TransferDetails } from './evidence-fields';
 import { PAYMENT_INPUT_LIMIT } from '@1hubengineering/verifier/input';
-import type { VerificationStatus } from '@1hubengineering/verifier';
+import {
+  checkRows,
+  describeOutcome,
+  Textarea,
+  useVerificationHistory,
+  VerificationDialog,
+  VerificationHistory,
+} from '@1hubengineering/payment-web-ui';
+import type { Outcome } from '@1hubengineering/payment-web-ui';
+import type { VerificationCheck, VerificationStatus } from '@1hubengineering/verifier';
 
 export type ReceiptResult = {
   readonly status: VerificationStatus | 'RECEIPT_ALREADY_CLAIMED';
   readonly retryable: boolean;
+  readonly checks?: readonly VerificationCheck[];
 };
 
 export interface ReceiptSubmission {
@@ -61,34 +71,10 @@ export interface CheckoutProps {
   sections?: { receiptHelp?: ReactNode; orderFooter?: ReactNode };
 }
 
-type Status = ReceiptResult['status'] | 'idle' | 'submitting' | 'error';
-
-const resultCopy: Record<ReceiptResult['status'] | 'error', { title: string; detail: string }> = {
-  VERIFIED: { title: 'Payment verified', detail: 'The official receipt matches this order.' },
-  MISMATCH: {
-    title: 'Receipt details did not match',
-    detail: 'Check the payment details or contact the merchant.',
-  },
-  UNAVAILABLE: {
-    title: 'Receipt could not be checked',
-    detail: 'The provider could not supply enough reliable information.',
-  },
-  INVALID_INPUT: {
-    title: 'Receipt input not accepted',
-    detail: 'Check your receipt number, link, or message.',
-  },
-  NOT_FOUND: {
-    title: 'Receipt not found',
-    detail: 'Check the confirmation from your payment provider.',
-  },
-  RECEIPT_ALREADY_CLAIMED: {
-    title: 'Receipt already submitted',
-    detail: 'This transaction has already been recorded.',
-  },
-  error: {
-    title: 'Could not submit the receipt',
-    detail: 'Retry this submission or contact the merchant.',
-  },
+type Attempt = {
+  outcome: Outcome;
+  context: string;
+  checks?: readonly VerificationCheck[];
 };
 
 export function OrderSummary({
@@ -151,13 +137,12 @@ export function ReceiptCheckout({
   const [selectedMethod, setSelectedMethod] = useState<string>();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
-  const [status, setStatus] = useState<Status>('idle');
+  const [pending, setPending] = useState(false);
+  const attempts = useVerificationHistory<Attempt>();
   const method = paymentMethods.find((option) => option.id === selectedMethod) ?? paymentMethods[0];
   const draftKey = method?.id ?? '';
   const reference = drafts[draftKey] ?? '';
   const sample = method && evidence?.sample?.(method.id);
-  const pending = status === 'submitting';
-  const result = status === 'idle' || status === 'submitting' ? null : resultCopy[status];
   const [retry, setRetry] = useState(false);
 
   useEffect(
@@ -169,7 +154,6 @@ export function ReceiptCheckout({
   );
 
   function resetFeedback(): void {
-    setStatus('idle');
     setRetry(false);
     setError('');
   }
@@ -191,7 +175,6 @@ export function ReceiptCheckout({
         : (evidence?.validate?.(submission) ?? validateReference?.(trimmed));
     if (validation) {
       setError(validation);
-      setStatus('idle');
       document.getElementById(`${identifier}-reference`)?.focus();
       return;
     }
@@ -199,23 +182,36 @@ export function ReceiptCheckout({
     const request = new AbortController();
     activeRequest.current = request;
     setError('');
-    setStatus('submitting');
+    setPending(true);
+    const trigger = event.currentTarget.querySelector<HTMLButtonElement>('button[type="submit"]');
+    const context = evidence?.simulated ? `Simulated · ${method.label}` : method.label;
     try {
       const outcome = await onSubmitReceipt({
         ...submission,
         signal: request.signal,
       });
       if (activeRequest.current === request) {
-        setStatus(outcome.status);
+        attempts.save(
+          {
+            outcome: describeOutcome(outcome.status, { simulated: evidence?.simulated }),
+            context,
+            ...(outcome.checks ? { checks: outcome.checks } : {}),
+          },
+          context,
+          trigger,
+        );
         setRetry(outcome.retryable);
       }
     } catch {
       if (activeRequest.current === request) {
-        setStatus('error');
+        attempts.save({ outcome: describeOutcome('error'), context }, context, trigger);
         setRetry(true);
       }
     } finally {
-      if (activeRequest.current === request) activeRequest.current = null;
+      if (activeRequest.current === request) {
+        activeRequest.current = null;
+        setPending(false);
+      }
     }
   }
 
@@ -237,151 +233,155 @@ export function ReceiptCheckout({
   };
 
   return (
-    <div className={evidence ? 'checkout-layout evidence-checkout' : 'checkout-layout'}>
-      <OrderSummary branding={branding} order={order} footer={sections?.orderFooter} />
-      <Card className="receipt-card">
-        <CardHeader>
-          <p className="eyebrow">{evidence ? 'PAYMENT INSTRUCTIONS' : 'RECEIPT VERIFICATION'}</p>
-          <CardTitle>
-            <h2>{evidence ? 'Choose how to pay' : 'Check a receipt'}</h2>
-          </CardTitle>
-          <CardDescription>
-            {evidence?.simulated
-              ? 'These details are examples. Do not send money.'
-              : evidence
-                ? 'Use the account details for your selected method.'
-                : 'Choose the method used and enter the receipt reference.'}
-          </CardDescription>
-        </CardHeader>
-        <form
-          noValidate
-          onSubmit={(event) => {
-            void submit(event);
-          }}
-        >
-          <CardContent>
-            {method ? (
-              <FieldGroup>
-                <FieldSet disabled={pending}>
-                  <FieldLegend>Payment method</FieldLegend>
-                  <div className="method-list">
-                    {paymentMethods.map((option) => (
-                      <label className="method-option" key={option.id}>
-                        <input
-                          type="radio"
-                          name={`${identifier}-method`}
-                          checked={option.id === method.id}
-                          onChange={() => {
-                            setSelectedMethod(option.id);
-                            resetFeedback();
-                          }}
-                        />
-                        {option.logo && <img src={option.logo} alt="" className="method-logo" />}
-                        <span>
-                          <strong>{option.label}</strong>
-                          {option.subtitle && (
-                            <span className="method-subtitle">{option.subtitle}</span>
-                          )}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                  <FieldDescription>{method.instructions}</FieldDescription>
-                </FieldSet>
-                {method.receiving && (
-                  <TransferDetails
-                    key={method.id}
-                    details={[
-                      { label: 'Account holder', value: method.receiving.holder },
-                      { label: method.receiving.accountLabel, value: method.receiving.account },
-                      {
-                        label: 'Amount',
-                        value: order.totalLabel,
-                        copy: order.copyAmount ?? order.totalLabel,
-                      },
-                      { label: 'Invoice number', value: order.reference },
-                    ]}
-                  />
-                )}
-                <Field
-                  data-invalid={error ? true : undefined}
-                  data-disabled={pending ? true : undefined}
-                >
-                  <FieldLabel htmlFor={fieldProps.id}>Receipt reference</FieldLabel>
-                  <textarea
-                    {...fieldProps}
-                    rows={3}
-                    className="evidence-textarea"
-                    onChange={(event) => updateReference(event.target.value)}
-                  />
-                  {evidence && (
-                    <FieldDescription id={`${identifier}-hint`}>
-                      {evidence.simulated
-                        ? 'Use the sample or paste a synthetic transaction number, receipt link, or SMS.'
-                        : 'Paste a transaction number, receipt link, or full SMS.'}
-                    </FieldDescription>
+    <>
+      {/* Order review and payment columns adapted from Shadcnblocks Checkout 4. */}
+      <div className="checkout-layout">
+        <Card className="receipt-card">
+          <CardHeader>
+            <CardTitle>
+              <h2>{evidence ? 'Choose how to pay' : 'Check a receipt'}</h2>
+            </CardTitle>
+            <CardDescription>
+              {evidence?.simulated
+                ? 'These details are examples. Do not send money.'
+                : evidence
+                  ? 'Use the account details for your selected method.'
+                  : 'Choose the method used and enter the receipt reference.'}
+            </CardDescription>
+          </CardHeader>
+          <form
+            noValidate
+            aria-busy={pending}
+            onSubmit={(event) => {
+              void submit(event);
+            }}
+          >
+            <CardContent>
+              {method ? (
+                <FieldGroup>
+                  <FieldSet disabled={pending}>
+                    <FieldLegend>Payment method</FieldLegend>
+                    <div className="method-list">
+                      {paymentMethods.map((option) => (
+                        <label className="method-option" key={option.id}>
+                          <input
+                            type="radio"
+                            name={`${identifier}-method`}
+                            checked={option.id === method.id}
+                            onChange={() => {
+                              setSelectedMethod(option.id);
+                              resetFeedback();
+                            }}
+                          />
+                          {option.logo && <img src={option.logo} alt="" className="method-logo" />}
+                          <span>
+                            <strong>{option.label}</strong>
+                            {option.subtitle && (
+                              <span className="method-subtitle">{option.subtitle}</span>
+                            )}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                    <FieldDescription>{method.instructions}</FieldDescription>
+                  </FieldSet>
+                  {method.receiving && (
+                    <TransferDetails
+                      key={method.id}
+                      details={[
+                        { label: 'Account holder', value: method.receiving.holder },
+                        { label: method.receiving.accountLabel, value: method.receiving.account },
+                        {
+                          label: 'Amount',
+                          value: order.totalLabel,
+                          copy: order.copyAmount ?? order.totalLabel,
+                        },
+                        { label: 'Invoice number', value: order.reference },
+                      ]}
+                    />
                   )}
-                  {error && (
-                    <p id={`${identifier}-error`} role="alert">
-                      {error}
-                    </p>
-                  )}
-                </Field>
-                {sample && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="sample-button"
-                    disabled={pending}
-                    onClick={() => updateReference(sample)}
+                  <Field
+                    data-invalid={error ? true : undefined}
+                    data-disabled={pending ? true : undefined}
                   >
-                    Use sample SMS
-                  </Button>
-                )}
-              </FieldGroup>
-            ) : (
-              <Alert>
-                <AlertTitle>No payment methods configured</AlertTitle>
-                <AlertDescription>
-                  Contact the merchant for help checking a receipt.
-                </AlertDescription>
-              </Alert>
-            )}
-            {sections?.receiptHelp}
-          </CardContent>
-          <CardFooter className="flex-col items-stretch gap-3">
-            <Button type="submit" size="lg" disabled={pending || !method}>
-              {pending && (
-                <Spinner data-icon="inline-start" aria-hidden="true" role="presentation" />
-              )}
-              {pending
-                ? 'Checking receipt…'
-                : evidence && !retry
-                  ? 'Submit Payment for Verification'
-                  : retry
-                    ? 'Retry receipt check'
-                    : 'Check receipt'}
-            </Button>
-            <div role="status" aria-live="polite" aria-atomic="true">
-              {pending && <span className="sr-only">Checking receipt…</span>}
-              {result && (
-                <Alert role="presentation" variant={status === 'error' ? 'destructive' : 'default'}>
-                  <AlertTitle>
-                    {evidence?.simulated && status === 'VERIFIED'
-                      ? 'Simulated verification'
-                      : result.title}
-                  </AlertTitle>
+                    <FieldLabel htmlFor={fieldProps.id}>Receipt reference</FieldLabel>
+                    <Textarea
+                      {...fieldProps}
+                      rows={3}
+                      className="evidence-textarea"
+                      onChange={(event) => updateReference(event.target.value)}
+                    />
+                    {evidence && (
+                      <FieldDescription id={`${identifier}-hint`}>
+                        {evidence.simulated
+                          ? 'Use the sample or paste a synthetic transaction number, receipt link, or SMS.'
+                          : 'Paste a transaction number, receipt link, or full SMS.'}
+                      </FieldDescription>
+                    )}
+                    {error && (
+                      <p id={`${identifier}-error`} role="alert">
+                        {error}
+                      </p>
+                    )}
+                  </Field>
+                  {sample && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="sample-button"
+                      disabled={pending}
+                      onClick={() => updateReference(sample)}
+                    >
+                      Use sample SMS
+                    </Button>
+                  )}
+                </FieldGroup>
+              ) : (
+                <Alert>
+                  <AlertTitle>No payment methods configured</AlertTitle>
                   <AlertDescription>
-                    {evidence?.simulated && status === 'VERIFIED'
-                      ? 'The sample passed the checks against a simulated provider record.'
-                      : result.detail}
+                    Contact the merchant for help checking a receipt.
                   </AlertDescription>
                 </Alert>
               )}
-            </div>
-          </CardFooter>
-        </form>
-      </Card>
-    </div>
+              {sections?.receiptHelp}
+            </CardContent>
+            <CardFooter className="flex-col items-stretch gap-3">
+              <Button type="submit" size="lg" disabled={pending || !method}>
+                {pending && (
+                  <Spinner data-icon="inline-start" aria-hidden="true" role="presentation" />
+                )}
+                {pending
+                  ? 'Checking receipt…'
+                  : evidence && !retry
+                    ? 'Submit Payment for Verification'
+                    : retry
+                      ? 'Retry receipt check'
+                      : 'Check receipt'}
+              </Button>
+            </CardFooter>
+          </form>
+          <p role="status" className="sr-only">
+            {pending ? 'Checking receipt…' : ''}
+          </p>
+        </Card>
+        <OrderSummary branding={branding} order={order} footer={sections?.orderFooter} />
+      </div>
+      <VerificationHistory
+        entries={attempts.history.map(({ value, ...entry }) => ({
+          ...entry,
+          outcome: value.outcome,
+        }))}
+        detail="Attempts from this page session. Select a row to review its result."
+        onOpen={attempts.open}
+      />
+      <VerificationDialog
+        outcome={attempts.selected?.outcome}
+        context={attempts.selected?.context ?? ''}
+        checks={checkRows(attempts.selected?.checks ?? [])}
+        onClose={attempts.close}
+        restoreFocus={attempts.restoreFocus}
+      />
+    </>
   );
 }

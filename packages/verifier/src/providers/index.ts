@@ -12,8 +12,19 @@ export { parseReceiptHtml, parseProviderTime } from './extraction.ts';
 export type { ParsedReceipt } from './extraction.ts';
 export { normalizeReceiptLocator } from './locator.ts';
 export type { ReceiptLocator } from './locator.ts';
-export { retrieveHtml, RetrievalError, isPublicDestination } from './https.ts';
-export type { RetrievalOptions, RetrievedHtml, RetrievalErrorCode } from './https.ts';
+export { cbeReceiptDataHost } from '../input-syntax.ts';
+export {
+  checkProviderConnectivity,
+  retrieveHtml,
+  RetrievalError,
+  isPublicDestination,
+} from './https.ts';
+export type {
+  ProviderConnectionCheck,
+  RetrievalOptions,
+  RetrievedHtml,
+  RetrievalErrorCode,
+} from './https.ts';
 
 export type ProviderResult =
   | {
@@ -75,7 +86,7 @@ export function interpretOfficialHtml(
         url: locator.url,
         retrievedAt,
         sha256: createHash('sha256').update(retrievedHtml).digest('hex'),
-        parserVersion: locator.provider === 'telebirr' ? 'telebirr-html-3' : '2',
+        parserVersion: locator.provider === 'telebirr' ? 'telebirr-html-5' : '3',
       },
     };
   } catch (error) {

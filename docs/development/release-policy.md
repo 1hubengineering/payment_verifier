@@ -1,9 +1,8 @@
 # Release policy
 
-The first library release is 0.1.0. All five library packages share a version:
-receipt-verifier, receipt-verifier-storage-sql, receipt-verifier-adapter-drizzle,
-receipt-verifier-adapter-prisma and receipt-verifier-provider-cbe, under the personal
-@1hubengineering namespace. Root, CLI, worker, example and test packages stay private.
+All five SDK packages share a version under `@1hubengineering`: verifier,
+storage-sql, adapter-drizzle, adapter-prisma and provider-cbe. Root, CLI, worker,
+playground, benchmark, UI, example and test packages remain private.
 ESM and exact [validated compatibility](compatibility.md) define the initial surface;
 pre-1.0 contract changes require a documented minor release. Fixes use patch versions.
 A new engine/client promise requires real contract and installed-consumer tests.

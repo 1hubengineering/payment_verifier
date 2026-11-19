@@ -8,39 +8,157 @@
   </head>
   <body class="developer-site">
     <!-- developer-nav -->
-    <main id="main" class="site-shell docs-main" tabindex="-1">
-      <article class="docs-content">
-        <h1>Benchmark observations</h1>
+    <main id="main" class="site-shell benchmark-page" tabindex="-1">
+      <header class="page-heading">
+        <p class="ui-label">SDK 0.2.0 candidate · 19 November 2026</p>
+        <h1>Verification benchmarks</h1>
         <p>
-          Measured on 19 November 2026 using SDK 0.2.0 source candidate <code>f441981</code>. Each
-          row came from one bounded run on a shared VPS.
+          How fast the SDK processed synthetic receipts and committed claims to SQLite on a shared
+          VPS.
         </p>
-        <h2>Tested environment</h2>
+      </header>
+
+      <section class="benchmark-lead" aria-labelledby="takeaway">
+        <h2 id="takeaway">More parallel work raised throughput and tail latency</h2>
         <p>
-          Four AMD EPYC virtual CPUs, 7.75 GiB host RAM, Ubuntu 26.04.1 LTS, Linux 7.0.0, Docker
-          29.1.3 and Compose 2.40.3. The backend container was capped at two vCPUs and 768 MiB. The
-          workload used Node.js 26.13.1 and SQLite 3.54.1 through the direct SQL adapter on an
-          ext4-backed Docker volume.
+          In two runs of 300 successful receipts, raising concurrency from one to four increased
+          throughput from <strong>131.6 to 322.6 attempts/s</strong>. The time within which 95% of
+          attempts finished rose from <strong>9.69 to 52.32 ms</strong>. Each setting was run once.
         </p>
-        <h2>Synthetic workload results</h2>
-        <div class="doc-table" role="region" tabindex="0" aria-label="Benchmark measurements">
-          <table>
+      </section>
+
+      <section class="benchmark-section" aria-labelledby="comparison">
+        <h2 id="comparison">Successful receipts at concurrency 1 and 4</h2>
+        <p>
+          Both runs used 300 scenarios and one attempt per scenario. Concurrency is the maximum
+          number of scenarios running at once.
+        </p>
+        <!-- Adapted from Shadcnblocks Chart Group 1. -->
+        <div class="benchmark-comparison">
+          <figure class="metric-chart">
+            <h3>Throughput</h3>
+            <p>Attempts per second. Higher means more work finished in the same time.</p>
+            <div class="metric-bar">
+              <span>Concurrency 1</span><meter value="131.6" max="350" aria-hidden="true"></meter
+              ><strong>131.6 attempts/s</strong>
+            </div>
+            <div class="metric-bar">
+              <span>Concurrency 4</span><meter value="322.6" max="350" aria-hidden="true"></meter
+              ><strong>322.6 attempts/s</strong>
+            </div>
+          </figure>
+          <figure class="metric-chart">
+            <h3>95th-percentile latency</h3>
+            <p>Milliseconds per attempt. Lower means less waiting even for slower attempts.</p>
+            <div class="metric-bar">
+              <span>Concurrency 1</span><meter value="9.69" max="60" aria-hidden="true"></meter
+              ><strong>9.69 ms</strong>
+            </div>
+            <div class="metric-bar">
+              <span>Concurrency 4</span><meter value="52.32" max="60" aria-hidden="true"></meter
+              ><strong>52.32 ms</strong>
+            </div>
+          </figure>
+        </div>
+      </section>
+
+      <section class="benchmark-section" aria-labelledby="workloads">
+        <h2 id="workloads">What the other workloads tested</h2>
+        <dl class="metric-definitions">
+          <div>
+            <dt>60 successful receipts</dt>
+            <dd>
+              The shorter serial run measured 130.3 attempts/s. Use the two 300-scenario runs for
+              the concurrency comparison.
+            </dd>
+          </div>
+          <div>
+            <dt>Mixed outcomes</dt>
+            <dd>
+              Fifty scenarios each covered a match, three kinds of mismatch, a missing receipt and a
+              simulated network failure. Outcomes can finish through different code paths.
+            </dd>
+          </div>
+          <div>
+            <dt>Recovery</dt>
+            <dd>
+              300 scenarios generated 800 attempts because the workload injected timeouts, network
+              failures and lost commit responses, then exercised recovery.
+            </dd>
+          </div>
+          <div>
+            <dt>Claim contention</dt>
+            <dd>
+              300 scenarios formed 150 pairs competing for the same receipt within each pair. Every
+              pair produced one winning claim and one duplicate-claim rejection.
+            </dd>
+          </div>
+        </dl>
+        <p>
+          Every workload met its expected outcome assertions. Compare throughput and latency within
+          the same workload and sample size. The mixed, recovery and contention runs exercise
+          different code paths and do not rank success capacity.
+        </p>
+      </section>
+
+      <section class="benchmark-section" aria-labelledby="metrics">
+        <h2 id="metrics">Run data and metric definitions</h2>
+        <dl class="metric-definitions">
+          <div>
+            <dt>Scenarios and attempts (counts)</dt>
+            <dd>
+              Scenarios are test cases. Attempts count individual verification calls, including
+              retries. These are sample sizes.
+            </dd>
+          </div>
+          <div>
+            <dt>Throughput (attempts/s)</dt>
+            <dd>Attempts divided by measured elapsed time. Higher is better for equal work.</dd>
+          </div>
+          <div>
+            <dt>Latency (ms)</dt>
+            <dd>
+              p50, p95 and p99 mark the times within which 50%, 95% and 99% of attempts finished.
+              Lower means faster responses. These use nearest rank.
+            </dd>
+          </div>
+          <div>
+            <dt>CPU (average cores)</dt>
+            <dd>
+              Process CPU time divided by elapsed time. 1.00 means one core on average. Lower uses
+              less CPU at equal throughput.
+            </dd>
+          </div>
+          <div>
+            <dt>Peak resident memory (MiB)</dt>
+            <dd>
+              The benchmark process’s memory high-water mark, including initialization. Lower uses
+              less memory under equivalent conditions.
+            </dd>
+          </div>
+        </dl>
+        <div class="doc-table" role="region" tabindex="0" aria-label="All six benchmark runs">
+          <table class="ui-table">
+            <caption>
+              Recorded aggregate measurements. Each row is one run.
+            </caption>
             <thead>
               <tr>
                 <th scope="col">Workload</th>
                 <th scope="col">Concurrency</th>
                 <th scope="col">Scenarios</th>
                 <th scope="col">Attempts</th>
-                <th scope="col">Attempts/s</th>
+                <th scope="col">Throughput (attempts/s)</th>
                 <th scope="col">p50 (ms)</th>
                 <th scope="col">p95 (ms)</th>
                 <th scope="col">p99 (ms)</th>
-                <th scope="col">Peak RSS (MiB)</th>
+                <th scope="col">CPU (cores)</th>
+                <th scope="col">Peak memory (MiB)</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <th scope="row">Successful receipts</th>
+                <th scope="row">Success</th>
                 <td>1</td>
                 <td>60</td>
                 <td>60</td>
@@ -48,10 +166,11 @@
                 <td>6.04</td>
                 <td>7.81</td>
                 <td>52.56</td>
+                <td>0.82</td>
                 <td>88.9</td>
               </tr>
               <tr>
-                <th scope="row">Successful receipts</th>
+                <th scope="row">Success</th>
                 <td>1</td>
                 <td>300</td>
                 <td>300</td>
@@ -59,10 +178,11 @@
                 <td>5.77</td>
                 <td>9.69</td>
                 <td>59.81</td>
+                <td>0.64</td>
                 <td>96.0</td>
               </tr>
               <tr>
-                <th scope="row">Successful receipts</th>
+                <th scope="row">Success</th>
                 <td>4</td>
                 <td>300</td>
                 <td>300</td>
@@ -70,6 +190,7 @@
                 <td>7.54</td>
                 <td>52.32</td>
                 <td>75.14</td>
+                <td>1.00</td>
                 <td>97.9</td>
               </tr>
               <tr>
@@ -81,6 +202,7 @@
                 <td>5.89</td>
                 <td>18.02</td>
                 <td>28.54</td>
+                <td>1.12</td>
                 <td>98.0</td>
               </tr>
               <tr>
@@ -92,6 +214,7 @@
                 <td>5.02</td>
                 <td>53.14</td>
                 <td>81.10</td>
+                <td>0.81</td>
                 <td>101.9</td>
               </tr>
               <tr>
@@ -103,32 +226,39 @@
                 <td>9.02</td>
                 <td>76.90</td>
                 <td>91.40</td>
+                <td>0.87</td>
                 <td>97.6</td>
               </tr>
             </tbody>
           </table>
         </div>
-        <p>
-          Each workload used 10 warm-up scenarios, 3 ms mock provider delay and a 50 ms timeout
-          budget. Attempt latency uses nearest-rank percentiles after warm-up. The recovery workload
-          intentionally produced provider timeouts in 25% of attempts and exercised replay and
-          lost-commit-response recovery. Every row completed its expected outcome assertions.
-          Process CPU averaged 0.64 to 1.12 cores across the rows.
-        </p>
-        <h2>Chromium and hosting</h2>
-        <p>
-          A separate sandbox check measured about 1.20 seconds to launch Chromium 159.0.8154.6
-          (Playwright 1.65.1) and 0.36 seconds to render a small local page. Container memory
-          increased from about 136 MiB to 295 MiB during that probe.
-        </p>
-        <p>
-          For a similar internal trial, start with concurrency 1 within the tested container
-          allocation and measure on the target volume before raising concurrency. At concurrency 4,
-          successful receipts had higher throughput and a higher p95 than at concurrency 1. These
-          trials cover synthetic SDK work and a local browser probe. Live provider latency,
-          production capacity and minimum hardware requirements remain unmeasured.
-        </p>
-      </article>
+        <details class="ui-disclosure">
+          <summary>Test environment and Chromium probe</summary>
+          <p>
+            Source candidate <code>f441981</code>. Shared AMD EPYC VPS with four vCPUs and 7.75 GiB
+            RAM. Ubuntu 26.04.1 LTS, Linux 7.0.0, Docker 29.1.3 and Compose 2.40.3. The backend
+            container was limited to two vCPUs and 768 MiB. Node.js 26.13.1 and SQLite 3.54.1 used
+            the direct SQL adapter with an ext4-backed Docker volume.
+          </p>
+          <p>
+            Each workload used ten warm-up scenarios, a 3 ms mock provider delay, and a 50 ms
+            timeout budget. The measured interval excludes warm-up and expectation registration.
+            Receipt HTML parsing and Chromium were outside the benchmark.
+          </p>
+          <p>
+            In a separate local probe, Chromium 159.0.8154.6 under Playwright 1.65.1 took about 1.20
+            seconds to launch and 0.36 seconds to render a small page. Container memory rose from
+            about 136 MiB to 295 MiB while the browser was open. Live provider latency and
+            production capacity were outside the test scope.
+          </p>
+          <p>
+            <a
+              href="https://github.com/1hubengineering/payment_verifier/blob/main/docs/development/reports/v0.2.0-vps-validation.md#measured-results"
+              >Open the recorded measurements and test notes</a
+            >
+          </p>
+        </details>
+      </section>
     </main>
   </body>
 </html>

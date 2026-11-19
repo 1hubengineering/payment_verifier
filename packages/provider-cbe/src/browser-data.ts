@@ -1,7 +1,10 @@
 import { lookup } from 'node:dns/promises';
-import { isPublicDestination, RetrievalError } from '@1hubengineering/verifier/providers';
+import {
+  cbeReceiptDataHost as cbeDataHost,
+  isPublicDestination,
+  RetrievalError,
+} from '@1hubengineering/verifier/providers';
 import type { ReceiptLocator, RetrievalOptions } from '@1hubengineering/verifier/providers';
-import { cbeDataHost } from './data.ts';
 import { launchCbeBrowser } from './render.ts';
 
 const dataHeaders = {

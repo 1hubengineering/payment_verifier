@@ -21,6 +21,7 @@
     "react-dom": "19.3.1"
   },
   "devDependencies": {
+    "@1hubengineering/payment-web-ui": "workspace:*",
     "@tailwindcss/postcss": "4.3.5",
     "@testing-library/react": "16.3.3",
     "@types/react": "19.3.0",

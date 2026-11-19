@@ -69,10 +69,8 @@ describe('ReceiptCheckout', () => {
       signal: expect.any(AbortSignal),
     });
     await act(async () => deferred.resolve({ status: 'VERIFIED', retryable: false }));
-    expect(screen.getByRole('status').textContent).toContain('Payment verified');
-    expect(screen.getByRole('status').textContent).toContain(
-      'The official receipt matches this order.',
-    );
+    const result = await screen.findByRole('dialog', { name: 'Payment verified' });
+    expect(result.textContent).toContain('The official receipt matches this order.');
   });
 
   it('preserves the receipt for an explicit retry after provider unavailability', async () => {
@@ -83,10 +81,12 @@ describe('ReceiptCheckout', () => {
     render(<ReceiptCheckout {...props} onSubmitReceipt={callback} />);
     fill();
     submit();
-    await screen.findByText('Receipt could not be checked');
+    await screen.findByRole('dialog', { name: 'Receipt could not be checked' });
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(callback).toHaveBeenCalledTimes(1);
     submit('Retry receipt check');
-    await screen.findByText('Receipt details did not match');
+    await screen.findByRole('dialog', { name: 'Receipt details did not match' });
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(
       callback.mock.calls.map(([{ reference, paymentMethodId }]) => ({
         reference,
@@ -108,10 +108,11 @@ describe('ReceiptCheckout', () => {
     render(<ReceiptCheckout {...props} onSubmitReceipt={callback} />);
     fill();
     submit();
-    await screen.findByText('Could not submit the receipt');
+    await screen.findByRole('dialog', { name: 'Could not submit the receipt' });
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(screen.queryByText('internal provider details')).toBeNull();
     submit('Retry receipt check');
-    await screen.findByText('Receipt input not accepted');
+    await screen.findByRole('dialog', { name: 'Receipt input not accepted' });
   });
 
   it('aborts in-flight work when the host unmounts an order', async () => {
@@ -197,9 +198,16 @@ describe('Ethiopian checkout', () => {
     expect(callback).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Use sample SMS' }));
     submit('Submit Payment for Verification');
-    await screen.findByText('Simulated verification');
-    expect(screen.getByText(/passed the checks against a simulated provider record/)).toBeTruthy();
+    const result = await screen.findByRole('dialog', { name: 'Simulated verification' });
+    expect(result.textContent).toContain('passed the checks against a simulated provider record');
+    expect(result.textContent).toContain('ETB 1,480.00');
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    const [saved] = screen.getAllByRole('button', { name: /View result/ });
+    fireEvent.click(saved!);
+    await screen.findByRole('dialog', { name: 'Simulated verification' });
+    expect(callback).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     submit('Submit Payment for Verification');
-    await screen.findByText('Receipt already submitted');
+    await screen.findByRole('dialog', { name: 'Receipt already submitted' });
   });
 });

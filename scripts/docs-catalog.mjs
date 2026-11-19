@@ -1,4 +1,11 @@
-export const version = '0.2.0';
+export const version = '0.3.0';
+export const sdkPackages = [
+  'verifier',
+  'storage-sql',
+  'adapter-drizzle',
+  'adapter-prisma',
+  'provider-cbe',
+];
 export const repository = 'https://github.com/1hubengineering/payment_verifier';
 export const pages = 'https://1hubengineering.github.io/payment_verifier/';
 

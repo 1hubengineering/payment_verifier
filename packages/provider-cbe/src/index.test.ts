@@ -59,6 +59,41 @@ describe('CBE public receipt data', () => {
     vi.mocked(retrieveCbeDataInBrowser).mockResolvedValue(JSON.stringify(receipt));
   });
 
+  it('matches a free-text service reason independently of the VAT invoice number', async () => {
+    const reference = 'ክፍያ  / Invoice #42';
+    vi.mocked(retrieveCbeDataInBrowser).mockResolvedValue(
+      JSON.stringify({ ...receipt, description: reference }),
+    );
+    const result = await createCbeProvider().retrieve(url);
+    expect(result.kind).toBe('EVIDENCE');
+    if (result.kind !== 'EVIDENCE') return;
+    expect(result.evidence).toMatchObject({ reference, transactionId: receipt.id });
+    const order = createPaymentExpectation({ ...expected, reference });
+    expect(compareReceipt(order, result.evidence).status).toBe('MATCH');
+  });
+
+  it('distinguishes a blank service reason from an invalid or nonblank one', async () => {
+    const order = createPaymentExpectation({
+      ...expected,
+      reference: '',
+      referenceRequired: false,
+    });
+    for (const [description, status] of [
+      ['', 'MATCH'],
+      ['-', 'MISMATCH'],
+      ['x'.repeat(256), 'INCOMPLETE'],
+      [123, 'INCOMPLETE'],
+    ] as const) {
+      vi.mocked(retrieveCbeDataInBrowser).mockResolvedValue(
+        JSON.stringify({ ...receipt, description }),
+      );
+      const result = await createCbeProvider().retrieve(url);
+      expect(result.kind).toBe('EVIDENCE');
+      if (result.kind === 'EVIDENCE')
+        expect(compareReceipt(order, result.evidence).status).toBe(status);
+    }
+  });
+
   it('routes the modern receipt through the scoped browser with the remaining budget', async () => {
     const browser = vi.spyOn(chromium, 'launch');
     try {
@@ -74,7 +109,7 @@ describe('CBE public receipt data', () => {
       expect(result.provenance).toMatchObject({
         kind: 'OFFICIAL_HTTPS',
         url,
-        parserVersion: 'cbe-json-1',
+        parserVersion: 'cbe-json-2',
       });
       expect(browser).not.toHaveBeenCalled();
       expect(retrieveCbeDataInBrowser).toHaveBeenCalledOnce();

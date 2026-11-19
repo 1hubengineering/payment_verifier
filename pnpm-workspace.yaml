@@ -2,6 +2,7 @@ packages:
   - packages/*
   - apps/*
   - examples/*
+  - ui/*
   - tests/adapter-contract
 
 minimumReleaseAge: 1440

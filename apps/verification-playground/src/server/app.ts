@@ -172,7 +172,9 @@ export async function createApp(options: Options) {
     if (url.protocol === 'https:') reply.header('strict-transport-security', 'max-age=31536000');
     if (
       (req.method === 'GET' || req.method === 'HEAD') &&
-      (req.url === '/' || req.url === '/health' || /^\/assets\/[\w-]+\.(?:js|css)$/u.test(req.url))
+      (req.url === '/' ||
+        req.url === '/health' ||
+        /^\/assets\/[\w-]+\.(?:js|css|woff2)$/u.test(req.url))
     )
       return;
     const route = req.routeOptions.url;
@@ -434,11 +436,16 @@ export async function createApp(options: Options) {
     );
     app.get<{ Params: { file: string } }>('/assets/:file', async (request, reply) => {
       const { file } = request.params;
-      if (!/^[\w-]+\.(?:js|css)$/u.test(file))
+      if (!/^[\w-]+\.(?:js|css|woff2)$/u.test(file))
         throw new RequestError(404, 'NOT_FOUND', 'Asset not found.');
       const body = await readFile(join(assets, 'assets', file)).catch(() => undefined);
       if (!body) throw new RequestError(404, 'NOT_FOUND', 'Asset not found.');
-      return reply.type(file.endsWith('.css') ? 'text/css' : 'text/javascript').send(body);
+      const mime = file.endsWith('.woff2')
+        ? 'font/woff2'
+        : file.endsWith('.css')
+          ? 'text/css'
+          : 'text/javascript';
+      return reply.type(mime).send(body);
     });
   }
   return app;

@@ -2,11 +2,11 @@
 
 Start with the [developer guide](https://1hubengineering.github.io/payment_verifier/docs/)
 and [searchable API reference](https://1hubengineering.github.io/payment_verifier/api/).
-The [0.2.0 guide sources](0.2.0/) describe the current npm release. The
-[0.1.1 guides](0.1.1/) and [0.1.0 guides](0.1.0/) remain available. The [workspace guide](guide.md)
+The [0.3.0 guide sources](0.3.0/) describe the current npm release. The
+[0.2.0 guides](0.2.0/), [0.1.1 guides](0.1.1/) and [0.1.0 guides](0.1.0/) remain available. The [workspace guide](guide.md)
 covers development, checkout customization and deployment.
 Try the [synthetic checkout](https://1hubengineering.github.io/payment_verifier/demo/)
-or connect an editor using the [Payment Verifier skills and docs MCP](0.2.0/agents.md).
+or connect an editor using the [Payment Verifier skills and docs MCP](0.3.0/agents.md).
 See [contributor setup](development/skills-and-mcp.md) for Drizzle and shadcn tooling.
 
 ## Maintainer References
@@ -29,7 +29,7 @@ authentication and order lookup while keeping settlement and fulfillment indepen
 
 [Compatibility](development/compatibility.md), [migrations](development/migrations.md),
 [release policy](development/release-policy.md),
-[0.2.0 release evidence](development/releases/0.2.0.md), and
+[0.3.0 release evidence](development/releases/0.3.0.md), and
 [third-party notices](../THIRD_PARTY_NOTICES.md) define release boundaries.
 
 [Execution plans](development/plans/) record substantial implementation work.

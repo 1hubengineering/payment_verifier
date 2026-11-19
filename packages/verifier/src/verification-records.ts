@@ -350,6 +350,7 @@ function normalizeEvidence(value: unknown): ReceiptEvidence {
     'paymentType',
   ] as const;
   for (const field of strings) {
+    if (field === 'reference' && raw.reference === '') continue;
     if (raw[field] !== null && !boundedText(raw[field]))
       throw new TypeError('Invalid evidence value');
   }
@@ -368,7 +369,7 @@ function normalizeEvidence(value: unknown): ReceiptEvidence {
     amountMinor: raw.amountMinor as ReceiptEvidence['amountMinor'],
     recipientName: raw.recipientName as ReceiptEvidence['recipientName'],
     recipientAccountLast4: raw.recipientAccountLast4 as ReceiptEvidence['recipientAccountLast4'],
-    reference: raw.reference as ReceiptEvidence['reference'],
+    reference: raw.reference === '' ? null : (raw.reference as ReceiptEvidence['reference']),
     transactionAt: raw.transactionAt as ReceiptEvidence['transactionAt'],
     paymentType: raw.paymentType as ReceiptEvidence['paymentType'],
     ambiguousFields: fieldList(raw.ambiguousFields),

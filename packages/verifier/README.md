@@ -2,8 +2,10 @@
 
 Payment Verifier checks Telebirr and CBE receipts against trusted order data in a Node.js backend.
 The host supplies a configured storage adapter, provider adapters, and its own payment expectations.
+See the [deployment guide](https://github.com/1hubengineering/payment_verifier/blob/main/docs/deployment.md)
+for hosting options, provider reachability and a receipt-free diagnostic.
 
-**0.2.0 requires a fresh verifier store for new installations.** Keep active 0.1.1 stores on
+**Initialize a fresh store for new installations.** Keep active 0.1.1 stores on
 0.1.1 until a supported cutover preserves their existing receipt claims. Rehearse the
 [development cutover](https://github.com/1hubengineering/payment_verifier/blob/main/docs/development/plans/017-verification-contract-0.2.0.md#development-and-testing-store-cutover)
 with disposable test data.
@@ -38,6 +40,10 @@ try {
 
 Hosts choose the provider and the expected amount, recipient, invoice reference, and payment
 window from authorized records. Call `initialize()` after provisioning the storage tables.
+In the current source, the expected reference is free text up to 255 characters and must
+match Telebirr's **Customer Note** or CBE's **Reason / Type of service** exactly.
+To accept a blank note, set `reference: ''` and `referenceRequired: false` on the trusted
+payment expectation. A populated note still fails against a blank expectation.
 It validates the record version and rejects legacy stores. Expectation creation validates and
 freezes a copy. Use `parseEtbAmount` to convert canonical positive decimal ETB amounts to exact
 integer minor units.

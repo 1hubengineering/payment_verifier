@@ -15,7 +15,7 @@ const entries = JSON.parse(
   }),
 );
 const byId = new Map(entries.map((entry) => [`${entry.version}:${entry.id}`, entry]));
-const releaseVersion = z.enum(Object.keys(releases));
+const releaseVersion = z.enum([...Object.keys(releases), version]);
 const annotations = {
   readOnlyHint: true,
   destructiveHint: false,

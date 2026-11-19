@@ -1,6 +1,6 @@
 # Synthetic verification benchmarks
 
-This private CLI measures SDK 0.2.0 against the real SQLite adapter with the
+This private CLI measures SDK 0.3.0 against the real SQLite adapter with the
 shared instrumentation and synthetic Telebirr and CBE provider objects.
 It requires no server, credentials or network. A fresh disposable SQLite store
 is created for each row. The CLI accepts workload settings and has no

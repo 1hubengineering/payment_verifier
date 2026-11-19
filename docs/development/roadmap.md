@@ -26,13 +26,11 @@ The [0.2.0 contract and automatic intake plan](plans/017-verification-contract-0
 supersedes the historical response vocabulary for the source candidate. Published
 versions retain the contract described in their release guides.
 
-The deployed 0.2.0 workspace implements automatic receipt intake, structured outcomes,
-host-owned amount tolerance, and a browser comparison export. The public site
-hosts the [playground](https://1hubengineering.github.io/payment_verifier/playground/)
-and [benchmark results](https://1hubengineering.github.io/payment_verifier/benchmarks/).
-All five packages are published as npm `0.2.0`. The [release evidence](releases/0.2.0.md)
-identifies their source and exact archives. The newer deployment snapshot uses private manifests. See the [VPS validation report](reports/v0.2.0-vps-validation.md)
-for exact builds, checks, and remaining live work.
+The [0.3.0 release notes](releases/0.3.0.md) describe the browser comparison entry
+point, reference policy, provider updates and upgrade steps. The [0.2.0 npm evidence](releases/0.2.0.md)
+retains the original release artifact hashes. The [VPS validation report](reports/v0.2.0-vps-validation.md)
+describes the separate 0.2.0 deployment snapshot. The [web redesign](plans/027-web-redesign.md)
+records the site, report and benchmark design checks.
 
 The [0.2.0 hardening plan](plans/020-verification-release-hardening-0.2.0.md)
 records bound-key conflict handling, typed Chromium startup failures, and

@@ -101,6 +101,7 @@ const parsed = providers.parseReceiptHtml('telebirr', '<html>unsupported</html>'
 assert.equal(parsed.provenance.kind, 'SAVED_HTML');
 assert.equal(core.compareReceipt(expected, parsed.evidence).status, 'INCOMPLETE');
 assert.equal(providers.isPublicDestination('127.0.0.1'), false);
+await assert.rejects(providers.checkProviderConnectivity('cbe', { telebirrTunnelSocket: '/tmp/receipt.sock' }), TypeError);
 `,
   );
   run(process.execPath, ['consumer.mjs'], temporary);
@@ -109,7 +110,9 @@ assert.equal(providers.isPublicDestination('127.0.0.1'), false);
     join(temporary, 'consumer.ts'),
     `
 import { parseEtbAmount, type EtbMinorUnits, type VerificationStatus, type VerificationResult, createPaymentExpectation, compareReceipt, type ReceiptComparison, type ReceiptEvidence }  from '@1hubengineering/verifier';
-import { parseReceiptHtml, normalizeReceiptLocator, type ProviderResult } from '@1hubengineering/verifier/providers';
+import { checkProviderConnectivity, parseReceiptHtml, normalizeReceiptLocator, type ProviderConnectionCheck, type ProviderResult } from '@1hubengineering/verifier/providers';
+const check: (provider: 'telebirr') => Promise<readonly ProviderConnectionCheck[]> = checkProviderConnectivity;
+void check;
 import { createDurableVerifier, type VerificationJob } from '@1hubengineering/verifier/jobs';
 import type { VerificationStorage } from '@1hubengineering/verifier';
 import { parseEtbAmount as parseBrowserAmount, type EtbMinorUnits as BrowserMinorUnits } from '@1hubengineering/verifier/comparison';
@@ -183,7 +186,8 @@ void [amount, verification, invalidAmount, invalidVerification, result, evidence
     join(temporary, 'optional.mjs'),
     `
 import assert from 'node:assert/strict';
-const { createCbeProvider } = await import('@1hubengineering/provider-cbe');
+const { checkCbeBrowser, createCbeProvider } = await import('@1hubengineering/provider-cbe');
+assert.equal(typeof checkCbeBrowser, 'function');
 await assert.rejects(createCbeProvider().retrieve('http://127.0.0.1/'), { code: 'INVALID_REQUEST' });
 `,
   );

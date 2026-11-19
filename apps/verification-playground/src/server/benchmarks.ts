@@ -168,7 +168,7 @@ export function createBenchmarks(
                 cpuQuota: cgroup('cpu.max'),
                 memoryLimitBytes: cgroup('memory.max'),
                 database: 'SQLite via better-sqlite3 / direct SQL adapter',
-                sdk: '0.2.0',
+                sdk: '0.3.0',
               },
               measurement: rows[0] as unknown,
             });

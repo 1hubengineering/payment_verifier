@@ -4,8 +4,6 @@ import type { EtbMinorUnits, EvidenceField, ReceiptEvidence } from '@1hubenginee
 import { parseProviderTime } from '@1hubengineering/verifier/providers';
 import type { ProviderResult, ReceiptLocator } from '@1hubengineering/verifier/providers';
 
-export const cbeDataHost = 'mb.cbe.com.et';
-
 export function isClientReceipt(html: string): boolean {
   return (
     html.includes('window.__NUXT__') &&
@@ -17,6 +15,12 @@ function field(value: unknown): string | null {
   if (typeof value !== 'string' || value.length > 256) return null;
   const text = value.trim();
   return text && !/^(?:n\/a|null|undefined|-+)$/i.test(text) ? text : null;
+}
+
+function receiptNote(value: unknown): string | null {
+  if (value === undefined || value === null) return null;
+  if (typeof value !== 'string' || value.length > 255) throw new TypeError('Invalid receipt note');
+  return value.trim() ? value : null;
 }
 
 const statuses = new Map<string, ReceiptEvidence['status']>([
@@ -73,6 +77,12 @@ export function interpretCbeData(
   }
   const account = field(value.creditAccountNo);
   const invalidFields: EvidenceField[] = [];
+  let reference: string | null = null;
+  try {
+    reference = receiptNote(value.description) ?? receiptNote(value.notes);
+  } catch {
+    invalidFields.push('reference');
+  }
   if (credited && !amountMinor && currency === 'ETB') invalidFields.push('amountMinor');
   const status = statuses.get(field(value.status)?.toUpperCase() ?? '') ?? null;
   const thirdPartyStatus = field(value.thirdPartyStatus)?.toUpperCase();
@@ -89,7 +99,7 @@ export function interpretCbeData(
     recipientName: field(value.creditAccountHolder),
     recipientAccountLast4:
       account && /^(?:\d+(?:[xX*•]{2,})?)?\d{4}$/u.test(account) ? account.slice(-4) : null,
-    reference: field(value.description) ?? field(value.notes),
+    reference,
     transactionAt: transactionTime(value.dateTimes),
     paymentType:
       value.isOtherBank === true
@@ -106,7 +116,7 @@ export function interpretCbeData(
       url: locator.url,
       retrievedAt,
       sha256: createHash('sha256').update(json).digest('hex'),
-      parserVersion: 'cbe-json-1',
+      parserVersion: 'cbe-json-2',
     },
   };
 }

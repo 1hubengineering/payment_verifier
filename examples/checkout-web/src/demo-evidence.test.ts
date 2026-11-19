@@ -28,7 +28,7 @@ describe('synthetic checkout provider', () => {
   it('keeps timeout, mismatch and absence distinct', async () => {
     const check = createDemoVerifier(async () => {});
     const input = { paymentMethodId: 'telebirr', signal: new AbortController().signal };
-    expect(await check({ ...input, reference: 'DEMOMISMATCH' })).toEqual({
+    expect(await check({ ...input, reference: 'DEMOMISMATCH' })).toMatchObject({
       status: 'MISMATCH',
       retryable: false,
     });
@@ -40,7 +40,7 @@ describe('synthetic checkout provider', () => {
       status: 'UNAVAILABLE',
       retryable: true,
     });
-    expect(await check({ ...input, reference: 'DEMORETRY' })).toEqual({
+    expect(await check({ ...input, reference: 'DEMORETRY' })).toMatchObject({
       status: 'VERIFIED',
       retryable: false,
     });

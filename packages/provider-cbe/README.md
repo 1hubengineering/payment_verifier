@@ -1,6 +1,6 @@
 # CBE receipt adapter
 
-Version 0.2.0 workspace. Current CBE receipt pages load transaction data from
+Version 0.3.0. Current CBE receipt pages load transaction data from
 CBE's public JSON service. The adapter uses Playwright 1.65.1 and its matching
 Chromium for current and older receipt layouts.
 

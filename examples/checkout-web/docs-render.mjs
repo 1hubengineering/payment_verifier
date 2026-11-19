@@ -25,7 +25,7 @@ markdown.use({
 function renderTable(token) {
   const row = (cells, tag) =>
     `<tr>${cells.map(({ tokens }) => `<${tag}${tag === 'th' ? ' scope="col"' : ''}>${this.parser.parseInline(tokens)}</${tag}>`).join('')}</tr>`;
-  return `<table><thead>${row(token.header, 'th')}</thead><tbody>${token.rows.map((cells) => row(cells, 'td')).join('')}</tbody></table>`;
+  return `<table class="ui-table"><thead>${row(token.header, 'th')}</thead><tbody>${token.rows.map((cells) => row(cells, 'td')).join('')}</tbody></table>`;
 }
 
 function navigation(prefix, current) {
@@ -35,12 +35,12 @@ function navigation(prefix, current) {
     ['Checkout demo', 'demo/'],
     ['Playground', 'playground/'],
     ['Benchmarks', 'benchmarks/'],
-    ['Workspace preview', 'candidate/'],
   ];
   return `<a class="skip-link" href="#main">Skip to content</a>
+    <!-- Adapted from Shadcnblocks Navbar 1. -->
     <header class="site-header"><nav class="site-shell site-nav" aria-label="Main">
     <a class="wordmark" href="${prefix}"${current === './' ? ' aria-current="page"' : ''}>
-    <svg viewBox="0 0 24 24" width="24" height="24" fill="none" focusable="false" aria-hidden="true"><rect width="24" height="24" rx="5" fill="currentColor"/><path d="m6 12 4 4 8-8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span class="brand-mark" aria-hidden="true">✓</span>
     Payment Verifier</a>
     <div class="nav-links">${links.map(([label, path]) => `<a href="${prefix}${path}"${path === current ? ' aria-current="page"' : ''}>${label}</a>`).join('')}
     <a href="${repository}">GitHub</a></div></nav></header>`;

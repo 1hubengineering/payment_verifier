@@ -118,7 +118,7 @@ async function fixture(
   return { app, stateDb, register, submit };
 }
 
-describe('verification playground with SDK 0.2.0 and real SQLite adapters', () => {
+describe('verification playground with SDK 0.3.0 and real SQLite adapters', () => {
   it('protects operational routes, enforces origin and size, and keeps mock mode as default', async () => {
     const { app } = await fixture();
     for (const url of ['/api/session', '/api/history', '/api/drafts']) {
@@ -252,6 +252,53 @@ describe('verification playground with SDK 0.2.0 and real SQLite adapters', () =
       status: 'VERIFIED',
     });
   });
+
+  it.each(['telebirr', 'cbe'] as const)(
+    'registers, claims and replays %s only when the configured note matches',
+    async (provider) => {
+      const synthetic = syntheticProvider(provider, () => 'success', { now: () => epoch });
+      let reference = 'ክፍያ  / café #42';
+      const retrieve = vi.fn(async (input: string) => {
+        const outcome = await synthetic.retrieve(input);
+        return outcome.kind === 'EVIDENCE'
+          ? { ...outcome, evidence: { ...outcome.evidence, reference } }
+          : outcome;
+      });
+      const { app, register, submit } = await fixture({ live: { [provider]: { retrieve } } });
+      const rejected = await app.inject({
+        method: 'POST',
+        url: '/api/scenarios',
+        headers,
+        payload: { mode: 'live', draft: { ...defaultDraft(provider, epoch), reference: '' } },
+      });
+      expect(rejected.json()).toMatchObject({ code: 'INVALID_EXPECTATION' });
+      const blank = await register(provider, 'live', { reference: '', referenceRequired: false });
+      const paymentId = await register(provider, 'live', { reference });
+      expect(retrieve).not.toHaveBeenCalled();
+
+      const request = {
+        mode: 'live',
+        evidence: syntheticIdentifier(provider, randomUUID()),
+      } as const;
+      expect((await submit(blank, request)).json<Report>().result.code).toBe(
+        'INVOICE_REFERENCE_MISMATCH',
+      );
+      expect((await submit(paymentId, request)).json<Report>().result).toMatchObject({
+        status: 'VERIFIED',
+      });
+
+      reference = '';
+      const blankRequest = {
+        mode: 'live',
+        evidence: syntheticIdentifier(provider, randomUUID()),
+        attemptId: randomUUID(),
+      } as const;
+      const result = (await submit(blank, blankRequest)).json<Report>().result;
+      expect(result).toMatchObject({ status: 'VERIFIED', receipt: { invoiceReference: null } });
+      expect((await submit(blank, blankRequest)).json<Report>().result).toEqual(result);
+      expect(retrieve).toHaveBeenCalledTimes(3);
+    },
+  );
 
   it('respects the expected provider and preserves input errors before any provider call', async () => {
     const { register, submit } = await fixture();

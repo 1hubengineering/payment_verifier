@@ -1,3 +1,4 @@
+import { ControlButton, NativeSelect, TextInput } from '@1hubengineering/payment-web-ui';
 import type { FormEvent } from 'react';
 import type { Bounds, Draft, SavedDraft } from '../contracts.ts';
 
@@ -43,16 +44,16 @@ export function DraftPanel(props: Props) {
     <section className="panel" aria-labelledby="expected-title">
       <div className="section-title">
         <h2 id="expected-title">Expected payment</h2>
-        <button type="button" className="text-button" onClick={props.reset} disabled={disabled}>
+        <ControlButton type="button" variant="ghost" onClick={props.reset} disabled={disabled}>
           Reset defaults
-        </button>
+        </ControlButton>
       </div>
       <form onSubmit={props.register}>
         <fieldset disabled={disabled}>
           <div className="field-grid">
             <label>
               Provider
-              <select
+              <NativeSelect
                 value={draft.provider}
                 onChange={(event) =>
                   change('provider', event.target.value === 'cbe' ? 'cbe' : 'telebirr')
@@ -60,11 +61,11 @@ export function DraftPanel(props: Props) {
               >
                 <option value="telebirr">Telebirr</option>
                 <option value="cbe">CBE</option>
-              </select>
+              </NativeSelect>
             </label>
             <label>
               Expected amount (ETB)
-              <input
+              <TextInput
                 value={draft.amount}
                 onChange={(event) => change('amount', event.target.value)}
                 inputMode="decimal"
@@ -74,7 +75,7 @@ export function DraftPanel(props: Props) {
             </label>
             <label>
               Recipient name
-              <input
+              <TextInput
                 value={draft.recipientName}
                 onChange={(event) => change('recipientName', event.target.value)}
                 required
@@ -83,7 +84,7 @@ export function DraftPanel(props: Props) {
             </label>
             <label>
               Recipient account last four
-              <input
+              <TextInput
                 value={draft.recipientAccountLast4}
                 onChange={(event) => change('recipientAccountLast4', event.target.value)}
                 inputMode="numeric"
@@ -92,18 +93,38 @@ export function DraftPanel(props: Props) {
                 required
               />
             </label>
-            <label className="full">
-              Invoice or order reference
-              <input
-                value={draft.reference}
-                onChange={(event) => change('reference', event.target.value)}
-                required
-                maxLength={120}
-              />
-            </label>
+            <div className="full">
+              <label>
+                Invoice or order reference
+                <textarea
+                  value={draft.reference}
+                  onChange={(event) => change('reference', event.target.value)}
+                  aria-describedby="reference-receipt-field"
+                  required={draft.referenceRequired !== false}
+                  maxLength={255}
+                  rows={2}
+                />
+              </label>
+              <small className="muted" id="reference-receipt-field">
+                Your order reference should appear in{' '}
+                {draft.provider === 'cbe' ? 'Reason / Type of service' : 'Customer Note'} on the
+                official receipt.
+              </small>
+              <label className="checkbox">
+                <TextInput
+                  type="checkbox"
+                  checked={draft.referenceRequired === false}
+                  onChange={(event) => change('referenceRequired', !event.target.checked)}
+                />
+                Allow a blank reference
+              </label>
+              {draft.referenceRequired === false && (
+                <small className="muted">A blank reference matches a blank receipt note.</small>
+              )}
+            </div>
             <label>
               Valid from
-              <input
+              <TextInput
                 type="datetime-local"
                 required
                 value={localDate(draft.validFrom)}
@@ -112,7 +133,7 @@ export function DraftPanel(props: Props) {
             </label>
             <label>
               Expires at
-              <input
+              <TextInput
                 type="datetime-local"
                 required
                 value={localDate(draft.validUntil)}
@@ -125,13 +146,13 @@ export function DraftPanel(props: Props) {
           </p>
           <label>
             Amount policy
-            <select
+            <NativeSelect
               value={draft.tolerance ? 'tolerance' : 'exact'}
               onChange={(event) => change('tolerance', event.target.value === 'tolerance')}
             >
               <option value="exact">Exact match</option>
               <option value="tolerance">Tolerance</option>
-            </select>
+            </NativeSelect>
           </label>
           {draft.tolerance && (
             <div className="field-grid allowances">
@@ -139,7 +160,7 @@ export function DraftPanel(props: Props) {
                 <div key={key}>
                   <label>
                     {key === 'under' ? 'Maximum underpayment' : 'Maximum overpayment'}
-                    <input
+                    <TextInput
                       inputMode="decimal"
                       value={draft[key].value}
                       maxLength={18}
@@ -150,7 +171,7 @@ export function DraftPanel(props: Props) {
                   </label>
                   <label>
                     Unit
-                    <select
+                    <NativeSelect
                       value={draft[key].unit}
                       onChange={(event) =>
                         change(key, {
@@ -161,17 +182,17 @@ export function DraftPanel(props: Props) {
                     >
                       <option value="fixed">ETB</option>
                       <option value="percentage">Percent</option>
-                    </select>
+                    </NativeSelect>
                   </label>
                 </div>
               ))}
             </div>
           )}
           <div className="actions">
-            <button type="button" onClick={props.preview}>
+            <ControlButton type="button" onClick={props.preview}>
               Preview range
-            </button>
-            <button type="submit">Create test payment</button>
+            </ControlButton>
+            <ControlButton type="submit">Create test payment</ControlButton>
           </div>
           {bounds && (
             <p className="summary-line">
@@ -190,7 +211,7 @@ export function DraftPanel(props: Props) {
             <summary>Saved configurations</summary>
             <label>
               Load saved draft
-              <select
+              <NativeSelect
                 value={selected?.id ?? ''}
                 onChange={(event) => props.load(event.target.value)}
               >
@@ -200,32 +221,36 @@ export function DraftPanel(props: Props) {
                     {value.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </label>
             <label>
               Configuration name
-              <input
+              <TextInput
                 value={props.name}
                 onChange={(event) => props.setName(event.target.value)}
                 maxLength={80}
               />
             </label>
             <div className="actions">
-              <button type="button" onClick={() => props.save(false)} disabled={!props.name.trim()}>
+              <ControlButton
+                type="button"
+                onClick={() => props.save(false)}
+                disabled={!props.name.trim()}
+              >
                 {selected ? 'Save copy' : 'Save draft'}
-              </button>
+              </ControlButton>
               {selected && (
                 <>
-                  <button
+                  <ControlButton
                     type="button"
                     onClick={() => props.save(true)}
                     disabled={!props.name.trim()}
                   >
                     Update draft
-                  </button>
-                  <button type="button" onClick={props.remove}>
+                  </ControlButton>
+                  <ControlButton type="button" onClick={props.remove}>
                     Delete draft
-                  </button>
+                  </ControlButton>
                 </>
               )}
             </div>

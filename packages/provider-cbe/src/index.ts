@@ -20,6 +20,15 @@ export interface CbeProvider {
   retrieve(input: string, options?: RetrievalOptions): Promise<ProviderResult>;
 }
 
+/** Launch the configured sandbox and render synthetic content entirely offline. */
+export async function checkCbeBrowser(): Promise<void> {
+  await renderCbeHtml(
+    'https://deployment-check.invalid/',
+    '<p>Payment / Transaction Informations</p><p>Transferred Amount:</p>',
+    { timeoutMs: 8_000 },
+  );
+}
+
 /** Explicit per-instance admission. This instance owns browsers it launches. */
 export function createCbeProvider(options: { readonly maxConcurrency?: number } = {}): CbeProvider {
   const limit = options.maxConcurrency ?? 1;

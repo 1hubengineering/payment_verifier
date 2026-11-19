@@ -127,6 +127,30 @@ describe('ported synthetic extraction', () => {
       amountMinor: null,
     });
   });
+  it('matches the bilingual Telebirr Customer Note with one blank trailing cell', () => {
+    const baseline = expectation('telebirr');
+    const expected = createPaymentExpectation({
+      ...baseline,
+      reference: 'ክፍያ  / Invoice #42 & Co.',
+    });
+    const html = v5.replace(
+      `<td>Customer Note</td><td>${baseline.reference}</td>`,
+      '<td>የደንበኛ መልዕክት/Customer Note</td><td>ክፍያ  / <b>Invoice</b> #42 &amp; Co.</td><td>&nbsp;</td>',
+    );
+    expect(html).not.toBe(v5);
+    const { evidence } = parseReceiptHtml('telebirr', html);
+    expect(evidence.reference).toBe(expected.reference);
+    expect(compareReceipt(expected, evidence).status).toBe('MATCH');
+    const conflicting = html.replace(
+      '</table>',
+      '<tr><td>Customer Note</td><td>OTHER1234</td><td></td></tr></table>',
+    );
+    expect(parseReceiptHtml('telebirr', conflicting).evidence.ambiguousFields).toContain(
+      'reference',
+    );
+    const unrelated = html.replace('Customer Note', 'Payment Reason');
+    expect(parseReceiptHtml('telebirr', unrelated).evidence.reference).toBeNull();
+  });
   it('rejects nested markup that could hide a conflicting field', () => {
     const html = `<table><tr><td>Credited Party Name</td><td>Other Merchant<table></table></td></tr></table>${v5}`;
     expect(() => parseReceiptHtml('telebirr', html)).toThrow('Unsupported receipt HTML');

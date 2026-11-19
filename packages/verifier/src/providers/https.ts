@@ -3,6 +3,9 @@ import { request } from 'node:https';
 import { BlockList, isIPv4 } from 'node:net';
 import type { LookupFunction } from 'node:net';
 import { posix } from 'node:path';
+import { connect } from 'node:tls';
+import type { ProviderId } from '../types.ts';
+import { cbeReceiptDataHost, receiptEndpoints } from '../input-syntax.ts';
 import { RECEIPT_MAX_BYTES } from './extraction.ts';
 import { outboundLocator } from './locator.ts';
 import type { ReceiptLocator } from './locator.ts';
@@ -120,6 +123,74 @@ function transportFailure(error: Error, throughTunnel: boolean): RetrievalError 
   );
 }
 
+function checkedSocketPath(provider: ProviderId, socketPath?: string): string | undefined {
+  if (
+    socketPath !== undefined &&
+    (provider !== 'telebirr' ||
+      !posix.isAbsolute(socketPath) ||
+      socketPath.includes('\0') ||
+      Buffer.byteLength(socketPath) > 100)
+  )
+    throw new TypeError('Invalid Telebirr tunnel socket');
+  return socketPath;
+}
+
+const tlsPolicy = { rejectUnauthorized: true, minVersion: 'TLSv1.2' } as const;
+
+export interface ProviderConnectionCheck {
+  readonly hostname: string;
+  readonly route: 'direct' | 'telebirr-tunnel';
+  readonly error?: { readonly code: RetrievalErrorCode; readonly details: DiagnosticDetails };
+}
+
+/** Check the fixed official hosts through TLS only, without sending an HTTP request. */
+export async function checkProviderConnectivity(
+  provider: ProviderId,
+  options: Pick<RetrievalOptions, 'timeoutMs' | 'telebirrTunnelSocket'> = {},
+): Promise<readonly ProviderConnectionCheck[]> {
+  if (provider !== 'telebirr' && provider !== 'cbe') throw new TypeError('Invalid provider');
+  const socketPath = checkedSocketPath(provider, options.telebirrTunnelSocket);
+  const timeoutMs = options.timeoutMs ?? 8_000;
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 60_000)
+    throw new TypeError('Invalid connection timeout');
+  const hostnames = [new URL(receiptEndpoints[provider]).hostname];
+  if (provider === 'cbe') hostnames.push(cbeReceiptDataHost);
+  return Promise.all(
+    hostnames.map(
+      (hostname) =>
+        new Promise<ProviderConnectionCheck>((resolve) => {
+          const route = socketPath ? 'telebirr-tunnel' : 'direct';
+          const socket = connect({
+            ...tlsPolicy,
+            servername: hostname,
+            ...(socketPath
+              ? { path: socketPath }
+              : { host: hostname, port: 443, family: 4, lookup: publicLookup }),
+          });
+          let finished = false;
+          const finish = (error?: RetrievalError) => {
+            if (finished) return;
+            finished = true;
+            clearTimeout(timer);
+            socket.destroy();
+            resolve({
+              hostname,
+              route,
+              ...(error && { error: { code: error.code, details: error.details } }),
+            });
+          };
+          const timer = setTimeout(
+            () => finish(new RetrievalError('PROVIDER_TIMEOUT', { timeoutMs })),
+            timeoutMs,
+          );
+          socket.once('secureConnect', () => finish());
+          socket.once('error', (error) => finish(transportFailure(error, Boolean(socketPath))));
+          socket.once('close', () => finish(new RetrievalError('PROVIDER_NETWORK_ERROR')));
+        }),
+    ),
+  );
+}
+
 function retryAfter(value: string | undefined): number | undefined {
   if (!value || value.length > 64) return undefined;
   const delay = /^\d{1,10}$/.test(value)
@@ -141,15 +212,7 @@ export async function retrieveHtml(
   } catch {
     throw new RetrievalError('INVALID_LOCATOR');
   }
-  const socketPath = options.telebirrTunnelSocket;
-  if (
-    socketPath !== undefined &&
-    (normalized.provider !== 'telebirr' ||
-      !posix.isAbsolute(socketPath) ||
-      socketPath.includes('\0') ||
-      Buffer.byteLength(socketPath) > 100)
-  )
-    throw new TypeError('Invalid Telebirr tunnel socket');
+  const socketPath = checkedSocketPath(normalized.provider, options.telebirrTunnelSocket);
   const timeoutMs = options.timeoutMs ?? 15_000,
     maxBytes = options.maxBytes ?? RECEIPT_MAX_BYTES;
   if (
@@ -180,8 +243,7 @@ export async function retrieveHtml(
         ...(socketPath
           ? { socketPath, servername: new URL(normalized.url).hostname }
           : { family: 4, lookup: publicLookup }),
-        rejectUnauthorized: true,
-        minVersion: 'TLSv1.2',
+        ...tlsPolicy,
         maxHeaderSize: 16_384,
         headers: { accept: 'text/html', 'accept-encoding': 'identity' },
       },

@@ -9,6 +9,7 @@ import {
   releases,
   pages,
   repository,
+  sdkPackages,
   sourceRefs,
   version as currentVersion,
 } from './docs-catalog.mjs';
@@ -22,7 +23,8 @@ const entries = [];
 
 async function prepareRelease(version, packages) {
   const current = version === currentVersion;
-  const core = Object.hasOwn(packages, 'verifier') ? 'verifier' : 'receipt-verifier';
+  const names = current ? sdkPackages : Object.keys(packages);
+  const core = names.includes('verifier') ? 'verifier' : 'receipt-verifier';
   const examplePath = `docs/${version}/examples/compare-receipt.mjs`;
   const example = await readFile(join(root, examplePath), 'utf8');
   for (const [id, title] of guides) {
@@ -54,7 +56,7 @@ async function prepareRelease(version, packages) {
 
   const scope = join(scratch, version, 'node_modules', '@1hubengineering');
   await mkdir(scope, { recursive: true });
-  for (const [name, hash] of Object.entries(packages)) {
+  for (const [name, hash] of Object.entries(packages ?? {})) {
     const archiveName = `${name}-${version}.tgz`;
     const archive = join(cache, archiveName);
     const saved = await readFile(archive).catch((error) => {
@@ -94,8 +96,8 @@ async function prepareRelease(version, packages) {
       'package/dist',
     ]);
   }
-  for (const name of Object.keys(packages)) {
-    const packageRoot = join(scope, name);
+  for (const name of names) {
+    const packageRoot = current ? join(root, 'packages', name) : join(scope, name);
     const manifest = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
     if (manifest.version !== version || manifest.name !== `@1hubengineering/${name}`)
       throw new Error(`Unexpected archive: ${name}`);
@@ -125,7 +127,12 @@ async function prepareRelease(version, packages) {
         const declarations = target.getDeclarations();
         if (!declarations?.length) throw new Error(`Cannot resolve ${importPath}:${title}`);
         const subpathName = subpath === '.' ? 'index' : subpath.slice(2);
-        const sourceEntry = subpathName === 'providers' ? 'providers/index' : subpathName;
+        const sourceEntry =
+          subpathName === 'providers'
+            ? 'providers/index'
+            : subpathName === 'comparison'
+              ? 'comparison-entry'
+              : subpathName;
         const id = `api-${name}-${subpathName}-${title}`;
         // The 0.1.1 npm names shipped before the repository folder move.
         const folder =
@@ -160,13 +167,14 @@ try {
   for (const [version, packages] of Object.entries(releases)) {
     await prepareRelease(version, packages);
   }
+  await prepareRelease(currentVersion);
   if (new Set(entries.map(({ id, version }) => `${version}:${id}`)).size !== entries.length)
     throw new Error('Duplicate documentation IDs');
   const built = join(scratch, 'corpus.json');
   await writeFile(built, JSON.stringify(entries));
   await rename(built, join(cache, 'corpus.json'));
   console.log(
-    `Prepared ${entries.length} documentation entries across ${Object.keys(releases).join(', ')}`,
+    `Prepared ${entries.length} documentation entries across ${[...Object.keys(releases), currentVersion].join(', ')}`,
   );
 } finally {
   await rm(scratch, { recursive: true, force: true });

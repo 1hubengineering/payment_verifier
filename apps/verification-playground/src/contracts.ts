@@ -20,6 +20,7 @@ export interface Draft {
   recipientName: string;
   recipientAccountLast4: string;
   reference: string;
+  referenceRequired?: boolean | undefined;
   validFrom: string;
   validUntil: string;
   tolerance: boolean;

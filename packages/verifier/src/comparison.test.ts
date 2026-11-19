@@ -51,6 +51,23 @@ const required: EvidenceField[] = [
 ];
 
 describe('trusted expectation', () => {
+  it.each(['telebirr', 'cbe'] as const)('accepts free-text references for %s', (provider) => {
+    for (const reference of ['!', '2', '12345678', 'ክፍያ / café 42', 'x'.repeat(255)]) {
+      expect(createPaymentExpectation({ ...input, provider, reference }).reference).toBe(reference);
+    }
+    expect(() =>
+      createPaymentExpectation({ ...input, provider, reference: 'x'.repeat(256) }),
+    ).toThrow(TypeError);
+    expect(() => createPaymentExpectation({ ...input, provider, reference: '' })).toThrow(
+      TypeError,
+    );
+    expect(
+      createPaymentExpectation({ ...input, provider, reference: '', referenceRequired: false }),
+    ).toMatchObject({ reference: '', referenceRequired: false });
+    expect(
+      createPaymentExpectation({ ...input, provider, referenceRequired: true }),
+    ).not.toHaveProperty('referenceRequired');
+  });
   it('copies and freezes only known fields', () => {
     const source = { ...input, arbitrary: 'submission data' };
     const snapshot = createPaymentExpectation(source);
@@ -74,8 +91,8 @@ describe('trusted expectation', () => {
     { ...input, amountMinor: Number.MAX_SAFE_INTEGER + 1 },
     { ...input, recipientName: ' ' },
     { ...input, recipientAccountLast4: '１２３４' },
-    { ...input, reference: '12345678' },
-    { ...input, reference: 'ORDER123\n' },
+    { ...input, reference: ' \n' },
+    { ...input, referenceRequired: 'false' },
     { ...input, validFrom: '2026-11-18' },
     { ...input, validFrom: -1 },
     { ...input, validUntil: Infinity },
@@ -86,6 +103,49 @@ describe('trusted expectation', () => {
 });
 
 describe('receipt comparison', () => {
+  it.each(['telebirr', 'cbe'] as const)(
+    'compares %s references exactly, including an explicitly allowed blank',
+    (provider) => {
+      const evidence = { ...receipt, provider, paymentType: 'A2A' };
+      const reference = 'ክፍያ / Invoice  42!';
+      const order = createPaymentExpectation({
+        ...input,
+        provider,
+        reference,
+        referenceRequired: false,
+      });
+      expect(compareReceipt(order, { ...evidence, reference }).status).toBe('MATCH');
+      expect(
+        compareReceipt(order, { ...evidence, reference: reference.replace('  ', ' ') }),
+      ).toMatchObject({ status: 'MISMATCH', code: 'INVOICE_REFERENCE_MISMATCH' });
+      expect(compareReceipt(order, { ...evidence, reference: null })).toMatchObject({
+        status: 'INCOMPLETE',
+        code: 'REQUIRED_FIELD_MISSING',
+      });
+
+      const blankOrder = createPaymentExpectation({
+        ...input,
+        provider,
+        reference: '',
+        referenceRequired: false,
+      });
+      for (const blank of [null, '']) {
+        expect(compareReceipt(blankOrder, { ...evidence, reference: blank }).status).toBe('MATCH');
+      }
+      expect(compareReceipt(blankOrder, { ...evidence, reference })).toMatchObject({
+        status: 'MISMATCH',
+        code: 'INVOICE_REFERENCE_MISMATCH',
+      });
+      expect(
+        compareReceipt(blankOrder, { ...evidence, reference: null, ambiguousFields: ['reference'] })
+          .status,
+      ).toBe('INCOMPLETE');
+      expect(
+        compareReceipt(blankOrder, { ...evidence, reference: null, invalidFields: ['reference'] })
+          .status,
+      ).toBe('INCOMPLETE');
+    },
+  );
   it('compares exact minor units without returning SDK verification', () => {
     expect(compareReceipt(expected, receipt)).toMatchObject({
       status: 'MATCH',

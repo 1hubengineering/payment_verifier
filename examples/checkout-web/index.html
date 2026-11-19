@@ -13,83 +13,93 @@
   <body class="developer-site">
     <!-- developer-nav -->
     <main id="main" tabindex="-1">
-      <!-- Adapted from the free Shadcnblocks Hero 1 for this documentation site. -->
-      <section class="site-shell developer-hero">
-        <div class="hero-copy">
-          <p class="release-label"><span aria-hidden="true"></span> TYPESCRIPT SDK · V0.2.0</p>
-          <h1>Verify Ethiopian payment receipts.</h1>
-          <p>
-            Verify official Telebirr and CBE receipts against your own orders. Your backend owns
-            delivery decisions.
-          </p>
-          <div class="hero-actions">
-            <a class="primary-cta" href="./docs/#quickstart"
-              >Run the quickstart <span aria-hidden="true">↗</span></a
-            >
-            <a class="secondary-cta" href="./demo/">Try the checkout demo</a>
+      <!-- Adapted from Shadcnblocks Hero 1. -->
+      <div class="hero-canvas">
+        <section class="site-shell developer-hero" aria-labelledby="hero-title">
+          <div class="hero-copy">
+            <p class="ui-label">TypeScript SDK · v0.3.0</p>
+            <h1 id="hero-title">Verify Ethiopian payment receipts.</h1>
+            <p>
+              Compare official Telebirr and CBE receipts with your orders. Your backend owns
+              settlement and fulfillment decisions.
+            </p>
+            <div class="hero-actions">
+              <a class="primary-cta" href="./docs/#quickstart"
+                >Read the quickstart <span aria-hidden="true">↗</span></a
+              >
+              <a class="secondary-cta" href="./demo/">Try the checkout demo</a>
+            </div>
+            <code class="install-line">npm install @1hubengineering/verifier@0.3.0</code>
           </div>
-          <code class="install-line">npm install @1hubengineering/verifier@0.2.0</code>
-        </div>
-        <div class="receipt-illustration" aria-label="Example receipt verification output">
-          <div class="illustration-top"><span>RECEIPT CHECK</span><span>01 / 01</span></div>
-          <div class="illustration-content">
-            <p class="illustration-kicker">SYNTHETIC ORDER #1234</p>
-            <p class="illustration-total">ETB 500.00</p>
-            <dl>
-              <div>
-                <dt>Payment</dt>
-                <dd>Verified</dd>
-              </div>
-              <div>
-                <dt>Receipt source</dt>
-                <dd>Provider</dd>
-              </div>
-            </dl>
-          </div>
-        </div>
-      </section>
+          <figure class="receipt-preview">
+            <figcaption><span>Receipt verification</span><span>Sample result</span></figcaption>
+            <div class="receipt-preview-body">
+              <p class="ui-label">Telebirr · INV-DEMO-1048</p>
+              <p class="preview-total">
+                <strong>ETB 1,480.00</strong
+                ><span class="ui-pill" data-tone="success">Receipt matched</span>
+              </p>
+              <table class="ui-table" aria-label="Example receipt checks">
+                <thead>
+                  <tr>
+                    <th scope="col">Check</th>
+                    <th scope="col">Observed</th>
+                    <th scope="col">Finding</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row">Amount</th>
+                    <td>ETB 1,480.00</td>
+                    <td>Matched</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Account ending</th>
+                    <td>•••• 1048</td>
+                    <td>Matched</td>
+                  </tr>
+                  <tr>
+                    <th scope="row">Invoice</th>
+                    <td>INV-DEMO-1048</td>
+                    <td>Matched</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </figure>
+        </section>
+      </div>
+      <!-- Adapted from the Shadcnblocks Feature 17 icon grid. -->
       <section class="site-shell developer-path" aria-labelledby="path-title">
-        <p class="section-kicker">DEVELOPER GUIDE</p>
-        <h2 id="path-title">From install to integration</h2>
+        <h2 id="path-title">Build with Payment Verifier</h2>
         <div class="path-grid">
-          <a href="./docs/#quickstart"
-            ><span>01</span>
-            <h3>Run an example</h3>
-            <p>Compare a synthetic receipt in Node.js. No bank or database required.</p></a
-          >
           <a href="./docs/#storage"
-            ><span>02</span>
-            <h3>Choose an adapter</h3>
+            ><span aria-hidden="true">▤</span>
+            <h3>Choose a storage adapter</h3>
             <p>
               Connect PostgreSQL, MySQL, or local SQLite through direct SQL, Drizzle, or Prisma.
             </p></a
           >
-          <a href="./api/"
-            ><span>03</span>
-            <h3>Look up an export</h3>
-            <p>Search the types and functions shipped in release 0.2.0.</p></a
+          <a href="./playground/"
+            ><span aria-hidden="true">✓</span>
+            <h3>Explore receipt checks</h3>
+            <p>Try matching, mismatching and unavailable receipts in your browser.</p></a
+          >
+          <a href="./docs/#agents"
+            ><span aria-hidden="true">⌘</span>
+            <h3>Set up agent tools</h3>
+            <p>
+              Give your editor the setup and troubleshooting skills and read-only documentation MCP.
+            </p></a
           >
         </div>
       </section>
-      <section class="site-shell agent-banner">
-        <div>
-          <p class="section-kicker">AGENT TOOLING</p>
-          <h2>Bring the docs into your editor</h2>
-          <p>
-            Install a setup or troubleshooting skill. Connect the read-only documentation MCP server
-            when you need exact types or examples.
-          </p>
-        </div>
-        <a class="secondary-cta" href="./docs/#agents"
-          >Set up agent tools <span aria-hidden="true">↗</span></a
-        >
-      </section>
     </main>
     <footer class="site-shell site-footer">
-      <a href="https://github.com/1hubengineering/payment_verifier">Source and issues</a> ·
-      <a href="https://www.shadcnblocks.com/block/hero1">Hero adapted from Shadcnblocks</a> ·
-      <a href="./shadcn-ui-LICENSE.txt">UI license</a> ·
-      <a href="./dependency-licenses.md">Bundled dependency licenses</a>
+      <a href="https://github.com/1hubengineering/payment_verifier">Source and issues</a>
+      <a href="./candidate/">Upgrade guide</a>
+      <a href="./shadcn-ui-LICENSE.txt">UI license</a>
+      <a href="./dependency-licenses.md">Dependency licenses</a>
     </footer>
   </body>
 </html>

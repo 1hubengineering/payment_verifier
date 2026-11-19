@@ -1,8 +1,10 @@
 import { chromium } from 'playwright';
 import type { Browser } from 'playwright';
-import { RetrievalError } from '@1hubengineering/verifier/providers';
+import {
+  cbeReceiptDataHost as cbeDataHost,
+  RetrievalError,
+} from '@1hubengineering/verifier/providers';
 import type { RetrievalOptions } from '@1hubengineering/verifier/providers';
-import { cbeDataHost } from './data.ts';
 
 export async function launchCbeBrowser(
   timeoutMs: number,

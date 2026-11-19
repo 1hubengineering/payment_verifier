@@ -6,6 +6,7 @@ RUN --mount=type=cache,target=/root/.npm npm install --global --allow-scripts=pn
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .node-version ./
 COPY apps/verification-playground/package.json apps/verification-playground/
 COPY apps/verification-benchmarks/package.json apps/verification-benchmarks/
+COPY ui/payment-web/package.json ui/payment-web/
 COPY packages/verifier/package.json packages/verifier/
 COPY packages/provider-cbe/package.json packages/provider-cbe/
 COPY packages/storage-sql/package.json packages/storage-sql/
@@ -16,6 +17,7 @@ COPY packages/provider-cbe packages/provider-cbe
 COPY packages/storage-sql packages/storage-sql
 COPY apps/verification-playground apps/verification-playground
 COPY apps/verification-benchmarks apps/verification-benchmarks
+COPY ui/payment-web ui/payment-web
 RUN pnpm --filter './packages/*' build \
     && pnpm --filter @1hubengineering/verification-benchmarks build \
     && pnpm --filter @1hubengineering/verification-playground check:env \

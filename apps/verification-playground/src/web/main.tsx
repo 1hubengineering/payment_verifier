@@ -19,7 +19,16 @@ import { ApiError, createApi } from './api.ts';
 import type { Api } from './api.ts';
 import { BenchmarkPanel } from './benchmarks.tsx';
 import { DraftPanel } from './draft.tsx';
-import { HistoryPanel, modeLabel, providerName, ReportPanel } from './report.tsx';
+import { HistoryPanel, modeLabel, providerName, ReportDialog } from './report.tsx';
+import {
+  ControlButton,
+  describeOutcome,
+  LoadingIcon,
+  NativeSelect,
+  Textarea,
+  TextInput,
+} from '@1hubengineering/payment-web-ui';
+import type { Outcome } from '@1hubengineering/payment-web-ui';
 import './style.css';
 
 const mockLabels: Record<MockCase, string> = {
@@ -36,7 +45,15 @@ const errorText = (error: unknown) =>
     ? `${error.code} · ${error.message}`
     : 'Connection interrupted. Check attempt history before starting a new verification.';
 
-function Playground({ api, session }: { api: Api; session: SessionInfo }) {
+function Playground({
+  api,
+  session,
+  visible,
+}: {
+  api: Api;
+  session: SessionInfo;
+  visible: boolean;
+}) {
   const [draft, setDraft] = useState(defaultDraft);
   const [drafts, setDrafts] = useState<SavedDraft[]>([]);
   const [draftId, setDraftId] = useState('');
@@ -49,6 +66,10 @@ function Playground({ api, session }: { api: Api; session: SessionInfo }) {
   const [scenario, setScenario] = useState<{ paymentId: string; bounds: Bounds }>();
   const [bounds, setBounds] = useState<Bounds>();
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [failure, setFailure] = useState<Outcome>();
+  const [verifying, setVerifying] = useState(false);
+  const reportTrigger = useRef<HTMLElement | null>(null);
   const [report, setReport] = useState<Report>();
   const [comparison, setComparison] = useState<Report>();
   const [pending, setPending] = useState<Submission>();
@@ -83,12 +104,15 @@ function Playground({ api, session }: { api: Api; session: SessionInfo }) {
     };
   }, [api]);
 
-  async function latestHistory() {
+  async function latestHistory(recoverPending = false) {
     const items = await api<HistoryItem[]>('history');
     setHistory(items);
-    const recovered = items.find((item) => item.attemptId === pending?.attemptId)?.report;
+    const recovered =
+      recoverPending && items.find((item) => item.attemptId === pending?.attemptId)?.report;
     if (recovered) {
       setReport(recovered);
+      setFailure(undefined);
+      setDialogOpen(true);
       setComparison(undefined);
       setPending(undefined);
       setRecovery(undefined);
@@ -152,8 +176,11 @@ function Playground({ api, session }: { api: Api; session: SessionInfo }) {
     setMockCase('success');
     setShowLiveValues(false);
   }
-  function open(item: HistoryItem) {
+  function open(item: HistoryItem, trigger: HTMLElement) {
     if (item.report) {
+      reportTrigger.current = trigger;
+      setDialogOpen(true);
+      setFailure(undefined);
       setReport(item.report);
       setComparison(undefined);
       return;
@@ -176,15 +203,23 @@ function Playground({ api, session }: { api: Api; session: SessionInfo }) {
     try {
       const value = await api<Report>('verify', 'POST', submission, controller.signal);
       setReport(value);
+      setFailure(undefined);
+      setDialogOpen(true);
       setComparison(undefined);
       if ('type' in value.result && value.result.code === 'STORAGE_OUTCOME_UNKNOWN') return;
       setPending(undefined);
       setRecovery(undefined);
       setRepeat(undefined);
-      await latestHistory();
+      await latestHistory().catch((cause: unknown) => setError(errorText(cause)));
     } catch (cause) {
       if (controller.signal.aborted) {
-        setStatus('Stopped waiting. The server may still finish this attempt.');
+        setFailure({
+          title: 'Stopped waiting for verification',
+          detail:
+            'The server may still finish this attempt. Check history or recover the same attempt.',
+          tone: 'warning',
+        });
+        setDialogOpen(true);
         return;
       }
       // A failed response can follow a committed claim. Keep the same submission available for recovery.
@@ -195,24 +230,38 @@ function Playground({ api, session }: { api: Api; session: SessionInfo }) {
       waiting.current = null;
     }
   }
-  function submit(event: FormEvent) {
+  function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const trigger = event.currentTarget.querySelector<HTMLButtonElement>('button[type="submit"]');
     void action(async () => {
-      if (pending) {
-        await verify(pending);
-        return;
+      reportTrigger.current = trigger;
+      setVerifying(true);
+      try {
+        if (pending) {
+          await verify(pending);
+          return;
+        }
+        const paymentId =
+          runContext?.paymentId ?? scenario?.paymentId ?? (await register()).paymentId;
+        await verify({
+          paymentId,
+          evidence,
+          attemptId: recovery?.attemptId ?? crypto.randomUUID(),
+          mode: runContext?.mode ?? mode,
+          inputProvider: runContext?.inputProvider ?? inputProvider,
+          mockCase: runContext?.mockCase ?? (mode === 'live' ? 'success' : mockCase),
+          showLiveValues,
+        });
+      } catch (cause) {
+        setFailure(
+          describeOutcome('error', {
+            message: cause instanceof ApiError ? cause.message : errorText(cause),
+          }),
+        );
+        setDialogOpen(true);
+      } finally {
+        setVerifying(false);
       }
-      const paymentId =
-        runContext?.paymentId ?? scenario?.paymentId ?? (await register()).paymentId;
-      await verify({
-        paymentId,
-        evidence,
-        attemptId: recovery?.attemptId ?? crypto.randomUUID(),
-        mode: runContext?.mode ?? mode,
-        inputProvider: runContext?.inputProvider ?? inputProvider,
-        mockCase: runContext?.mockCase ?? (mode === 'live' ? 'success' : mockCase),
-        showLiveValues,
-      });
     });
   }
 
@@ -220,10 +269,13 @@ function Playground({ api, session }: { api: Api; session: SessionInfo }) {
     <main className="wrap workspace">
       <div className="heading">
         <div>
-          <h1>Live Verification</h1>
-          <p>Configure a test payment and inspect the SDK’s receipt checks.</p>
+          <p className="ui-label">Operator portal</p>
+          <h1>Verification playground</h1>
+          <p>
+            Set an expected payment and inspect the receipt checks. Start with a simulated case or
+            select live mode for an enabled provider.
+          </p>
         </div>
-        <span className="sdk-label">SDK 0.2.0</span>
       </div>
       {error && (
         <p className="notice error" role="alert">
@@ -282,12 +334,12 @@ function Playground({ api, session }: { api: Api; session: SessionInfo }) {
               {modeLabel[runContext?.mode ?? mode]}
             </span>
           </div>
-          <form onSubmit={submit}>
+          <form onSubmit={submit} aria-busy={verifying}>
             <fieldset disabled={locked}>
               <div className="field-grid">
                 <label>
                   Verification mode
-                  <select
+                  <NativeSelect
                     value={runContext?.mode ?? mode}
                     disabled={Boolean(runContext)}
                     onChange={(event) =>
@@ -298,11 +350,11 @@ function Playground({ api, session }: { api: Api; session: SessionInfo }) {
                     <option value="live" disabled={!session.liveProviders.length}>
                       Live
                     </option>
-                  </select>
+                  </NativeSelect>
                 </label>
                 <label>
                   Input provider
-                  <select
+                  <NativeSelect
                     value={runContext?.inputProvider ?? inputProvider}
                     disabled={Boolean(runContext)}
                     onChange={(event) => {
@@ -313,13 +365,13 @@ function Playground({ api, session }: { api: Api; session: SessionInfo }) {
                     <option value="auto">Auto detect</option>
                     <option value="telebirr">Telebirr</option>
                     <option value="cbe">CBE</option>
-                  </select>
+                  </NativeSelect>
                 </label>
               </div>
               {(runContext?.mode ?? mode) === 'simulated' && (
                 <label>
                   Mock outcome
-                  <select
+                  <NativeSelect
                     disabled={Boolean(runContext)}
                     value={runContext?.mockCase ?? mockCase}
                     onChange={(event) => {
@@ -333,12 +385,12 @@ function Playground({ api, session }: { api: Api; session: SessionInfo }) {
                         {mockLabels[value]}
                       </option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </label>
               )}
               {(runContext?.mode ?? mode) === 'live' && (
                 <label className="checkbox">
-                  <input
+                  <TextInput
                     type="checkbox"
                     checked={showLiveValues}
                     onChange={(event) => setShowLiveValues(event.target.checked)}
@@ -348,7 +400,7 @@ function Playground({ api, session }: { api: Api; session: SessionInfo }) {
               )}
               <label>
                 Transaction ID, receipt URL or SMS
-                <textarea
+                <Textarea
                   ref={evidenceField}
                   value={evidence}
                   onChange={(event) => setEvidence(event.target.value)}
@@ -389,7 +441,7 @@ function Playground({ api, session }: { api: Api; session: SessionInfo }) {
             )}
             {mode === 'simulated' && !runContext && !pending && (
               <div className="actions samples">
-                <button
+                <ControlButton
                   type="button"
                   onClick={() =>
                     setEvidence(syntheticIdentifier(draft.provider, crypto.randomUUID()))
@@ -397,11 +449,11 @@ function Playground({ api, session }: { api: Api; session: SessionInfo }) {
                   disabled={busy}
                 >
                   Use synthetic ID
-                </button>
-                <button type="button" onClick={() => setEvidence('v2-')} disabled={busy}>
+                </ControlButton>
+                <ControlButton type="button" onClick={() => setEvidence('v2-')} disabled={busy}>
                   Invalid ID
-                </button>
-                <button
+                </ControlButton>
+                <ControlButton
                   type="button"
                   onClick={() =>
                     setEvidence('ID v2-Conflict and https://mbreciept.cbe.com.et/v2-Synthetic_42')
@@ -409,8 +461,8 @@ function Playground({ api, session }: { api: Api; session: SessionInfo }) {
                   disabled={busy}
                 >
                   Ambiguous input
-                </button>
-                <button
+                </ControlButton>
+                <ControlButton
                   type="button"
                   onClick={() =>
                     setEvidence(
@@ -423,7 +475,7 @@ function Playground({ api, session }: { api: Api; session: SessionInfo }) {
                   disabled={busy}
                 >
                   Provider conflict
-                </button>
+                </ControlButton>
               </div>
             )}
             {runContext && (
@@ -440,26 +492,27 @@ function Playground({ api, session }: { api: Api; session: SessionInfo }) {
               </p>
             )}
             <div className="actions submit">
-              <button
-                className="primary"
+              <ControlButton
+                variant="primary"
                 type="submit"
                 disabled={busy || (!pending && !runContext && mode === 'live' && !canLive)}
               >
-                {busy
-                  ? 'Working…'
+                {verifying && <LoadingIcon />}
+                {verifying
+                  ? 'Checking receipt…'
                   : pending || recovery
                     ? 'Recover attempt'
                     : repeat
                       ? 'Run again'
                       : 'Verify payment'}
-              </button>
+              </ControlButton>
               {busy && pending && (
-                <button type="button" onClick={() => waiting.current?.abort()}>
+                <ControlButton type="button" onClick={() => waiting.current?.abort()}>
                   Stop waiting
-                </button>
+                </ControlButton>
               )}
               {runContext && !pending && (
-                <button
+                <ControlButton
                   type="button"
                   disabled={busy}
                   onClick={() => {
@@ -468,24 +521,49 @@ function Playground({ api, session }: { api: Api; session: SessionInfo }) {
                   }}
                 >
                   Back to current draft
-                </button>
+                </ControlButton>
               )}
             </div>
           </form>
+          <p className="sr-only" role="status">
+            {verifying ? 'Checking receipt…' : ''}
+          </p>
         </section>
       </div>
-      <ReportPanel key={report?.attemptId} report={report} comparison={comparison} />
+      <ReportDialog
+        key={report?.attemptId}
+        report={visible && dialogOpen && !failure ? report : undefined}
+        comparison={comparison}
+        failure={visible && dialogOpen ? failure : undefined}
+        onClose={() => {
+          setDialogOpen(false);
+          if (report?.transientChecks) {
+            const { transientChecks: _transientChecks, ...saved } = report;
+            setReport(saved);
+          }
+        }}
+        restoreFocus={() => reportTrigger.current?.focus()}
+      />
       <HistoryPanel
         history={history}
         report={report}
         retain={session.retentionDays}
         open={open}
-        compare={setComparison}
+        compare={(compared, trigger) => {
+          reportTrigger.current = trigger;
+          setComparison(compared);
+          setFailure(undefined);
+          setDialogOpen(true);
+        }}
         repeat={queueRepeat}
         disabled={locked}
         refreshing={busy}
         refresh={() => {
-          void action(latestHistory);
+          void action(async () => {
+            reportTrigger.current =
+              document.activeElement instanceof HTMLElement ? document.activeElement : null;
+            await latestHistory(true);
+          });
         }}
       />
     </main>
@@ -565,56 +643,55 @@ function App() {
   const brand = (
     <span className="brand">
       <span className="brand-mark" aria-hidden="true">
-        <i />
-        <i />
-        <i />
-      </span>{' '}
-      AndHub <span>Admin portal</span>
+        ✓
+      </span>
+      Payment Verifier
     </span>
   );
   return (
     <>
       {session && (
-        <header>
+        <header className="portal-header">
+          {/* Adapted from Shadcnblocks Application Shell 4. */}
           <div className="wrap topbar">
             {brand}
             <nav className="portal-nav" aria-label="Administrator tools">
               {!session.mustChangePassword && (
                 <>
-                  <button
+                  <ControlButton
                     type="button"
                     aria-current={section === 'verification' ? 'page' : undefined}
                     onClick={() => setSection('verification')}
                   >
                     Live Verification
-                  </button>
-                  <button
+                  </ControlButton>
+                  <ControlButton
                     type="button"
                     aria-current={section === 'benchmark' ? 'page' : undefined}
                     onClick={() => setSection('benchmark')}
                   >
                     Benchmarking
-                  </button>
-                  <button
+                  </ControlButton>
+                  <ControlButton
                     type="button"
                     aria-current={section === 'password' ? 'page' : undefined}
                     onClick={() => setSection('password')}
                   >
                     Change password
-                  </button>
+                  </ControlButton>
                 </>
               )}
-              <button
-                type="button"
-                className="text-button"
-                onClick={() => {
-                  void signOut();
-                }}
-                disabled={loading}
-              >
-                Sign out
-              </button>
             </nav>
+            <ControlButton
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                void signOut();
+              }}
+              disabled={loading}
+            >
+              Sign out
+            </ControlButton>
           </div>
         </header>
       )}
@@ -625,9 +702,10 @@ function App() {
       )}
       {!session || changing ? (
         <main className="login wrap">
+          {/* Adapted from Shadcnblocks Login 1. */}
+          {!session && brand}
           <div className="login-card panel">
-            {!session && brand}
-            <h1>{changing ? 'Change administrator password' : 'AndHub Payment Verifier'}</h1>
+            <h1>{changing ? 'Change administrator password' : 'Sign in to the operator portal'}</h1>
             {session?.mustChangePassword && (
               <p>Change the initial password to unlock verification and benchmarking.</p>
             )}
@@ -640,7 +718,7 @@ function App() {
               {changing ? (
                 <label>
                   Current password
-                  <input
+                  <TextInput
                     name="current"
                     type="password"
                     required
@@ -651,12 +729,12 @@ function App() {
               ) : (
                 <label>
                   Administrator name
-                  <input name="username" required autoComplete="username" maxLength={128} />
+                  <TextInput name="username" required autoComplete="username" maxLength={128} />
                 </label>
               )}
               <label>
                 {changing ? 'New password' : 'Password'}
-                <input
+                <TextInput
                   name="password"
                   type="password"
                   required
@@ -668,7 +746,7 @@ function App() {
               {changing && (
                 <label>
                   Confirm new password
-                  <input
+                  <TextInput
                     name="confirmation"
                     type="password"
                     required
@@ -678,16 +756,16 @@ function App() {
                   />
                 </label>
               )}
-              <button className="primary" disabled={loading}>
+              <ControlButton variant="primary" disabled={loading}>
                 {loading ? 'Working…' : changing ? 'Save password' : 'Sign in'}
-              </button>
+              </ControlButton>
             </form>
           </div>
         </main>
       ) : (
         <>
           <div hidden={section !== 'verification'}>
-            <Playground api={api} session={session} />
+            <Playground api={api} session={session} visible={section === 'verification'} />
           </div>
           {section === 'benchmark' && <BenchmarkPanel api={api} />}
         </>

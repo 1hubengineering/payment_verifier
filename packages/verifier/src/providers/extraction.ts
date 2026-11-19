@@ -16,33 +16,31 @@ export interface ParsedReceipt {
   };
 }
 
-function clean(value: string): string {
-  return value
-    .replace(
-      /&(?:#x([0-9a-f]+)|#([0-9]+)|(nbsp|amp|quot|apos|lt|gt));/giu,
-      (
-        whole: string,
-        hex: string | undefined,
-        dec: string | undefined,
-        named: string | undefined,
-      ) => {
-        if (named)
-          return (
-            (
-              { nbsp: ' ', amp: '&', quot: '"', apos: "'", lt: '<', gt: '>' } as Record<
-                string,
-                string
-              >
-            )[named.toLowerCase()] ?? whole
-          );
-        const code = Number.parseInt(hex ?? dec ?? '', hex ? 16 : 10);
-        return code >= 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff)
-          ? String.fromCodePoint(code)
-          : '';
-      },
-    )
-    .replace(/\s+/gu, ' ')
-    .trim();
+function clean(value: string, preserveSpacing = false): string {
+  const decoded = value.replace(
+    /&(?:#x([0-9a-f]+)|#([0-9]+)|(nbsp|amp|quot|apos|lt|gt));/giu,
+    (
+      whole: string,
+      hex: string | undefined,
+      dec: string | undefined,
+      named: string | undefined,
+    ) => {
+      if (named)
+        return (
+          (
+            { nbsp: ' ', amp: '&', quot: '"', apos: "'", lt: '<', gt: '>' } as Record<
+              string,
+              string
+            >
+          )[named.toLowerCase()] ?? whole
+        );
+      const code = Number.parseInt(hex ?? dec ?? '', hex ? 16 : 10);
+      return code >= 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff)
+        ? String.fromCodePoint(code)
+        : '';
+    },
+  );
+  return (preserveSpacing ? decoded : decoded.replace(/\s+/gu, ' ')).trim();
 }
 interface ReceiptLayout {
   tables: string[][][];
@@ -52,7 +50,7 @@ interface ReceiptLayout {
 interface TableFrame {
   rows: string[][];
   row: { cells: string[]; containsTable: boolean } | undefined;
-  cell: { tag: string; parts: string[]; length: number } | undefined;
+  cell: { tag: string; parts: string[]; length: number; preserveSpacing: boolean } | undefined;
 }
 /** Monotonic scanner for supported layouts and Telebirr's optional table end tags. */
 function layout(html: string, provider: ProviderId): ReceiptLayout {
@@ -64,6 +62,7 @@ function layout(html: string, provider: ProviderId): ReceiptLayout {
   const parents: TableFrame[] = [];
   const tables = [table.rows];
   let span: string[] | undefined;
+  let spanPreservesSpacing = false;
   let spanLength = 0,
     tags = 0,
     cursor = 0;
@@ -72,7 +71,7 @@ function layout(html: string, provider: ProviderId): ReceiptLayout {
   }
   function finishCell(): void {
     if (!table.row || !table.cell || span) invalid();
-    table.row.cells.push(clean(table.cell.parts.join('')));
+    table.row.cells.push(clean(table.cell.parts.join(''), table.cell.preserveSpacing));
     table.cell = undefined;
     if (table.row.cells.length > 128) invalid();
   }
@@ -87,14 +86,14 @@ function layout(html: string, provider: ProviderId): ReceiptLayout {
     table.rows.push(table.row.containsTable ? [] : table.row.cells);
     table.row = undefined;
   }
-  const append = (part: string): void => {
+  const append = (part: string, markup = false): void => {
     visible.push(part);
-    if (table.cell) {
+    if (table.cell && !(markup && table.cell.preserveSpacing)) {
       table.cell.length += part.length;
       if (table.cell.length > 8192) invalid();
       table.cell.parts.push(part);
     }
-    if (span) {
+    if (span && !(markup && spanPreservesSpacing)) {
       spanLength += part.length;
       if (spanLength > 8192) invalid();
       span.push(part);
@@ -143,7 +142,7 @@ function layout(html: string, provider: ProviderId): ReceiptLayout {
       const end = html.indexOf('-->', open + 4);
       if (end === -1) invalid();
       cursor = end + 3;
-      append(' ');
+      append(' ', true);
       continue;
     }
     const end = tagEnd(open);
@@ -152,7 +151,7 @@ function layout(html: string, provider: ProviderId): ReceiptLayout {
     cursor = end + 1;
     if (!match) {
       if (!/^!doctype(?:\s|$)/u.test(token)) invalid();
-      append(' ');
+      append(' ', true);
       continue;
     }
     const closing = Boolean(match[1]),
@@ -171,7 +170,7 @@ function layout(html: string, provider: ProviderId): ReceiptLayout {
       const closeEnd = tagEnd(close);
       if (!new RegExp(`^/${name}\\s*$`, 'u').test(lower.slice(close + 1, closeEnd))) invalid();
       cursor = closeEnd + 1;
-      append(' ');
+      append(' ', true);
       continue;
     }
     if (['tr', 'td', 'th', 'span'].includes(name) && /\/\s*$/u.test(token)) invalid();
@@ -209,20 +208,29 @@ function layout(html: string, provider: ProviderId): ReceiptLayout {
           if (!parents.length) invalid();
           finishCell();
         }
-        table.cell = { tag: name, parts: [], length: 0 };
+        const label = table.row.cells[0];
+        table.cell = {
+          tag: name,
+          parts: [],
+          length: 0,
+          preserveSpacing:
+            table.row.cells.length === 1 && label !== undefined && field(label) === 'reference',
+        };
       }
     } else if (name === 'span') {
       if (closing) {
         if (!span) invalid();
-        spans.push(clean(span.join('')));
+        spans.push(clean(span.join(''), spanPreservesSpacing));
         span = undefined;
       } else {
         if (span) invalid();
         span = [];
         spanLength = 0;
+        spanPreservesSpacing = field(spans.at(-1) ?? '') === 'reference';
       }
     }
-    append(' ');
+    if (name === 'br') append('\n');
+    else append(' ', true);
   }
   if (table.row || table.cell || span || parents.length) invalid();
   return { tables, spans, text: clean(visible.join('')) };
@@ -435,6 +443,14 @@ export function parseReceiptHtml(provider: ProviderId, html: string): ParsedRece
       if (row.length === 2) {
         const f = field(row[0]!);
         if (f) add(f, row[1]!);
+      } else if (
+        provider === 'telebirr' &&
+        row.length === 3 &&
+        row[2] === '' &&
+        key(row[0]!) === 'customernote'
+      ) {
+        // The current receipt uses the invoice table's third column as padding.
+        add('reference', row[1]!);
       }
       const headers = row.map(field);
       if (
@@ -498,6 +514,9 @@ export function parseReceiptHtml(provider: ProviderId, html: string): ParsedRece
   if (rawAccount && account === null) invalidFields.push('recipientAccountLast4');
   if (rawTime && transactionAt === null) invalidFields.push('transactionAt');
   if (rawStatus && paymentStatus === null) invalidFields.push('status');
+  const rawReference = get('reference');
+  const referenceTooLong = rawReference !== null && rawReference.length > 255;
+  if (referenceTooLong) invalidFields.push('reference');
   const evidence: ReceiptEvidence = Object.freeze({
     provider,
     currency: parsedMoney.currency,
@@ -506,7 +525,7 @@ export function parseReceiptHtml(provider: ProviderId, html: string): ParsedRece
     amountMinor: parsedMoney.amount,
     recipientName: get('recipientName'),
     recipientAccountLast4: account,
-    reference: get('reference'),
+    reference: referenceTooLong ? null : rawReference,
     transactionAt,
     paymentType: get('paymentType'),
     ambiguousFields: Object.freeze(ambiguous),
