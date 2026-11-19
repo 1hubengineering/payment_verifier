@@ -3,15 +3,14 @@ import { open } from 'node:fs/promises';
 import {
   createPaymentExpectation,
   compareReceipt,
-  VerificationError,
+  VerificationOperationError,
 } from '@1hubengineering/verifier';
 import type { VerificationSubmission, PaymentScope } from '@1hubengineering/verifier';
-import { JobError } from '@1hubengineering/verifier/jobs';
 import { parseReceiptHtml } from '@1hubengineering/verifier/providers';
 import { openOperatorRuntime, OperatorError } from './runtime.ts';
 import type { OperatorConfiguration } from './runtime.ts';
 
-const help = `Trusted operator CLI (receipt evidence only; settlement stays UNCONFIRMED)
+const help = `Trusted payment verification CLI
   help
   diagnose <trusted-expectation.json> <saved-receipt.html>  (no database/claim)
   register <trusted-expectation.json>
@@ -66,17 +65,16 @@ function fields(value: Record<string, unknown>, names: readonly string[]): void 
 function trustedExpectation(input: unknown): ReturnType<typeof createPaymentExpectation> {
   try {
     return createPaymentExpectation(input);
-  } catch {
+  } catch (error) {
+    if (error instanceof VerificationOperationError) throw error;
     throw new OperatorError('INVALID_INPUT');
   }
 }
-export function safeErrorCode(error: unknown): string {
-  if (
-    error instanceof OperatorError ||
-    error instanceof VerificationError ||
-    error instanceof JobError
-  )
-    return error.code;
+export function safeError(
+  error: unknown,
+): ReturnType<VerificationOperationError['toJSON']> | string {
+  if (error instanceof VerificationOperationError) return error.toJSON();
+  if (error instanceof OperatorError) return error.code;
   return 'STORAGE_OR_RUNTIME_UNAVAILABLE';
 }
 export async function runCli(

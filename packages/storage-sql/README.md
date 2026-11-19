@@ -41,7 +41,7 @@ Only complete matching evidence from the configured provider's official-HTTPS
 result can create a local claim. Saved-HTML provenance is rejected. One receipt
 can be claimed once per provider across every tenant in this shared store; one
 payment accepts one receipt. Independent stores do not coordinate receipt reuse.
-Every outcome retains settlement `UNCONFIRMED`; there is no unchecked claim API.
+Claims require a verified result from the configured verifier.
 
 Idempotency keys are scoped to the tenant and case-sensitive. Identical canonical
 provider URL and payment ID replay the committed result without retrieving again.
@@ -65,7 +65,7 @@ try {
   await client.query('BEGIN ISOLATION LEVEL SERIALIZABLE');
   const result = await verifier.complete(prepared, postgresTransaction(client));
   // Other receipt-related host writes on this same client can commit atomically.
-  // Settlement and fulfillment require independent trusted confirmation.
+  // Publish the result after the outer transaction commits.
   await client.query('COMMIT');
 } catch (error) {
   await client.query('ROLLBACK');
@@ -111,7 +111,7 @@ Never edit or drop these constraints in a live installation.
 `events` and `acknowledgeEvent` are trusted host/worker operations over the shared
 store, with at-least-once delivery. Consumers must deduplicate by event key and
 acknowledge only after their own durable action succeeds. Events communicate
-receipt outcomes; they are never settlement or fulfillment instructions.
+verification outcomes. Hosts consume them through repeat-safe handlers.
 
 ## Local proof
 

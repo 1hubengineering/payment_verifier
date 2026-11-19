@@ -1,8 +1,8 @@
 {
   "name": "@1hubengineering/adapter-prisma",
-  "version": "0.1.1",
-  "private": false,
-  "description": "Prisma 7.10.1 transaction integration for receipt-only verification",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Prisma 7.10.1 transaction integration for payment verification",
   "homepage": "https://github.com/1hubengineering/payment_verifier/tree/main/packages/adapter-prisma",
   "bugs": {
     "url": "https://github.com/1hubengineering/payment_verifier/issues"

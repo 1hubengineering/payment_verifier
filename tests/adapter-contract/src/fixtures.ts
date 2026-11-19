@@ -63,3 +63,11 @@ export const jobTestPolicy: JobPolicy = {
   leaseMs: 3000,
   backoffMs: 10,
 };
+
+export const timedOut: ProviderResult = {
+  kind: 'UNAVAILABLE',
+  code: 'PROVIDER_TIMEOUT',
+  stage: 'receipt_retrieval',
+  retryable: true,
+  details: { timeoutMs: 1000 },
+};

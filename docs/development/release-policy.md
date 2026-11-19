@@ -39,7 +39,7 @@ After publication, run `pnpm release:check artifacts/<candidate>/manifest.json`.
 It verifies each registry version, owner and dist.integrity against the reviewed
 archive, downloads/checks both hashes and installs the registry versions in a
 temporary npm consumer. The consumer exercises receipt/idempotency and durable
-SQLite workflows, imports all five libraries and keeps settlement unconfirmed.
+SQLite workflows, imports all five libraries, and checks the verification result contract.
 This complements the full installed tarball/real-engine suite before release. Attach the
 same tarballs/checksums to the GitHub tag/release, with exact source commit, test
 results, matrix, limits and npm links. Record publication in the roadmap/provenance

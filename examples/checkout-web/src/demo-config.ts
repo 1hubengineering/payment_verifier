@@ -1,5 +1,5 @@
 import type { CheckoutProps } from './checkout';
-import type { ProviderId } from './demo-evidence';
+import type { ProviderId } from '@1hubengineering/verifier';
 
 const amountMinor = 148000;
 const decimalAmount = `${Math.trunc(amountMinor / 100)}.${String(amountMinor % 100).padStart(2, '0')}`;
@@ -33,11 +33,7 @@ export const demoMethods = [
     instructions:
       'In a real checkout, you would transfer the exact amount in CBE Mobile Banking and put the invoice number in the description if the app allows it.',
     receiving: { holder, accountLabel: 'Account number', account: 'DEMO-CBE-1048' },
-    placeholders: {
-      transaction: 'e.g. v2-DEMO1048',
-      url: cbeUrl,
-      sms: `Dear Sample Customer, you have successfully transferred ${displayAmount} from account 1********7757 to account ****1048 (${holder}). …`,
-    },
+    placeholder: 'e.g. v2-DEMO1048',
   },
   {
     id: 'telebirr',
@@ -47,17 +43,13 @@ export const demoMethods = [
     instructions:
       'In a real checkout, you would send the exact amount to the receiving phone number in Telebirr. Add the invoice number as a note if that option is available.',
     receiving: { holder, accountLabel: 'Telebirr phone number', account: '+251 00 000 1048' },
-    placeholders: {
-      transaction: 'e.g. DEMO1048TB',
-      url: telebirrUrl,
-      sms: `Dear Sample Customer\nYou have transferred ${displayAmount} to ${holder} (25100****1048) on 19/11/2026 11:25:00. …`,
-    },
+    placeholder: 'e.g. DEMO1048TB',
   },
 ] as const satisfies CheckoutProps['paymentMethods'];
 
 export const demoSamples = {
   cbe: {
-    transaction: 'FTDEMO1048',
+    transaction: 'v2-DEMO1048',
     url: cbeUrl,
     sms: [
       `Dear Sample Customer You have successfully transferred ${displayAmount} from account 1********7757 to account ****1048 (${holder}). Service charge of ETB 0.50 and VAT(15%) of ETB 0.08 and Disaster Recovery(5%) of 0.03 with total of ETB 1,480.61. Thanks for Banking with CBE. ${cbeUrl}`,

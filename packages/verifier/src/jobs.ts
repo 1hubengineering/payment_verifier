@@ -1,16 +1,44 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes, randomInt } from 'node:crypto';
-import { createPaymentExpectation } from './comparison.ts';
-import type { PaymentExpectation } from './comparison.ts';
-import { createReceiptVerifier, storageKey } from './verifier.ts';
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  createHmac,
+  randomBytes,
+  randomInt,
+} from 'node:crypto';
+import { createWorkerReceiptVerifier } from './verifier.ts';
+import type { PreparedVerification, ReceiptProvider } from './verifier.ts';
+import { VerificationOperationError } from './outcomes.ts';
 import type {
-  PaymentScope,
-  ReceiptProvider,
-  VerificationSubmission,
+  OperationErrorCode,
+  SerializedVerificationOperationError,
   VerificationResult,
-} from './verifier.ts';
+} from './outcomes.ts';
 import type { RecordTransaction, VerificationStorage } from './storage.ts';
 import type { ProviderId } from './types.ts';
-import { normalizeReceiptLocator } from './providers/locator.ts';
+import { PAYMENT_INPUT_LIMIT } from './input.ts';
+import type { InputType } from './input.ts';
+import {
+  attemptRecord,
+  canonicalFingerprint,
+  detectSubmission,
+  ensureStore,
+  expectationRecord,
+  identifier,
+  object,
+  operation,
+  payloadVersion,
+  readRecord,
+  replayAttempt,
+  requireOpen,
+  resultRecord,
+  scopeKey,
+  serializedError,
+  storageKey,
+  submission,
+  transact,
+} from './verification-records.ts';
+import type { PaymentScope, VerificationSubmission } from './verification-records.ts';
 
 export interface JobPolicy {
   readonly maxPending: number;
@@ -21,39 +49,35 @@ export interface JobPolicy {
   readonly leaseMs: number;
   readonly backoffMs: number;
 }
-export interface VerificationJob extends PaymentScope {
+interface JobSummary extends PaymentScope {
   readonly jobId: string;
-  readonly state: 'QUEUED' | 'RUNNING' | 'RETRY_WAIT' | 'COMPLETED';
   readonly attempts: number;
   readonly createdAt: number;
   readonly updatedAt: number;
   readonly nextRunAt: number;
-  readonly settlementStatus: 'UNCONFIRMED';
-  readonly result?: VerificationResult;
 }
+export type VerificationJob = JobSummary &
+  (
+    | {
+        readonly state: 'QUEUED' | 'RUNNING' | 'RETRY_WAIT';
+        readonly result?: never;
+        readonly error?: never;
+      }
+    | { readonly state: 'COMPLETED'; readonly result: VerificationResult; readonly error?: never }
+    | {
+        readonly state: 'FAILED';
+        readonly error: SerializedVerificationOperationError;
+        readonly result?: never;
+      }
+  );
 export interface DurableVerifier {
   initialize(): Promise<void>;
   enqueue(input: VerificationSubmission): Promise<VerificationJob>;
   status(scope: PaymentScope, jobId: string): Promise<VerificationJob>;
   runOnce(options?: {
     readonly signal?: AbortSignal;
-  }): Promise<'IDLE' | 'BUSY' | 'STALE' | 'RETRY_WAIT' | 'COMPLETED'>;
+  }): Promise<'IDLE' | 'BUSY' | 'STALE' | 'RETRY_WAIT' | 'COMPLETED' | 'FAILED'>;
   pruneCompleted(before: number, limit?: number): Promise<number>;
-}
-export class JobError extends Error {
-  constructor(
-    readonly code:
-      | 'INVALID_INPUT'
-      | 'NOT_FOUND'
-      | 'NOT_OPEN'
-      | 'IDEMPOTENCY_CONFLICT'
-      | 'CAPACITY'
-      | 'CONFIGURATION'
-      | 'CORRUPT_STATE',
-  ) {
-    super(code);
-    this.name = 'JobError';
-  }
 }
 interface Circuit {
   failures: number;
@@ -66,8 +90,13 @@ interface Control {
   revision: number;
   circuits: Record<ProviderId, Circuit>;
 }
-type JobRecord = { -readonly [K in keyof VerificationJob]: VerificationJob[K] } & {
+type JobRecord = { -readonly [K in keyof JobSummary]: JobSummary[K] } & {
+  readonly version: typeof payloadVersion;
+  state: VerificationJob['state'];
+  result?: VerificationResult;
+  error?: SerializedVerificationOperationError;
   provider: ProviderId;
+  fingerprint: string;
   snapshot: string;
   encrypted: string;
   aliases: string[];
@@ -77,61 +106,39 @@ type JobRecord = { -readonly [K in keyof VerificationJob]: VerificationJob[K] } 
   history: {
     startedAt: number;
     finishedAt?: number;
-    outcome?: 'UNAVAILABLE' | 'COMPLETED' | 'LEASE_EXPIRED';
+    outcome?: 'RETRY' | 'COMPLETED' | 'FAILED' | 'LEASE_EXPIRED';
   }[];
 };
-const controlKey = storageKey('jobcontrol', 'v1');
-function identifier(value: unknown): value is string {
-  return (
-    typeof value === 'string' &&
-    value.length >= 1 &&
-    value.length <= 128 &&
-    value.trim() === value &&
-    Array.from(value).every((char) => char.charCodeAt(0) >= 32 && char.charCodeAt(0) !== 127)
-  );
+const controlKey = storageKey('jobcontrol', 'v2');
+const jobKey = /^rv1:job:[a-f0-9]{64}$/u;
+const aliasPattern = /^rv1:jobalias:[a-f0-9]{64}$/u;
+const terminal = (job: Pick<JobRecord, 'state'>): boolean =>
+  job.state === 'COMPLETED' || job.state === 'FAILED';
+const activeKey = (job: Pick<JobRecord, 'tenantId' | 'fingerprint'>): string =>
+  storageKey('jobactive', job.tenantId, job.fingerprint);
+const historyKey = (id: string): string => storageKey('jobhistory', id);
+function jobError(code: OperationErrorCode, cause?: unknown): VerificationOperationError {
+  return operation(code, 'queue', cause);
 }
-function scope(value: PaymentScope): void {
-  if (!identifier(value?.tenantId) || !identifier(value?.paymentId))
-    throw new JobError('INVALID_INPUT');
-}
-function object(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new JobError('CORRUPT_STATE');
-  return value as Record<string, unknown>;
-}
-function snapshot(
-  value: unknown,
-  expected: PaymentScope,
-): { expectation: PaymentExpectation; state: string; digest: string } {
-  const record = object(value);
-  let expectation: PaymentExpectation;
-  try {
-    expectation = createPaymentExpectation(record.expectation);
-  } catch {
-    throw new JobError('CORRUPT_STATE');
-  }
-  if (
-    expectation.tenantId !== expected.tenantId ||
-    expectation.paymentId !== expected.paymentId ||
-    !['OPEN', 'CANCELLED', 'RECEIPT_CLAIMED'].includes(record.state as string)
-  )
-    throw new JobError('CORRUPT_STATE');
+function snapshot(value: unknown, expected: PaymentScope) {
+  const record = expectationRecord(value, expected);
   return {
-    expectation,
-    state: record.state as string,
-    digest: createHash('sha256').update(JSON.stringify(expectation)).digest('hex'),
+    ...record,
+    digest: createHash('sha256').update(JSON.stringify(record.expectation)).digest('hex'),
   };
 }
 function jobRecord(value: unknown): JobRecord {
   const record = object(value);
+  if (record.version !== payloadVersion) throw jobError('INCOMPATIBLE_STORE');
   if (
     typeof record.jobId !== 'string' ||
-    !/^rv1:job:[a-f0-9]{64}$/u.test(record.jobId) ||
+    !jobKey.test(record.jobId) ||
     !identifier(record.tenantId) ||
     !identifier(record.paymentId) ||
-    !['QUEUED', 'RUNNING', 'RETRY_WAIT', 'COMPLETED'].includes(record.state as string) ||
-    record.settlementStatus !== 'UNCONFIRMED' ||
+    !['QUEUED', 'RUNNING', 'RETRY_WAIT', 'COMPLETED', 'FAILED'].includes(record.state as string) ||
     !['telebirr', 'cbe'].includes(record.provider as string) ||
+    typeof record.fingerprint !== 'string' ||
+    !/^rv1:input:[a-f0-9]{64}$/u.test(record.fingerprint) ||
     typeof record.snapshot !== 'string' ||
     !/^[a-f0-9]{64}$/u.test(record.snapshot) ||
     typeof record.encrypted !== 'string' ||
@@ -139,59 +146,54 @@ function jobRecord(value: unknown): JobRecord {
     !Array.isArray(record.aliases) ||
     record.aliases.length < 1 ||
     record.aliases.length > 8 ||
-    record.aliases.some((a) => typeof a !== 'string' || !/^rv1:jobalias:[a-f0-9]{64}$/u.test(a)) ||
+    record.aliases.some((a) => typeof a !== 'string' || !aliasPattern.test(a)) ||
     typeof record.lease !== 'string' ||
     !Array.isArray(record.history) ||
     record.history.length > 10 ||
     ['attempts', 'createdAt', 'updatedAt', 'nextRunAt', 'leaseUntil'].some(
       (k) => !Number.isSafeInteger(record[k]) || (record[k] as number) < 0,
     ) ||
-    (record.attempts as number) > 10 ||
-    (record.state === 'COMPLETED' && (!record.result || typeof record.eventKey !== 'string'))
+    (record.attempts as number) > 10
   )
-    throw new JobError('CORRUPT_STATE');
-  if (record.state === 'COMPLETED') {
-    const result = object(record.result),
-      checks = object(result.checks);
-    if (
-      result.tenantId !== record.tenantId ||
-      result.paymentId !== record.paymentId ||
-      result.settlementStatus !== 'UNCONFIRMED' ||
-      typeof result.verificationId !== 'string' ||
-      record.eventKey !== storageKey('event', result.verificationId) ||
-      ![
-        'MATCHED_RECEIPT_ONLY',
-        'MISMATCHED',
-        'UNABLE_TO_VERIFY',
-        'ALREADY_CLAIMED',
-        'CANCELLED',
-        'EXPIRED',
-        'NEEDS_REVIEW',
-        'IDEMPOTENCY_CONFLICT',
-      ].includes(result.verificationStatus as string) ||
-      Object.values(checks).some(
-        (c) => !['PASS', 'FAIL', 'MISSING', 'INVALID', 'AMBIGUOUS'].includes(c as string),
+    throw jobError('CORRUPT_STATE');
+  const job = record as unknown as JobRecord;
+  if (terminal(job)) {
+    if (job.encrypted !== '' || job.lease !== '' || job.leaseUntil !== 0 || job.nextRunAt !== 0)
+      throw jobError('CORRUPT_STATE');
+    if (job.state === 'COMPLETED') {
+      const result = resultRecord(job.result, job);
+      if (
+        result.verificationId === null ||
+        job.eventKey !== storageKey('event', result.verificationId) ||
+        job.error
       )
-    )
-      throw new JobError('CORRUPT_STATE');
+        throw jobError('CORRUPT_STATE');
+    } else {
+      serializedError(job.error);
+      if (job.eventKey !== storageKey('event', job.jobId) || job.result)
+        throw jobError('CORRUPT_STATE');
+    }
+  } else if (job.result || job.error || job.eventKey || !job.encrypted) {
+    throw jobError('CORRUPT_STATE');
   }
-  return record as unknown as JobRecord;
+  return job;
 }
+
 function publicJob(job: JobRecord): VerificationJob {
-  return {
-    tenantId: job.tenantId,
-    paymentId: job.paymentId,
-    jobId: job.jobId,
-    state: job.state,
-    attempts: job.attempts,
-    createdAt: job.createdAt,
-    updatedAt: job.updatedAt,
-    nextRunAt: job.nextRunAt,
-    settlementStatus: 'UNCONFIRMED',
-    ...(job.result ? { result: structuredClone(job.result) } : {}),
-  };
+  const { tenantId, paymentId, jobId, attempts, createdAt, updatedAt, nextRunAt, state } = job;
+  const summary = { tenantId, paymentId, jobId, attempts, createdAt, updatedAt, nextRunAt };
+  if (state === 'COMPLETED') return { ...summary, state, result: structuredClone(job.result!) };
+  if (state === 'FAILED') return { ...summary, state, error: structuredClone(job.error!) };
+  return { ...summary, state };
 }
-class RetryUnavailable extends Error {}
+class RetryObservation extends VerificationOperationError {
+  constructor(
+    readonly delay: number,
+    readonly providerFailure: boolean,
+  ) {
+    super('INTERNAL_ERROR', 'queue');
+  }
+}
 
 /** No work starts at import or construction. Hosts supply durable storage and a 32-byte secret. */
 export function createDurableVerifier(config: {
@@ -206,7 +208,7 @@ export function createDurableVerifier(config: {
     !(config.encryptionKey instanceof Uint8Array) ||
     config.encryptionKey.length !== 32
   )
-    throw new JobError('CONFIGURATION');
+    throw jobError('QUEUE_CONFIGURATION');
   const storage = config.storage,
     secret = Buffer.from(config.encryptionKey);
   const policy: JobPolicy = {
@@ -230,7 +232,7 @@ export function createDurableVerifier(config: {
     policy.leaseMs > 300000 ||
     policy.backoffMs > 60000
   )
-    throw new JobError('CONFIGURATION');
+    throw jobError('QUEUE_CONFIGURATION');
   const signature = createHash('sha256')
     .update(secret)
     .update(JSON.stringify(policy))
@@ -238,15 +240,14 @@ export function createDurableVerifier(config: {
   const now = (): number => {
     const time = (config.now ?? Date.now)();
     if (!Number.isSafeInteger(time) || time < 0 || time > Number.MAX_SAFE_INTEGER - 1_000_000)
-      throw new JobError('INVALID_INPUT');
+      throw jobError('INVALID_REQUEST');
     return time;
   };
-  const verifier = createReceiptVerifier({ storage, providers: config.providers, now });
-  const unavailableVerifier = createReceiptVerifier({ storage, providers: {}, now });
+  const verifier = createWorkerReceiptVerifier({ storage, providers: config.providers, now });
   let active = 0;
   const control = async (tx: RecordTransaction): Promise<Control> => {
     const value = object(await tx.get(controlKey));
-    if (value.signature !== signature) throw new JobError('CONFIGURATION');
+    if (value.signature !== signature) throw jobError('QUEUE_CONFIGURATION');
     if (
       ['pending', 'retained', 'revision'].some(
         (k) => !Number.isSafeInteger(value[k]) || (value[k] as number) < 0,
@@ -254,7 +255,7 @@ export function createDurableVerifier(config: {
       (value.pending as number) > (value.retained as number) ||
       (value.retained as number) > policy.maxRetained
     )
-      throw new JobError('CORRUPT_STATE');
+      throw jobError('CORRUPT_STATE');
     for (const provider of ['telebirr', 'cbe']) {
       const c = object(object(value.circuits)[provider]);
       if (
@@ -263,7 +264,7 @@ export function createDurableVerifier(config: {
         (c.failures as number) < 0 ||
         (c.until as number) < 0
       )
-        throw new JobError('CORRUPT_STATE');
+        throw jobError('CORRUPT_STATE');
     }
     const result = value as unknown as Control;
     result.revision++;
@@ -273,6 +274,7 @@ export function createDurableVerifier(config: {
   const encrypt = (
     job: Pick<JobRecord, 'jobId' | 'snapshot'>,
     input: VerificationSubmission,
+    inputType: InputType,
   ): string => {
     const nonce = randomBytes(12),
       cipher = createCipheriv('aes-256-gcm', secret, nonce);
@@ -282,6 +284,7 @@ export function createDurableVerifier(config: {
         JSON.stringify({
           idempotencyKey: input.idempotencyKey,
           receiptLocator: input.receiptLocator,
+          inputType,
         }),
         'utf8',
       ),
@@ -289,87 +292,142 @@ export function createDurableVerifier(config: {
     ]);
     return Buffer.concat([nonce, cipher.getAuthTag(), body]).toString('base64');
   };
-  const decrypt = (job: JobRecord): VerificationSubmission => {
-    const bytes = Buffer.from(job.encrypted, 'base64');
-    const decipher = createDecipheriv('aes-256-gcm', secret, bytes.subarray(0, 12));
-    decipher.setAAD(Buffer.from(JSON.stringify([job.jobId, job.snapshot])));
-    decipher.setAuthTag(bytes.subarray(12, 28));
-    const decoded = object(
-      JSON.parse(
-        Buffer.concat([decipher.update(bytes.subarray(28)), decipher.final()]).toString('utf8'),
-      ),
-    );
-    if (!identifier(decoded.idempotencyKey) || typeof decoded.receiptLocator !== 'string')
-      throw new JobError('CORRUPT_STATE');
-    const locator = normalizeReceiptLocator(job.provider, decoded.receiptLocator);
-    if (storageKey('job', job.tenantId, job.paymentId, locator.url) !== job.jobId)
-      throw new JobError('CORRUPT_STATE');
-    return {
-      tenantId: job.tenantId,
-      paymentId: job.paymentId,
-      idempotencyKey: decoded.idempotencyKey,
-      receiptLocator: locator.url,
-    };
+  const decrypt = (job: JobRecord): { input: VerificationSubmission; inputType: InputType } => {
+    try {
+      const bytes = Buffer.from(job.encrypted, 'base64');
+      const decipher = createDecipheriv('aes-256-gcm', secret, bytes.subarray(0, 12));
+      decipher.setAAD(Buffer.from(JSON.stringify([job.jobId, job.snapshot])));
+      decipher.setAuthTag(bytes.subarray(12, 28));
+      const decoded = object(
+        JSON.parse(
+          Buffer.concat([decipher.update(bytes.subarray(28)), decipher.final()]).toString('utf8'),
+        ),
+      );
+      if (
+        !identifier(decoded.idempotencyKey) ||
+        typeof decoded.receiptLocator !== 'string' ||
+        (decoded.inputType !== 'identifier' &&
+          decoded.inputType !== 'receipt_url' &&
+          decoded.inputType !== 'sms')
+      )
+        throw jobError('CORRUPT_STATE');
+      const input = {
+        tenantId: job.tenantId,
+        paymentId: job.paymentId,
+        idempotencyKey: decoded.idempotencyKey,
+        receiptLocator: decoded.receiptLocator,
+      };
+      const detected = detectSubmission(input, job.provider);
+      if (
+        'status' in detected ||
+        canonicalFingerprint(input, detected) !== job.fingerprint ||
+        storageKey('job', input.tenantId, input.idempotencyKey) !== job.jobId
+      )
+        throw jobError('CORRUPT_STATE');
+      return { input, inputType: decoded.inputType };
+    } catch (cause) {
+      throw jobError('CORRUPT_STATE', cause);
+    }
   };
+
   const matchesLease = (current: JobRecord, held: JobRecord): boolean =>
     current.state === 'RUNNING' && current.lease === held.lease && current.leaseUntil > now();
-  const finish = async (
+
+  async function finish(
     tx: RecordTransaction,
     c: Control,
     job: JobRecord,
-    result: VerificationResult,
-    eventKey: string,
-  ): Promise<void> => {
-    job.state = 'COMPLETED';
+    outcome: { result: VerificationResult } | { error: SerializedVerificationOperationError },
+    wasPending = true,
+    emitEvent = !wasPending,
+  ): Promise<'COMPLETED' | 'FAILED'> {
     job.updatedAt = now();
     job.nextRunAt = 0;
     job.leaseUntil = 0;
     job.lease = '';
     job.encrypted = '';
-    job.result = result;
-    job.eventKey = eventKey;
-    const history = job.history.at(-1);
-    if (history) {
-      history.finishedAt = job.updatedAt;
-      history.outcome = 'COMPLETED';
+    if ('result' in outcome) {
+      job.state = 'COMPLETED';
+      job.result = resultRecord(outcome.result, job);
+      job.eventKey = storageKey('event', job.result.verificationId!);
+      if (emitEvent)
+        await tx.insert(job.eventKey, {
+          type: 'receipt.verification.completed',
+          result: job.result,
+          createdAt: job.updatedAt,
+        });
+    } else {
+      job.state = 'FAILED';
+      job.error = outcome.error;
+      job.eventKey = storageKey('event', job.jobId);
+      await tx.insert(job.eventKey, {
+        type: 'receipt.job.failed',
+        jobId: job.jobId,
+        error: job.error,
+        createdAt: job.updatedAt,
+      });
     }
-    c.pending--;
-    if (
-      result.verificationStatus === 'UNABLE_TO_VERIFY' &&
-      Object.keys(result.checks).length === 0
-    ) {
-      const circuit = c.circuits[job.provider];
-      circuit.failures = Math.min(1000, circuit.failures + 1);
-      if (circuit.failures >= 3)
-        circuit.until = now() + Math.min(60000, policy.backoffMs * 2 ** (job.attempts - 1));
-    } else if (Object.keys(result.checks).length > 0)
-      c.circuits[job.provider] = { failures: 0, until: 0 };
+    const history = job.history.at(-1);
+    if (history && history.outcome !== 'LEASE_EXPIRED') {
+      history.finishedAt = job.updatedAt;
+      history.outcome = job.state;
+    }
+    if (wasPending) {
+      c.pending--;
+      await tx.delete(activeKey(job));
+    }
     await tx.set(controlKey, c);
-    await tx.set(job.jobId, job);
-  };
-  const review = async (held: JobRecord): Promise<'STALE' | 'COMPLETED'> =>
-    storage.transaction(async (tx) => {
-      const c = await control(tx),
-        current = jobRecord(await tx.get(held.jobId));
+    if (wasPending) await tx.set(job.jobId, job);
+    else await tx.insert(job.jobId, job);
+    return job.state;
+  }
+
+  async function fail(
+    held: JobRecord,
+    error: VerificationOperationError,
+  ): Promise<'STALE' | 'FAILED' | 'COMPLETED'> {
+    return transact(storage, async (tx) => {
+      const c = await control(tx);
+      const current = jobRecord(await tx.get(held.jobId));
       if (!matchesLease(current, held)) return 'STALE';
-      const result: VerificationResult = {
-        tenantId: current.tenantId,
-        paymentId: current.paymentId,
-        verificationId: storageKey('jobresult', current.jobId),
-        verificationStatus: 'NEEDS_REVIEW',
-        settlementStatus: 'UNCONFIRMED',
-        checks: {},
-      };
-      const eventKey = storageKey('event', result.verificationId);
-      await tx.insert(eventKey, { type: 'receipt.job.review_required', result, createdAt: now() });
-      await finish(tx, c, current, result, eventKey);
-      return 'COMPLETED';
+      return finish(tx, c, current, { error: error.toJSON() });
     });
+  }
+
+  async function waitForRetry(
+    held: JobRecord,
+    retry: RetryObservation,
+  ): Promise<'STALE' | 'RETRY_WAIT'> {
+    return transact(storage, async (tx) => {
+      const c = await control(tx);
+      const current = jobRecord(await tx.get(held.jobId));
+      if (!matchesLease(current, held)) return 'STALE';
+      current.state = 'RETRY_WAIT';
+      current.updatedAt = now();
+      current.nextRunAt = current.updatedAt + retry.delay;
+      current.lease = '';
+      current.leaseUntil = 0;
+      const last = current.history.at(-1);
+      if (last) {
+        last.finishedAt = current.updatedAt;
+        last.outcome = 'RETRY';
+      }
+      if (retry.providerFailure) {
+        const circuit = c.circuits[current.provider];
+        circuit.failures = Math.min(1000, circuit.failures + 1);
+        if (circuit.failures >= 3) circuit.until = current.nextRunAt;
+      }
+      await tx.set(controlKey, c);
+      await tx.set(current.jobId, current);
+      return 'RETRY_WAIT';
+    });
+  }
+
   const api: DurableVerifier = {
     async initialize() {
-      await storage.transaction(async (tx) => {
-        const existing = await tx.get(controlKey);
-        if (existing !== undefined) {
+      await transact(storage, async (tx) => {
+        await ensureStore(tx);
+        if ((await tx.get(controlKey)) !== undefined) {
           await control(tx);
           return;
         }
@@ -383,92 +441,136 @@ export function createDurableVerifier(config: {
       });
     },
     async enqueue(source) {
-      scope(source);
-      if (!identifier(source.idempotencyKey)) throw new JobError('INVALID_INPUT');
-      const input = {
-        tenantId: source.tenantId,
-        paymentId: source.paymentId,
-        idempotencyKey: source.idempotencyKey,
-        receiptLocator: source.receiptLocator,
-      };
-      const expectationKey = storageKey('expectation', input.tenantId, input.paymentId);
-      const stored = await storage.read(expectationKey);
-      if (stored === undefined) throw new JobError('NOT_FOUND');
-      const before = snapshot(stored, input);
-      let locator: ReturnType<typeof normalizeReceiptLocator>;
-      try {
-        locator = normalizeReceiptLocator(before.expectation.provider, input.receiptLocator);
-      } catch {
-        throw new JobError('INVALID_INPUT');
-      }
-      const jobId = storageKey('job', input.tenantId, input.paymentId, locator.url);
-      const aliasKey = storageKey('jobalias', input.tenantId, input.idempotencyKey);
-      return storage.transaction(async (tx) => {
+      const input = submission(source);
+      const expectationKey = scopeKey(input);
+      const before = snapshot(await readRecord(storage, expectationKey), input);
+      const detected = detectSubmission(input, before.expectation.provider);
+      const invalid = 'status' in detected;
+      const fingerprint = invalid
+        ? storageKey(
+            'input',
+            input.paymentId,
+            'rejected',
+            createHmac('sha256', secret)
+              .update(
+                input.receiptLocator.length > PAYMENT_INPUT_LIMIT
+                  ? 'oversized'
+                  : JSON.stringify(input.receiptLocator),
+              )
+              .digest('hex'),
+          )
+        : canonicalFingerprint(input, detected);
+      const alias = storageKey('jobalias', input.tenantId, input.idempotencyKey);
+      return transact(storage, async (tx) => {
         const c = await control(tx);
-        const alias = await tx.get(aliasKey);
-        if (alias !== undefined && object(alias).jobId !== jobId)
-          throw new JobError('IDEMPOTENCY_CONFLICT');
-        const existing = await tx.get(jobId);
-        if (existing !== undefined) {
-          const job = jobRecord(existing);
-          if (alias === undefined) {
-            if (job.aliases.length >= 8) throw new JobError('CAPACITY');
-            job.aliases.push(aliasKey);
-            await tx.insert(aliasKey, { jobId });
-            await tx.set(jobId, job);
-          }
+        const bound = await tx.get(alias);
+        if (bound !== undefined) {
+          const row = object(bound);
+          if (row.fingerprint !== fingerprint) throw jobError('IDEMPOTENCY_CONFLICT');
+          if (typeof row.jobId !== 'string' || !jobKey.test(row.jobId))
+            throw jobError('CORRUPT_STATE');
+          const existing = jobRecord(
+            (await tx.get(row.jobId)) ?? (await tx.get(historyKey(row.jobId))),
+          );
+          if (
+            existing.tenantId !== input.tenantId ||
+            existing.paymentId !== input.paymentId ||
+            existing.jobId !== row.jobId ||
+            existing.fingerprint !== fingerprint
+          )
+            throw jobError('CORRUPT_STATE');
+          return publicJob(existing);
+        }
+        const attempt = attemptRecord(
+          await tx.get(storageKey('attempt', input.tenantId, input.idempotencyKey)),
+          input,
+        );
+        const replayed = attempt && replayAttempt(attempt, input, fingerprint);
+        const current = snapshot(await tx.get(expectationKey), input);
+        if (current.digest !== before.digest) throw operation('EXPECTATION_CHANGED', 'expectation');
+        const index = activeKey({ tenantId: input.tenantId, fingerprint });
+        const pending = invalid || replayed ? undefined : await tx.get(index);
+        if (pending !== undefined) {
+          if (typeof pending !== 'string' || !jobKey.test(pending)) throw jobError('CORRUPT_STATE');
+          const job = jobRecord(await tx.get(pending));
+          if (
+            terminal(job) ||
+            job.tenantId !== input.tenantId ||
+            job.paymentId !== input.paymentId ||
+            job.fingerprint !== fingerprint
+          )
+            throw jobError('CORRUPT_STATE');
+          if (job.aliases.length >= 8) throw jobError('QUEUE_CAPACITY');
+          job.aliases.push(alias);
+          await tx.insert(alias, { jobId: pending, fingerprint });
+          await tx.set(pending, job);
           return publicJob(job);
         }
-        if (alias !== undefined) throw new JobError('CORRUPT_STATE');
-        const current = snapshot(await tx.get(expectationKey), input);
+        if (!invalid && !replayed) requireOpen(current, now());
         if (
-          current.digest !== before.digest ||
-          current.state !== 'OPEN' ||
-          now() > current.expectation.validUntil
+          (!invalid && !replayed && c.pending >= policy.maxPending) ||
+          c.retained >= policy.maxRetained
         )
-          throw new JobError('NOT_OPEN');
-        if (c.pending >= policy.maxPending || c.retained >= policy.maxRetained)
-          throw new JobError('CAPACITY');
+          throw jobError('QUEUE_CAPACITY');
+        const jobId = storageKey('job', input.tenantId, input.idempotencyKey);
         const time = now();
         const job: JobRecord = {
+          version: payloadVersion,
           tenantId: input.tenantId,
           paymentId: input.paymentId,
           jobId,
-          provider: locator.provider,
+          provider: before.expectation.provider,
+          fingerprint,
           state: 'QUEUED',
           attempts: 0,
           createdAt: time,
           updatedAt: time,
           nextRunAt: time,
-          settlementStatus: 'UNCONFIRMED',
           snapshot: current.digest,
           encrypted: '',
-          aliases: [aliasKey],
+          aliases: [alias],
           lease: '',
           leaseUntil: 0,
           history: [],
         };
-        job.encrypted = encrypt(job, { ...input, receiptLocator: locator.url });
-        await tx.insert(jobId, job);
-        await tx.insert(aliasKey, { jobId });
-        c.pending++;
+        await tx.insert(alias, { jobId, fingerprint });
         c.retained++;
-        await tx.set(controlKey, c);
+        if (replayed) {
+          await finish(tx, c, job, { result: replayed }, false, false);
+        } else if (invalid) {
+          await finish(
+            tx,
+            c,
+            job,
+            { result: { ...detected, verificationId: storageKey('jobresult', jobId) } },
+            false,
+          );
+        } else {
+          job.encrypted = encrypt(
+            job,
+            { ...input, receiptLocator: detected.identifier },
+            detected.inputType,
+          );
+          await tx.insert(jobId, job);
+          await tx.insert(index, jobId);
+          c.pending++;
+          await tx.set(controlKey, c);
+        }
         return publicJob(job);
       });
     },
     async status(expected, jobId) {
-      scope(expected);
-      if (!/^rv1:job:[a-f0-9]{64}$/u.test(jobId)) throw new JobError('INVALID_INPUT');
-      const value = await storage.read(jobId);
-      if (value === undefined) throw new JobError('NOT_FOUND');
+      scopeKey(expected);
+      if (!jobKey.test(jobId)) throw jobError('INVALID_REQUEST');
+      const value = await readRecord(storage, jobId);
+      if (value === undefined) throw jobError('JOB_NOT_FOUND');
       const job = jobRecord(value);
       if (
         job.jobId !== jobId ||
         job.tenantId !== expected.tenantId ||
         job.paymentId !== expected.paymentId
       )
-        throw new JobError('NOT_FOUND');
+        throw jobError('JOB_NOT_FOUND');
       return publicJob(job);
     },
     async runOnce(options = {}) {
@@ -476,24 +578,24 @@ export function createDurableVerifier(config: {
       if (options.signal?.aborted) return 'IDLE';
       active++;
       try {
-        const held = await storage.transaction(async (tx) => {
-          const c = await control(tx),
-            time = now();
-          const jobs = (await tx.scan('rv1:job:', policy.maxRetained)).map((r) =>
-            jobRecord(r.value),
+        const held = await transact(storage, async (tx) => {
+          const c = await control(tx);
+          const time = now();
+          const jobs = (await tx.scan('rv1:job:', policy.maxRetained)).map((row) =>
+            jobRecord(row.value),
           );
           if (
-            jobs.filter((j) => j.state === 'RUNNING' && j.leaseUntil > time).length >=
+            jobs.filter((job) => job.state === 'RUNNING' && job.leaseUntil > time).length >=
             policy.concurrency
           )
             return undefined;
           const job = jobs
             .filter(
-              (j) =>
-                j.state !== 'COMPLETED' &&
-                j.nextRunAt <= time &&
-                (j.state !== 'RUNNING' || j.leaseUntil <= time) &&
-                c.circuits[j.provider].until <= time,
+              (job) =>
+                !terminal(job) &&
+                job.nextRunAt <= time &&
+                (job.state !== 'RUNNING' || job.leaseUntil <= time) &&
+                c.circuits[job.provider].until <= time,
             )
             .sort((a, b) => a.createdAt - b.createdAt || a.jobId.localeCompare(b.jobId))[0];
           if (!job) return undefined;
@@ -516,77 +618,92 @@ export function createDurableVerifier(config: {
           return job;
         });
         if (!held) return 'IDLE';
-        let input: VerificationSubmission;
-        let changed: boolean;
+        if (
+          held.history.at(-1)?.outcome === 'LEASE_EXPIRED' ||
+          (held.attempts >= policy.maxAttempts && held.history.at(-1)?.outcome === 'RETRY')
+        )
+          return fail(held, jobError('QUEUE_ATTEMPTS_EXHAUSTED'));
+        let prepared: PreparedVerification;
         try {
-          input = decrypt(held);
-          changed =
-            snapshot(
-              await storage.read(storageKey('expectation', held.tenantId, held.paymentId)),
-              held,
-            ).digest !== held.snapshot;
-        } catch {
-          return await review(held);
+          const { input, inputType } = decrypt(held);
+          const accepted = snapshot(await readRecord(storage, scopeKey(held)), held);
+          if (accepted.digest !== held.snapshot)
+            throw operation('EXPECTATION_CHANGED', 'expectation');
+          prepared = await verifier.prepare(
+            input,
+            {
+              timeoutMs: Math.min(
+                policy.timeoutMs,
+                Math.max(1, accepted.expectation.validUntil - now()),
+              ),
+              ...(options.signal ? { signal: options.signal } : {}),
+            },
+            { inputType, jobId: held.jobId },
+          );
+        } catch (error) {
+          if (!(error instanceof VerificationOperationError)) throw error;
+          if (error.code === 'STORAGE_FAILURE' || error.code === 'STORAGE_OUTCOME_UNKNOWN')
+            throw error;
+          if (
+            error.code === 'OPERATION_CANCELLED' &&
+            options.signal?.aborted &&
+            held.attempts < policy.maxAttempts
+          )
+            return waitForRetry(held, new RetryObservation(0, false));
+          return fail(held, error);
         }
-        if (changed) return await review(held);
-        // Exhausted crash recovery makes no new provider request. Retry count stays bounded.
-        const exhaustedCrash = held.history.at(-1)?.outcome === 'LEASE_EXPIRED';
-        const prepared = await (exhaustedCrash ? unavailableVerifier : verifier).prepare(input, {
-          timeoutMs: policy.timeoutMs,
-          ...(options.signal ? { signal: options.signal } : {}),
-        });
         try {
-          return await storage.transaction(async (tx) => {
-            const c = await control(tx),
-              current = jobRecord(await tx.get(held.jobId));
+          return await transact(storage, async (tx) => {
+            const c = await control(tx);
+            const current = jobRecord(await tx.get(held.jobId));
             if (!matchesLease(current, held)) return 'STALE';
-            if (
-              snapshot(await tx.get(storageKey('expectation', held.tenantId, held.paymentId)), held)
-                .digest !== held.snapshot
-            ) {
-              // Abort before verification; the outer path writes an operator-review event.
-              throw new JobError('NOT_OPEN');
-            }
+            const accepted = snapshot(await tx.get(scopeKey(held)), held);
+            if (accepted.digest !== held.snapshot)
+              throw operation('EXPECTATION_CHANGED', 'expectation');
+            // The verifier uses this actual transaction. A retry rolls back the provisional result.
             const scoped: VerificationStorage = {
               callerTransaction: true,
               read: (key) => tx.get(key),
               transaction: async (work) => work(tx),
             };
             const result = await verifier.complete(prepared, scoped);
-            if (
-              result.verificationStatus === 'UNABLE_TO_VERIFY' &&
-              Object.keys(result.checks).length === 0 &&
-              current.attempts < policy.maxAttempts
-            )
-              throw new RetryUnavailable();
-            await finish(tx, c, current, result, storageKey('event', result.verificationId));
-            return 'COMPLETED';
+            const providerFailure =
+              result.status === 'UNAVAILABLE' && result.stage !== 'comparison';
+            if (result.retryable && current.attempts < policy.maxAttempts) {
+              const backoff = Math.min(60_000, policy.backoffMs * 2 ** (current.attempts - 1));
+              const hinted =
+                typeof result.details.retryAfterMs === 'number' ? result.details.retryAfterMs : 0;
+              const delay = Math.max(
+                hinted,
+                Math.min(60_000, backoff + randomInt(0, Math.max(1, Math.ceil(backoff / 4)))),
+              );
+              if (now() + delay <= accepted.expectation.validUntil)
+                throw new RetryObservation(delay, providerFailure);
+            }
+            if (providerFailure && result.retryable) {
+              const circuit = c.circuits[current.provider];
+              circuit.failures = Math.min(1000, circuit.failures + 1);
+              if (circuit.failures >= 3) circuit.until = now() + policy.backoffMs;
+            } else if (result.status !== 'UNAVAILABLE' || result.stage === 'comparison') {
+              c.circuits[current.provider] = { failures: 0, until: 0 };
+            }
+            return finish(tx, c, current, { result });
           });
         } catch (error) {
-          if (error instanceof JobError && error.code === 'NOT_OPEN') return await review(held);
-          if (!(error instanceof RetryUnavailable)) throw error;
-          return await storage.transaction(async (tx) => {
-            const c = await control(tx),
-              current = jobRecord(await tx.get(held.jobId));
-            if (!matchesLease(current, held)) return 'STALE';
-            const delay = Math.min(60000, policy.backoffMs * 2 ** (current.attempts - 1));
-            current.state = 'RETRY_WAIT';
-            current.updatedAt = now();
-            current.nextRunAt = now() + delay + randomInt(0, Math.max(1, Math.ceil(delay / 4)));
-            current.lease = '';
-            current.leaseUntil = 0;
-            const last = current.history.at(-1);
-            if (last) {
-              last.finishedAt = current.updatedAt;
-              last.outcome = 'UNAVAILABLE';
-            }
-            const circuit = c.circuits[current.provider];
-            circuit.failures = Math.min(1000, circuit.failures + 1);
-            if (circuit.failures >= 3) circuit.until = current.nextRunAt;
-            await tx.set(controlKey, c);
-            await tx.set(current.jobId, current);
-            return 'RETRY_WAIT';
-          });
+          if (error instanceof RetryObservation) return waitForRetry(held, error);
+          if (
+            !(error instanceof VerificationOperationError) ||
+            error.code === 'STORAGE_FAILURE' ||
+            error.code === 'STORAGE_OUTCOME_UNKNOWN'
+          )
+            throw error;
+          if (
+            error.code === 'OPERATION_CANCELLED' &&
+            options.signal?.aborted &&
+            held.attempts < policy.maxAttempts
+          )
+            return waitForRetry(held, new RetryObservation(0, false));
+          return fail(held, error);
         }
       } finally {
         active--;
@@ -601,19 +718,19 @@ export function createDurableVerifier(config: {
         limit < 1 ||
         limit > 1000
       )
-        throw new JobError('INVALID_INPUT');
-      return storage.transaction(async (tx) => {
+        throw jobError('INVALID_REQUEST');
+      return transact(storage, async (tx) => {
         const c = await control(tx);
         let removed = 0;
         for (const row of await tx.scan('rv1:job:', policy.maxRetained)) {
           const job = jobRecord(row.value);
           if (
-            job.state !== 'COMPLETED' ||
+            !terminal(job) ||
             job.updatedAt >= before ||
             (await tx.get(job.eventKey!)) !== undefined
           )
             continue;
-          for (const alias of job.aliases) await tx.delete(alias);
+          await tx.insert(historyKey(row.key), { ...job, history: [] });
           await tx.delete(row.key);
           c.retained--;
           removed++;

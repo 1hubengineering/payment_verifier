@@ -1,143 +1,121 @@
 # @1hubengineering/verifier
 
-Version 0.1.1. Exact ETB parsing, trusted expectation snapshots,
-pure receipt comparison, provider evidence and an atomic verification workflow are implemented.
-Storage is configured through separately tested adapters.
+Payment Verifier checks Telebirr and CBE receipts against trusted order data in a Node.js backend.
+The host supplies a configured storage adapter, provider adapters, and its own payment expectations.
 
 ```ts
-import {
-  parseEtbAmount,
-  createPaymentExpectation,
-  compareReceipt,
-} from '@1hubengineering/verifier';
+import { createReceiptVerifier, VerificationOperationError } from '@1hubengineering/verifier';
+import { retrieveTelebirr } from '@1hubengineering/verifier/providers';
+// For CBE, configure createCbeProvider() from @1hubengineering/provider-cbe.
 
-// Load these values from authorized host records, never receipt submissions.
-const expectation = createPaymentExpectation({
-  tenantId: 'synthetic-merchant',
-  paymentId: 'synthetic-payment',
-  provider: 'telebirr',
-  currency: 'ETB',
-  amountMinor: parseEtbAmount('500.00'),
-  recipientName: 'Synthetic Merchant',
-  recipientAccountLast4: '1234',
-  reference: 'ORDER_1234',
-  validFrom: 1700000000000,
-  validUntil: 1700000060000,
+const verifier = createReceiptVerifier({
+  storage,
+  providers: { telebirr: { retrieve: retrieveTelebirr } },
 });
-
-const result = compareReceipt(expectation, {
-  provider: 'telebirr',
-  currency: 'ETB',
-  transactionId: 'SYNTH1234',
-  status: 'SUCCESSFUL',
-  amountMinor: parseEtbAmount('500.00'),
-  recipientName: 'Synthetic Merchant',
-  recipientAccountLast4: '1234',
-  reference: 'ORDER_1234',
-  transactionAt: 1700000030000,
-  paymentType: null,
-  ambiguousFields: [],
-});
-// result.verificationStatus === 'MATCHED_RECEIPT_ONLY'
-// result.settlementStatus === 'UNCONFIRMED'
+await verifier.initialize();
+await verifier.registerExpectation(order.paymentExpectation);
+try {
+  const result = await verifier.submit({
+    tenantId: order.tenantId,
+    paymentId: order.id,
+    idempotencyKey,
+    receiptLocator: buyerInput,
+  });
+  if (result.verified) {
+    // The official receipt passed all required checks and the SDK committed the claim.
+    await handleVerifiedPayment(result.verificationId);
+  }
+} catch (error) {
+  if (error instanceof VerificationOperationError) logOperationError(error.toJSON());
+  else throw error;
+}
 ```
 
-The host owns authentication and payment authorization. Expectation construction
-validates and freezes a copy; comparison revalidates even untyped input. Only
-canonical decimal ETB text is parsed: positive, at most two decimals, within safe
-integer minor units. No rounding, separators, symbols or whitespace.
+Hosts choose the provider and the expected amount, recipient, invoice reference, and payment
+window from authorized records. Call `initialize()` after provisioning the storage tables.
+It validates the record version and rejects legacy stores. Expectation creation validates and
+freezes a copy. Use `parseEtbAmount` to convert canonical positive decimal ETB amounts to exact
+integer minor units.
 
-Time bounds and evidence timestamps are integer epoch milliseconds, inclusive at
-both endpoints. Provider extraction must validate original dates/timezones before
-normalizing them. There is no ambient clock, timezone assumption, or expiry of a
-submission based on when comparison runs. The future storage workflow must recheck
-payment state separately before accepting a claim.
+## Receipt input
 
-Names normalize whitespace and case; suffixes and references compare exactly.
-A four-digit suffix does not prove full receiving-account identity. The transaction
-ID must be normalized uppercase ASCII, 6–40 characters including `_` or `-`.
-CBE requires payment type `A2A`. Every provider requires successful status, exact
-amount and currency, recipient, reference, transaction ID and timestamp.
+Provide a bare identifier, official receipt URL, or full SMS in `receiptLocator`. Telebirr uses a
+transaction reference and CBE uses its case-sensitive `v2-…` lookup token. The browser-safe
+`@1hubengineering/verifier/input` export provides optional `detectPaymentInput(text)` for format
+feedback. The verifier repeats validation, checks the order's provider, and constructs the official
+request from provider constants. Submitted text supplies the lookup identifier. Verification uses
+the retrieved receipt and server-owned expectation.
 
-Parsers must list contradictory fields in `ambiguousFields`; malformed ambiguity
-metadata fails closed. Missing, invalid or ambiguous required evidence returns
-`UNABLE_TO_VERIFY`, including when another field mismatches. Complete conflicting
-evidence returns `MISMATCHED`. Results include per-field checks without echoing
-sensitive values. `paymentType` is checked only for CBE.
+## Results
 
-This pure API compares supplied evidence and cannot establish authenticity. Saved
-HTML or fabricated normalized fields can match. Matching never claims a transaction,
-confirms settlement, credits a wallet, or authorizes fulfillment. There is no public
-unchecked claim API.
+| Status          | Meaning                                                                       |
+| --------------- | ----------------------------------------------------------------------------- |
+| `VERIFIED`      | The official receipt passed every required check and the claim committed.     |
+| `MISMATCH`      | One or more required receipt fields failed a definite check.                  |
+| `NOT_FOUND`     | A configured adapter recognized a provider-confirmed absence response.        |
+| `UNAVAILABLE`   | Retrieval, rendering, parsing, or incomplete evidence prevented verification. |
+| `INVALID_INPUT` | Input detection or validation against the order's provider failed.            |
 
-The core has no runtime dependencies and performs no import-time I/O. ESM only.
-Supported runtime ranges are `^24.22.3 || ^26.13.1`; CI is configured for both
-minimums. Development uses Node 26 LTS. Direct SQL, Drizzle and Prisma 7 integrations each pass the same real-engine
-contract on PostgreSQL, MySQL and SQLite; see the adapters for exact versions.
+Every result reports `verified`, `code`, `stage`, `message`, `retryable`, `checks`, and any
+available receipt and source. Branch on `status` and `code`. Checks report the rule and bounded
+expected and observed values. Account comparisons use the recipient's last four digits. CBE
+requires an account-to-account payment and an official bank transaction ID independent of its
+lookup token. `compareReceipt` and `parseReceiptHtml` are offline utilities. Pure comparison
+returns `MATCH`, `MISMATCH`, or `INCOMPLETE`.
 
-## Provider evidence subpath
+Operation failures reject with `VerificationOperationError`. Use `toJSON()` for safe structured
+diagnostics. They include expectation state, idempotency conflicts, duplicate claims, caller
+cancellation, invalid adapter results, and storage failures. Built-in adapters classify an
+unexplained HTTP 404 as `PROVIDER_HTTP_ERROR`. Provider tests use synthetic HTML and local mocks.
 
-`@1hubengineering/verifier/providers` exports `parseReceiptHtml`,
-`normalizeReceiptLocator`, and `retrieveTelebirr`. The root import loads no transport or browser code. Parsing saved HTML returns `SAVED_HTML` provenance and cannot prove
-authenticity. `retrieveTelebirr` returns `EVIDENCE` with `OFFICIAL_HTTPS` provenance
-(URL, time, original HTML SHA-256, parser version), or `UNAVAILABLE` with a generic
-error code. Never interpret `EVIDENCE` as a match without comparison.
+## Amount matching policy
 
-Supported synthetic Telebirr formats are label/value table rows, bilingual rows,
-span pairs and the v5 invoice header/value table. Conflicting duplicates fail
-closed; invoice headings never become values and fees never become transferred
-amounts. Missing timestamps remain missing. Supported local date forms use
-UTC+03:00 with strict calendar validation; explicit ISO timezone offsets are
-validated separately. No live provider behavior has been tested.
+Exact matching is the default. A host can set `amountPolicy` for an individual payment
+or pass `defaultAmountPolicy` to `createPaymentExpectation`. The effective policy is
+validated, normalized, and frozen with the expectation.
 
-HTTPS retrieval checks official scheme/host/path before work, rejects credentials,
-ports, queries, fragments, unrelated links and conflicting IDs. DNS is checked
-inside socket lookup, the selected public IPv4 address is used for that socket,
-and each request owns a fresh agent. IPv6 is deliberately unsupported. Private,
-loopback, link-local, documentation, multicast and reserved IPv4 ranges are blocked;
-mixed public/private answers fail closed. TLS remains verified. There are no
-redirects, proxies, ambient configuration or decompression; HTML headers, UTF-8,
-16 KiB response headers, a 2 MB maximum body and 1–60000 ms total deadline are
-bounded. Retrieval accepts an abort signal. Timeouts remain unavailable.
+```ts
+const amountPolicy = {
+  mode: 'tolerance',
+  underpayment: { type: 'fixed', maxMinor: 60 },
+  overpayment: { type: 'percentage', percent: '0.50' },
+} as const;
 
-CBE extraction is also available through `parseReceiptHtml('cbe', html)`; actual
-browser execution belongs to the optional CBE package. Neither provider performs
-storage writes or authorizes settlement or fulfillment. The configured verifier
-workflow records atomic receipt-only claims through a separately supplied storage adapter.
+const expectation = createPaymentExpectation({
+  ...trustedOrder,
+  amountMinor: parseEtbAmount('100.55'),
+  amountPolicy,
+});
+```
 
-## Configured verifier
+The example accepts 99.95 through 101.05 ETB inclusive. Percentage allowances use integer
+basis points, rounded down to whole minor units. An omitted direction permits zero
+difference. Tolerance defaults to a 10% cap in either direction. A trusted tolerance policy
+can set `maxPercent` up to `100.00`. A range that includes a zero or negative payment, or
+exceeds the safe integer limit, fails with `INVALID_AMOUNT_POLICY`.
 
-`createReceiptVerifier({ storage, providers })` adds `registerExpectation`,
-`prepare`, `complete` and `submit`. Hosts authorize tenant/payment access and pass
-expectations from trusted records. Submissions supply a locator and idempotency
-key only. `prepare` retrieves outside transactions and returns an opaque in-process
-token; `complete` rechecks current immutable expectations/state and performs atomic
-storage work. `submit` combines those steps. A caller-owned transaction may complete
-a previously prepared token but cannot prepare provider work inside that transaction.
-The SQL package documents connection ownership, replay, migrations and durable events.
-No receipt-only result authorizes settlement, credit or fulfillment.
+Find the `amountMinor` entry in `result.checks` for the expected and observed values,
+signed difference, inclusive range, effective policy, and whether tolerance was applied.
+A definitive failure reports `AMOUNT_UNDERPAID` or `AMOUNT_OVERPAID`. A tolerated payment
+retains the actual provider amount in the receipt. All other required checks still apply.
+Hosts decide how to account for underpayments and overpayments.
 
-HTML extraction accepts explicit, balanced row/cell/span layouts. The scanner
-advances monotonically through at most 2 MB, 8192 structural tokens, 4096
-characters per tag, 128 cells per row and 8192 characters per field. Unsupported
-or malformed structures throw a generic error; retrieved parser failures become
-provider unavailability. Scripts/comments and raw-text content do not supply
-evidence. Entities decode once and escaped markup remains text. These limits
-are conservative compatibility boundaries, not browser-style HTML repair.
+## Transactions and retries
 
-## Optional durable work
+`prepare` retrieves outside the transaction and returns an opaque token owned by that verifier.
+`complete` rechecks the expectation and commits the claim, attempt, and outbox event together.
+When composing with a caller-owned transaction, publish the result and trigger business effects
+after the outer commit. Roll back the outer transaction if completion rejects.
 
-The `/jobs` entry supplies `createDurableVerifier` using the same configured
-store and trusted providers. Acceptance persists encrypted locators and bounded
-idempotency aliases before acknowledgment. Persisted leases, fenced completion,
-bounded retries/backoff/provider pauses and explicit retention survive process
-restarts. Completion joins the same atomic claim/evidence/result/outbox transaction.
-Every advertised storage cell runs the shared durable-job and SIGKILL recovery
-cases. See [durable job configuration](https://github.com/1hubengineering/payment_verifier/blob/main/docs/development/durable-jobs.md) for
-policy bounds, key handling, ownership and operational requirements. All outcomes
-retain settlement UNCONFIRMED; jobs never authorize fulfillment.
+A canonical submission replays its original result under the same idempotency key. Retry a
+known completed unverified outcome with a fresh key when appropriate. Use the original key to
+recover from `STORAGE_OUTCOME_UNKNOWN` or response loss. `retryable` describes whether another
+bounded verification may obtain a different observation without correcting an input or updating
+the integration. The host owns authentication, fulfillment, and repeat-safe business effects.
 
-Persisted attempt evidence contains only allowlisted bounded primitive fields and
-valid ambiguity names. Extra/raw plugin properties and nested invalid values are
-never stored. Comparison checks still report malformed evidence as INVALID and
-unverified; storage sanitization does not turn missing data into a match.
+The `/jobs` entry takes the same trusted expectations, providers, and storage. It persists queue
+admission, protects locator/key data before completion, bounds retries, and fences stale workers.
+See [durable jobs](https://github.com/1hubengineering/payment_verifier/blob/main/docs/development/durable-jobs.md).
+
+The dependency-free core has no import-time I/O. It builds ESM for Node
+`^24.22.3 || ^26.13.1`. Engine and ORM support is recorded in the storage adapter documentation.

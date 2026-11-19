@@ -1,10 +1,11 @@
 # Payment Verifier
 
-Check Telebirr and CBE receipt evidence against orders in your Node.js backend.
-Payment Verifier compares the details and can record a claim in a shared SQL store
-to prevent receipt reuse. Your app decides when a payment has settled and when to deliver.
+Verify official Telebirr and CBE receipts against orders in your Node.js backend.
+Payment Verifier checks the payment details and records an atomic claim in a shared store.
+Your application owns fulfillment and other business effects.
 
-**A receipt match does not confirm settlement or authorize delivery.**
+The source checkout targets 0.2.0. The latest published version documented here is 0.1.1.
+For the new input and response contract, see the [SDK guide](packages/verifier/README.md).
 
 [Developer guide](https://1hubengineering.github.io/payment_verifier/docs/) ·
 [API reference](https://1hubengineering.github.io/payment_verifier/api/) ·

@@ -14,13 +14,10 @@ if (element) {
       evidence={{
         simulated: true,
         validate: validateDemoEvidence,
-        sample: (id, kind) => {
+        sample: (id) => {
           const provider = demoProvider(id);
-          return provider ? demoSamples[provider][kind] : undefined;
+          return provider ? demoSamples[provider].sms : undefined;
         },
-      }}
-      sections={{
-        orderFooter: <p>Receipt checks do not confirm settlement or authorize delivery.</p>,
       }}
     />,
   );

@@ -1,19 +1,12 @@
 import Fastify from 'fastify';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import {
-  createPaymentExpectation,
-  VerificationError,
-  StorageConflict,
-} from '@1hubengineering/verifier';
-import type {
-  PaymentExpectation,
-  ReceiptVerifier,
-  SettlementStatus,
-} from '@1hubengineering/verifier';
-import { JobError } from '@1hubengineering/verifier/jobs';
+import { createPaymentExpectation, VerificationOperationError } from '@1hubengineering/verifier';
+import type { PaymentExpectation, ReceiptVerifier } from '@1hubengineering/verifier';
 import type { DurableVerifier } from '@1hubengineering/verifier/jobs';
-import { checkoutLocator } from './checkout-evidence.ts';
-import type { CheckoutEvidence } from './checkout-evidence.ts';
+
+interface CheckoutEvidence {
+  receiptLocator: string;
+}
 
 export interface Principal {
   readonly tenantId: string;
@@ -23,9 +16,9 @@ export interface HostOrder {
   readonly orderId: string;
   readonly ownerId: string;
   readonly expectation: PaymentExpectation;
+  readonly recipientAccount?: string;
 }
 export interface HostOrderState {
-  readonly settlementStatus: SettlementStatus;
   readonly fulfillmentStatus: 'PENDING' | 'FULFILLED' | 'BLOCKED';
 }
 export interface CheckoutServices {
@@ -43,25 +36,11 @@ const orderParams = {
   additionalProperties: false,
   properties: { orderId: { type: 'string', pattern: '^[A-Za-z0-9_-]{1,128}$' } },
 };
-const evidenceText = { type: 'string', minLength: 1, maxLength: 4096 };
 const verificationBody = {
-  oneOf: [
-    {
-      type: 'object',
-      additionalProperties: false,
-      required: ['receiptLocator'],
-      properties: { receiptLocator: evidenceText },
-    },
-    {
-      type: 'object',
-      additionalProperties: false,
-      required: ['kind', 'reference'],
-      properties: {
-        kind: { type: 'string', enum: ['transaction', 'url', 'sms'] },
-        reference: evidenceText,
-      },
-    },
-  ],
+  type: 'object',
+  additionalProperties: false,
+  required: ['receiptLocator'],
+  properties: { receiptLocator: { type: 'string' } },
 };
 const retry = (reply: FastifyReply): FastifyReply =>
   reply.header('retry-after', '1').code(429).send({ error: 'CAPACITY' });
@@ -113,14 +92,16 @@ export function createCheckoutApp(services: CheckoutServices): FastifyInstance {
     async (request, reply) => {
       const order = await owned(request, reply, request.params.orderId);
       if (!order) return reply;
-      const { settlementStatus, fulfillmentStatus } = await services.readOrderState(order);
+      const { fulfillmentStatus } = await services.readOrderState(order);
       return {
         orderId: order.orderId,
         paymentId: order.expectation.paymentId,
         provider: order.expectation.provider,
         amountMinor: order.expectation.amountMinor,
         currency: order.expectation.currency,
-        settlementStatus,
+        recipientName: order.expectation.recipientName,
+        recipientAccount: order.recipientAccount ?? null,
+        invoiceReference: order.expectation.reference,
         fulfillmentStatus,
       };
     },
@@ -148,28 +129,26 @@ export function createCheckoutApp(services: CheckoutServices): FastifyInstance {
       try {
         const order = await owned(request, reply, request.params.orderId);
         if (!order) return reply;
-        const resolved = checkoutLocator(order.expectation.provider, request.body);
-        if ('error' in resolved) {
-          if (resolved.error === 'CBE_RECEIPT_URL_REQUIRED') {
-            return reply
-              .code(422)
-              .send({ error: resolved.error, message: 'Paste the official CBE receipt URL.' });
-          }
-          return reply.code(400).send({ error: resolved.error });
-        }
         // Idempotent host snapshot registration rejects subsequent order mutations.
         await services.verifier.registerExpectation(order.expectation);
         const input = {
           tenantId: order.expectation.tenantId,
           paymentId: order.expectation.paymentId,
           idempotencyKey: request.headers['idempotency-key'],
-          receiptLocator: resolved.locator,
+          receiptLocator: request.body.receiptLocator,
         };
-        if (services.jobs) return reply.code(202).send({ job: await services.jobs.enqueue(input) });
+        if (services.jobs) {
+          const job = await services.jobs.enqueue(input);
+          const status =
+            job.result?.status === 'INVALID_INPUT'
+              ? 400
+              : job.state === 'COMPLETED' || job.state === 'FAILED'
+                ? 200
+                : 202;
+          return reply.code(status).send({ job });
+        }
         const receipt = await services.verifier.submit(input);
-        return reply
-          .code(receipt.verificationStatus === 'IDEMPOTENCY_CONFLICT' ? 409 : 200)
-          .send({ receipt });
+        return reply.code(receipt.status === 'INVALID_INPUT' ? 400 : 200).send({ receipt });
       } finally {
         active--;
       }
@@ -197,32 +176,26 @@ export function createCheckoutApp(services: CheckoutServices): FastifyInstance {
     },
   );
   app.setErrorHandler((error, _request, reply) => {
-    if (error instanceof JobError) {
-      if (error.code === 'CAPACITY') return retry(reply);
-      const status =
-        error.code === 'NOT_FOUND'
-          ? 404
-          : error.code === 'IDEMPOTENCY_CONFLICT'
-            ? 409
-            : error.code === 'INVALID_INPUT'
-              ? 400
-              : error.code === 'NOT_OPEN'
-                ? 409
-                : 503;
-      return reply.code(status).send({ error: status === 503 ? 'UNAVAILABLE' : error.code });
+    if (error instanceof VerificationOperationError) {
+      const status = {
+        JOB_NOT_FOUND: 404,
+        EXPECTATION_NOT_FOUND: 404,
+        INVALID_REQUEST: 400,
+        INVALID_EXPECTATION: 400,
+        INVALID_AMOUNT_POLICY: 400,
+        EXPECTATION_CONFLICT: 409,
+        EXPECTATION_CANCELLED: 409,
+        EXPECTATION_EXPIRED: 409,
+        EXPECTATION_NOT_YET_VALID: 409,
+        EXPECTATION_CHANGED: 409,
+        IDEMPOTENCY_CONFLICT: 409,
+        RECEIPT_ALREADY_CLAIMED: 409,
+        JOB_IN_PROGRESS: 409,
+        QUEUE_CAPACITY: 429,
+      } as Partial<Record<VerificationOperationError['code'], number>>;
+      if (error.code === 'QUEUE_CAPACITY') reply.header('retry-after', '1');
+      return reply.code(status[error.code] ?? 503).send({ error: error.toJSON() });
     }
-    if (error instanceof VerificationError) {
-      const status =
-        error.code === 'NOT_FOUND'
-          ? 404
-          : error.code === 'INVALID_INPUT'
-            ? 400
-            : error.code === 'EXPECTATION_EXISTS'
-              ? 409
-              : 503;
-      return reply.code(status).send({ error: status === 503 ? 'UNAVAILABLE' : error.code });
-    }
-    if (error instanceof StorageConflict) return reply.code(503).send({ error: 'UNAVAILABLE' });
     const status = (error as { statusCode?: number }).statusCode;
     if (status === 400 || status === 413 || status === 415)
       return reply.code(status).send({ error: 'INVALID_REQUEST' });

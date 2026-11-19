@@ -1,4 +1,4 @@
-import { expectation, providerResult, submission, time } from './fixtures.ts';
+import { expectation, providerResult, submission, time, timedOut } from './fixtures.ts';
 import { jobContract } from './jobs-suite.ts';
 import {
   beforeAll,
@@ -15,8 +15,11 @@ import type {
   VerificationStorage,
   VerificationSubmission,
   VerificationResult,
+  SerializedVerificationOperationError,
 } from '@1hubengineering/verifier';
 import type { ProviderResult } from '@1hubengineering/verifier/providers';
+
+export type ProcessOutcome = VerificationResult | SerializedVerificationOperationError;
 
 export interface AdapterHarness {
   storage: VerificationStorage;
@@ -27,8 +30,8 @@ export interface AdapterHarness {
   missingPrimaryKey(): Promise<void>;
   hostTransaction<T>(work: (storage: VerificationStorage) => Promise<T>): Promise<T>;
   assertOwnerOpen(): Promise<void>;
-  restart(input: VerificationSubmission): Promise<VerificationResult>;
-  race(inputs: readonly VerificationSubmission[]): Promise<readonly VerificationResult[]>;
+  restart(input: VerificationSubmission): Promise<ProcessOutcome>;
+  race(inputs: readonly VerificationSubmission[]): Promise<readonly ProcessOutcome[]>;
   crashJob(input: VerificationSubmission, now: number): Promise<void>;
   close(): Promise<void>;
 }
@@ -55,7 +58,7 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
     });
     beforeEach(async () => {
       await harness.reset();
-      expect(await harness.storage.read(storageKey('jobcontrol', 'v1'))).toBeUndefined();
+      expect(await harness.storage.read(storageKey('jobcontrol', 'v2'))).toBeUndefined();
       provider.retrieve.mockReset().mockImplementation(async (url) => providerResult(url));
     });
     afterEach(async () => {
@@ -79,9 +82,9 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
       await v.registerExpectation(expectation());
       await expect(
         v.registerExpectation({ ...expectation(), amountMinor: parseEtbAmount('2') }),
-      ).rejects.toMatchObject({ code: 'EXPECTATION_EXISTS' });
+      ).rejects.toMatchObject({ code: 'EXPECTATION_CONFLICT' });
       await expect(v.submit(submission('other-tenant'))).rejects.toMatchObject({
-        code: 'NOT_FOUND',
+        code: 'EXPECTATION_NOT_FOUND',
       });
       expect(provider.retrieve).not.toHaveBeenCalled();
     });
@@ -90,16 +93,15 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
       await v.registerExpectation(expectation());
       const result = await v.submit(submission());
       expect(result).toMatchObject({
-        verificationStatus: 'MATCHED_RECEIPT_ONLY',
-        settlementStatus: 'UNCONFIRMED',
+        status: 'VERIFIED',
+        verified: true,
       });
       expect(
         await harness.storage.read(storageKey('claim', 'telebirr', 'SYNTH1234')),
       ).toBeDefined();
       const saved = await harness.storage.read(storageKey('attempt', 'tenant-a', 'key-a'));
       expect(saved).toMatchObject({
-        evidence: { amountMinor: 29 },
-        provenance: { sha256: 'a'.repeat(64) },
+        result: { receipt: { amountMinor: 29 }, source: { contentHash: 'a'.repeat(64) } },
       });
       expect(JSON.stringify(saved)).not.toContain('transactioninfo.ethiotelecom.et');
       const events = await v.events();
@@ -119,7 +121,7 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
         unknown: { data: 'synthetic-private-extra' },
       });
       provider.retrieve.mockResolvedValueOnce(first);
-      expect((await v.submit(submission())).verificationStatus).toBe('MATCHED_RECEIPT_ONLY');
+      expect((await v.submit(submission())).status).toBe('VERIFIED');
       const saved = await harness.storage.read(storageKey('attempt', 'tenant-a', 'key-a'));
       expect(JSON.stringify(saved)).not.toContain('synthetic-private');
       await v.registerExpectation(expectation('tenant-a', 'payment-b'));
@@ -130,21 +132,19 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
         transactionAt: { raw: 'synthetic-private-timestamp' },
       });
       provider.retrieve.mockResolvedValueOnce(second);
-      const result = await v.submit(submission('tenant-a', 'payment-b', 'key-b', 'OTHER1234'));
-      expect(result).toMatchObject({
-        verificationStatus: 'UNABLE_TO_VERIFY',
-        checks: { recipientName: 'INVALID', transactionAt: 'INVALID' },
-      });
-      const invalid = await harness.storage.read(storageKey('attempt', 'tenant-a', 'key-b'));
-      expect(invalid).toMatchObject({ evidence: { recipientName: null, transactionAt: null } });
-      expect(JSON.stringify(invalid)).not.toContain('synthetic-private');
+      await expect(
+        v.submit(submission('tenant-a', 'payment-b', 'key-b', 'OTHER1234')),
+      ).rejects.toMatchObject({ code: 'INVALID_ADAPTER_RESULT' });
+      expect(
+        await harness.storage.read(storageKey('attempt', 'tenant-a', 'key-b')),
+      ).toBeUndefined();
     });
     it('replays identical concurrent submissions with one claim and event', async () => {
       const v = verifier();
       await v.registerExpectation(expectation());
       const results = await completeAll(Array.from({ length: 6 }, () => v.submit(submission())));
       for (const result of results) expect(result).toEqual(results[0]);
-      expect(results[0]!.verificationStatus).toBe('MATCHED_RECEIPT_ONLY');
+      expect(results[0]!.status).toBe('VERIFIED');
       expect(await v.events()).toHaveLength(1);
       provider.retrieve.mockClear();
       expect(await v.submit(submission())).toEqual(results[0]);
@@ -155,14 +155,89 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
       await v.registerExpectation(expectation());
       await v.registerExpectation(expectation('tenant-a', 'payment-b'));
       const first = await v.submit(submission());
-      const conflict = await v.submit(submission('tenant-a', 'payment-b', 'key-a', 'OTHER1234'));
-      expect(conflict).toMatchObject({
-        paymentId: 'payment-b',
-        verificationStatus: 'IDEMPOTENCY_CONFLICT',
-        checks: {},
-      });
+      await expect(
+        v.submit(submission('tenant-a', 'payment-b', 'key-a', 'OTHER1234')),
+      ).rejects.toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
       expect(await v.submit(submission())).toEqual(first);
       expect(await v.events()).toHaveLength(1);
+    });
+    it('replays a tolerated payment and prevents claiming that receipt under another policy', async () => {
+      const v = verifier();
+      const tolerant = {
+        ...expectation(),
+        amountMinor: parseEtbAmount('0.30'),
+        amountPolicy: { mode: 'tolerance', underpayment: { type: 'fixed', maxMinor: 1 } },
+      } as const;
+      await v.registerExpectation(tolerant);
+      const result = await v.submit(submission());
+      expect(result).toMatchObject({
+        status: 'VERIFIED',
+        receipt: { amountMinor: 29 },
+        checks: expect.arrayContaining([
+          expect.objectContaining({
+            field: 'amountMinor',
+            status: 'PASS',
+            expected: 30,
+            actual: 29,
+            details: expect.objectContaining({ toleranceApplied: true, differenceMinor: -1 }),
+          }),
+        ]),
+      });
+      expect(
+        await v.submit(submission('tenant-a', 'payment-a', 'key-a', 'Transaction ID: synth1234')),
+      ).toEqual(result);
+      await expect(
+        v.registerExpectation({ ...tolerant, amountPolicy: { mode: 'exact' } }),
+      ).rejects.toMatchObject({ code: 'EXPECTATION_CONFLICT' });
+      await v.registerExpectation(expectation('tenant-b', 'payment-b'));
+      await expect(v.submit(submission('tenant-b', 'payment-b'))).rejects.toMatchObject({
+        code: 'RECEIPT_ALREADY_CLAIMED',
+      });
+      expect(await v.events()).toHaveLength(1);
+    });
+    it('rejects a legacy payload store without changing archived records', async () => {
+      const key = storageKey('expectation', 'tenant-a', 'payment-a');
+      const { amountPolicy: _amountPolicy, ...legacyExpectation } = expectation();
+      const original = { expectation: legacyExpectation, state: 'RECEIPT_CLAIMED' };
+      await harness.storage.transaction((tx) => tx.insert(key, original));
+      await expect(verifier().initialize()).rejects.toMatchObject({ code: 'INCOMPATIBLE_STORE' });
+      expect(await harness.storage.read(key)).toEqual(original);
+    });
+    it('distinguishes uncertain commit from rollback and recovers using the original key', async () => {
+      const v = verifier();
+      await v.registerExpectation(expectation());
+      const prepared = await v.prepare(submission());
+      const responseLost: VerificationStorage = {
+        read: (key) => harness.storage.read(key),
+        async transaction(work) {
+          await harness.storage.transaction(work);
+          throw new Error('Synthetic commit acknowledgment lost');
+        },
+      };
+      await expect(v.complete(prepared, responseLost)).rejects.toMatchObject({
+        code: 'STORAGE_OUTCOME_UNKNOWN',
+        retryable: false,
+      });
+      const replayed = await v.submit(submission());
+      expect(replayed.status).toBe('VERIFIED');
+      expect(provider.retrieve).toHaveBeenCalledTimes(1);
+      expect(await v.events()).toHaveLength(1);
+    });
+    it('keeps provider-confirmed absence separate from a missing expectation and caller cancellation', async () => {
+      const v = verifier();
+      await expect(v.submit(submission())).rejects.toMatchObject({ code: 'EXPECTATION_NOT_FOUND' });
+      await v.registerExpectation(expectation());
+      provider.retrieve.mockResolvedValueOnce({ kind: 'NOT_FOUND', details: { httpStatus: 404 } });
+      const absent = await v.submit(submission());
+      expect(absent).toMatchObject({
+        status: 'NOT_FOUND',
+        code: 'RECEIPT_NOT_FOUND',
+        details: { httpStatus: 404 },
+      });
+      await expect(v.submit(submission(), { signal: AbortSignal.abort() })).rejects.toMatchObject({
+        code: 'OPERATION_CANCELLED',
+      });
+      expect(provider.retrieve).toHaveBeenCalledTimes(1);
     });
     it('coordinates receipt claims globally across tenants and independent clients', async () => {
       const inputs = Array.from({ length: 6 }, (_, i) =>
@@ -173,15 +248,18 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
           verifier().registerExpectation(expectation(input.tenantId, input.paymentId)),
         ),
       );
-      const results = await completeAll(
+      const results = await Promise.allSettled(
         inputs.map((input) => verifier(harness.fork()).submit(input)),
       );
-      expect(results.filter((r) => r.verificationStatus === 'MATCHED_RECEIPT_ONLY')).toHaveLength(
-        1,
-      );
-      expect(results.filter((r) => r.verificationStatus === 'ALREADY_CLAIMED')).toHaveLength(5);
-      expect(results.every((r) => !('claimedBy' in r))).toBe(true);
-      expect(await verifier().events()).toHaveLength(6);
+      expect(
+        results.filter((r) => r.status === 'fulfilled' && r.value.status === 'VERIFIED'),
+      ).toHaveLength(1);
+      expect(
+        results.filter(
+          (r) => r.status === 'rejected' && r.reason?.code === 'RECEIPT_ALREADY_CLAIMED',
+        ),
+      ).toHaveLength(5);
+      expect(await verifier().events()).toHaveLength(1);
     });
     it('allows only one receipt per payment under concurrent clients', async () => {
       const v = verifier();
@@ -189,26 +267,30 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
       const inputs = ['SYNTH1234', 'OTHER1234'].map((id) =>
         submission('tenant-a', 'payment-a', id, id),
       );
-      const results = await completeAll(
+      const results = await Promise.allSettled(
         inputs.map((input) => verifier(harness.fork()).submit(input)),
       );
-      expect(results.filter((r) => r.verificationStatus === 'MATCHED_RECEIPT_ONLY')).toHaveLength(
-        1,
-      );
-      expect(results.filter((r) => r.verificationStatus === 'ALREADY_CLAIMED')).toHaveLength(1);
+      expect(
+        results.filter((r) => r.status === 'fulfilled' && r.value.status === 'VERIFIED'),
+      ).toHaveLength(1);
+      expect(
+        results.filter(
+          (r) => r.status === 'rejected' && r.reason?.code === 'RECEIPT_ALREADY_CLAIMED',
+        ),
+      ).toHaveLength(1);
       const claims = await harness.storage.transaction((tx) => tx.scan('rv1:claim:', 10));
       expect(claims).toHaveLength(1);
     });
     it('uses case-sensitive keys even on case-insensitive database collations', async () => {
       const v = verifier();
       await v.registerExpectation(expectation());
-      expect(
-        (await v.submit(submission('tenant-a', 'payment-a', 'Key-A'))).verificationStatus,
-      ).toBe('MATCHED_RECEIPT_ONLY');
-      expect(
-        (await v.submit(submission('tenant-a', 'payment-a', 'key-a'))).verificationStatus,
-      ).toBe('ALREADY_CLAIMED');
-      expect(await v.events()).toHaveLength(2);
+      expect((await v.submit(submission('tenant-a', 'payment-a', 'Key-A'))).status).toBe(
+        'VERIFIED',
+      );
+      await expect(v.submit(submission('tenant-a', 'payment-a', 'key-a'))).rejects.toMatchObject({
+        code: 'RECEIPT_ALREADY_CLAIMED',
+      });
+      expect(await v.events()).toHaveLength(1);
     });
     it('retrieves outside transactions and snapshots evidence before completion', async () => {
       let inTransaction = false;
@@ -234,7 +316,7 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
       });
       const prepared = await v.prepare(submission());
       if (evidence?.kind === 'EVIDENCE') Object.assign(evidence.evidence, { amountMinor: 999 });
-      expect((await v.complete(prepared)).verificationStatus).toBe('MATCHED_RECEIPT_ONLY');
+      expect((await v.complete(prepared)).status).toBe('VERIFIED');
       await expect(v.complete({} as Parameters<typeof v.complete>[0])).rejects.toMatchObject({
         code: 'INVALID_PREPARATION',
       });
@@ -256,7 +338,7 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
             }),
           ),
       };
-      await expect(v.complete(prepared, fault)).rejects.toThrow('synthetic failure');
+      await expect(v.complete(prepared, fault)).rejects.toMatchObject({ code: 'STORAGE_FAILURE' });
       expect(
         await harness.storage.read(storageKey('claim', 'telebirr', 'SYNTH1234')),
       ).toBeUndefined();
@@ -264,7 +346,7 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
         await harness.storage.read(storageKey('attempt', 'tenant-a', 'key-a')),
       ).toBeUndefined();
       expect(await v.events()).toHaveLength(0);
-      expect((await v.submit(submission())).verificationStatus).toBe('MATCHED_RECEIPT_ONLY');
+      expect((await v.submit(submission())).status).toBe('VERIFIED');
     });
     it('joins the actual host transaction and follows its rollback and commit', async () => {
       const v = verifier();
@@ -274,11 +356,9 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
       await expect(
         harness.hostTransaction(async (scoped) => {
           await expect(verifier(scoped).prepare(submission())).rejects.toMatchObject({
-            code: 'INVALID_INPUT',
+            code: 'INVALID_REQUEST',
           });
-          expect((await v.complete(prepared, scoped)).verificationStatus).toBe(
-            'MATCHED_RECEIPT_ONLY',
-          );
+          expect((await v.complete(prepared, scoped)).status).toBe('VERIFIED');
           await scoped.transaction((tx) => tx.insert(hostKey, { synthetic: true }));
           throw new Error('host rollback');
         }),
@@ -293,19 +373,20 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
       expect(await v.events()).toHaveLength(1);
     });
     it('rechecks cancellation and expiration after retrieval, before claiming', async () => {
-      const v = verifier();
+      let now = time + 1000;
+      const v = createReceiptVerifier({
+        storage: harness.storage,
+        providers: { telebirr: provider },
+        now: () => now,
+      });
       await v.registerExpectation(expectation());
       const prepared = await v.prepare(submission());
       await v.cancelExpectation(expectation());
-      expect((await v.complete(prepared)).verificationStatus).toBe('CANCELLED');
+      await expect(v.complete(prepared)).rejects.toMatchObject({ code: 'EXPECTATION_CANCELLED' });
       await v.registerExpectation(expectation('tenant-a', 'payment-b'));
       const expiring = await v.prepare(submission('tenant-a', 'payment-b', 'key-b'));
-      const expired = createReceiptVerifier({
-        storage: harness.storage,
-        providers: { telebirr: provider },
-        now: () => time + 60_001,
-      });
-      expect((await expired.complete(expiring)).verificationStatus).toBe('EXPIRED');
+      now = time + 60_001;
+      await expect(v.complete(expiring)).rejects.toMatchObject({ code: 'EXPECTATION_EXPIRED' });
       expect(
         await harness.storage.read(storageKey('claim', 'telebirr', 'SYNTH1234')),
       ).toBeUndefined();
@@ -313,14 +394,14 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
     it('keeps provider timeouts and missing or fabricated evidence unclaimed', async () => {
       const v = verifier();
       await v.registerExpectation(expectation());
-      provider.retrieve.mockResolvedValueOnce({ kind: 'UNAVAILABLE', code: 'TIMEOUT' });
-      expect((await v.submit(submission())).verificationStatus).toBe('UNABLE_TO_VERIFY');
+      provider.retrieve.mockResolvedValueOnce(timedOut);
+      expect((await v.submit(submission())).status).toBe('UNAVAILABLE');
       const p = providerResult('https://transactioninfo.ethiotelecom.et/receipt/SYNTH1234');
       if (p.kind === 'EVIDENCE') Object.assign(p.provenance, { kind: 'SAVED_HTML' });
       provider.retrieve.mockResolvedValueOnce(p);
-      expect(
-        (await v.submit(submission('tenant-a', 'payment-a', 'key-b'))).verificationStatus,
-      ).toBe('UNABLE_TO_VERIFY');
+      await expect(v.submit(submission('tenant-a', 'payment-a', 'key-b'))).rejects.toMatchObject({
+        code: 'INVALID_ADAPTER_RESULT',
+      });
       expect(
         await harness.storage.read(storageKey('claim', 'telebirr', 'SYNTH1234')),
       ).toBeUndefined();
@@ -337,11 +418,9 @@ export function adapterContract(name: string, createHarness: () => Promise<Adapt
       for (const input of inputs)
         await verifier().registerExpectation(expectation(input.tenantId, input.paymentId));
       const results = await harness.race(inputs);
-      expect(results.filter((r) => r.verificationStatus === 'MATCHED_RECEIPT_ONLY')).toHaveLength(
-        1,
-      );
-      expect(results.filter((r) => r.verificationStatus === 'ALREADY_CLAIMED')).toHaveLength(1);
-      expect(await verifier().events()).toHaveLength(2);
+      expect(results.filter((r) => 'status' in r && r.status === 'VERIFIED')).toHaveLength(1);
+      expect(results.filter((r) => r.code === 'RECEIPT_ALREADY_CLAIMED')).toHaveLength(1);
+      expect(await verifier().events()).toHaveLength(1);
     });
   });
 }

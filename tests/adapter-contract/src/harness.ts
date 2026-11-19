@@ -12,13 +12,9 @@ import { expect } from 'vite-plus/test';
 import { postgresStorage, postgresTransaction } from '@1hubengineering/storage-sql/postgres';
 import { mysqlStorage, mysqlTransaction } from '@1hubengineering/storage-sql/mysql';
 import { sqliteStorage, sqliteTransaction } from '@1hubengineering/storage-sql/sqlite';
-import type {
-  VerificationStorage,
-  VerificationSubmission,
-  VerificationResult,
-} from '@1hubengineering/verifier';
+import type { VerificationStorage, VerificationSubmission } from '@1hubengineering/verifier';
 import { ENV } from '../env.ts';
-import type { AdapterHarness } from './suite.ts';
+import type { AdapterHarness, ProcessOutcome } from './suite.ts';
 
 export interface DirectHarness extends AdapterHarness {
   readonly postgresPool?: Pool;
@@ -56,7 +52,7 @@ export function children(
   inputs: readonly VerificationSubmission[],
   mode: string,
   sqliteFile?: string,
-): Promise<readonly VerificationResult[]> {
+): Promise<readonly ProcessOutcome[]> {
   let ready = 0;
   const processes = inputs.map((input) =>
     fork(
@@ -70,11 +66,11 @@ export function children(
   );
   const results = processes.map(
     (child) =>
-      new Promise<VerificationResult>((resolve, reject) => {
-        let result: VerificationResult | undefined;
+      new Promise<ProcessOutcome>((resolve, reject) => {
+        let result: ProcessOutcome | undefined;
         child.on(
           'message',
-          (message: { ready?: boolean; result?: VerificationResult; error?: string }) => {
+          (message: { ready?: boolean; result?: ProcessOutcome; error?: string }) => {
             if (message.error) {
               reject(new Error(`Synthetic child failed: ${message.error}`));
               return;

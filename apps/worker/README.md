@@ -20,8 +20,6 @@ leases fence stale completions and permit another worker after expiry. Real
 process crash/recovery is tested across every SDK adapter; this executable chooses
 SQLite and deliberately makes no throughput or deployment availability promise.
 
-This worker never settles a payment, credits an account or fulfills an order.
-Hosts still own authentication, independent settlement, event delivery and
-repeat-safe consumers. Queue capacity remains occupied until explicit retention
+Hosts own authentication, fulfillment, event delivery and repeat-safe consumers. Queue capacity remains occupied until explicit retention
 maintenance acknowledges events and prunes eligible completed jobs. See the
 [CLI configuration](../cli/README.md) and [durable job operations](../../docs/development/durable-jobs.md).

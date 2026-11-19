@@ -68,22 +68,22 @@ describe('ReceiptCheckout', () => {
       paymentMethodId: 'wallet',
       signal: expect.any(AbortSignal),
     });
-    await act(async () => deferred.resolve('matched'));
-    expect(screen.getByRole('status').textContent).toContain('Receipt details match');
+    await act(async () => deferred.resolve({ status: 'VERIFIED', retryable: false }));
+    expect(screen.getByRole('status').textContent).toContain('Payment verified');
     expect(screen.getByRole('status').textContent).toContain(
-      'Settlement is unconfirmed and fulfillment is not authorized',
+      'The official receipt matches this order.',
     );
   });
 
   it('preserves the receipt for an explicit retry after provider unavailability', async () => {
     const callback = vi
       .fn<CheckoutProps['onSubmitReceipt']>()
-      .mockResolvedValueOnce('unavailable')
-      .mockResolvedValueOnce('mismatch');
+      .mockResolvedValueOnce({ status: 'UNAVAILABLE', retryable: true })
+      .mockResolvedValueOnce({ status: 'MISMATCH', retryable: false });
     render(<ReceiptCheckout {...props} onSubmitReceipt={callback} />);
     fill();
     submit();
-    await screen.findByText('Receipt provider unavailable');
+    await screen.findByText('Receipt could not be checked');
     expect(callback).toHaveBeenCalledTimes(1);
     submit('Retry receipt check');
     await screen.findByText('Receipt details did not match');
@@ -104,14 +104,14 @@ describe('ReceiptCheckout', () => {
     const callback = vi
       .fn<CheckoutProps['onSubmitReceipt']>()
       .mockRejectedValueOnce(new Error('internal provider details'))
-      .mockResolvedValueOnce('rejected');
+      .mockResolvedValueOnce({ status: 'INVALID_INPUT', retryable: false });
     render(<ReceiptCheckout {...props} onSubmitReceipt={callback} />);
     fill();
     submit();
     await screen.findByText('Could not submit the receipt');
     expect(screen.queryByText('internal provider details')).toBeNull();
     submit('Retry receipt check');
-    await screen.findByText('Receipt not accepted');
+    await screen.findByText('Receipt input not accepted');
   });
 
   it('aborts in-flight work when the host unmounts an order', async () => {
@@ -122,7 +122,7 @@ describe('ReceiptCheckout', () => {
     submit();
     unmount();
     expect(callback.mock.calls[0]?.[0].signal.aborted).toBe(true);
-    await act(async () => deferred.resolve('matched'));
+    await act(async () => deferred.resolve({ status: 'VERIFIED', retryable: false }));
   });
 
   it('disables submission when the host configures no payment methods', () => {
@@ -147,8 +147,8 @@ function demoCheckout() {
       evidence={{
         simulated: true,
         validate: validateDemoEvidence,
-        sample: (method, kind) =>
-          method === 'cbe' || method === 'telebirr' ? demoSamples[method][kind] : undefined,
+        sample: (method) =>
+          method === 'cbe' || method === 'telebirr' ? demoSamples[method].sms : undefined,
       }}
     />,
   );
@@ -156,34 +156,16 @@ function demoCheckout() {
 }
 
 describe('Ethiopian checkout', () => {
-  it('switches keyboard tabs and preserves independent drafts across tabs and methods', () => {
+  it('offers one labeled input and keeps independent drafts for each payment method', () => {
     demoCheckout();
-    const number = screen.getByRole('tab', { name: 'Transaction number' });
-    fireEvent.change(screen.getByRole('textbox', { name: 'Transaction number' }), {
-      target: { value: 'FTEXAMPLE09' },
-    });
-    number.focus();
-    fireEvent.keyDown(number, { key: 'End' });
-    const sms = screen.getByRole('tab', { name: 'Full SMS message' });
-    expect(document.activeElement).toBe(sms);
-    expect(sms.getAttribute('aria-selected')).toBe('true');
-    fireEvent.change(screen.getByRole('textbox', { name: 'Full SMS message' }), {
-      target: { value: 'Unsent draft' },
-    });
-    fireEvent.keyDown(sms, { key: 'Home' });
-    expect(
-      (screen.getByRole('textbox', { name: 'Transaction number' }) as HTMLInputElement).value,
-    ).toBe('FTEXAMPLE09');
+    expect(screen.getAllByRole('textbox')).toHaveLength(1);
+    expect(screen.queryByRole('tablist')).toBeNull();
+    fill('v2-Synthetic_42');
     fireEvent.click(screen.getByRole('radio', { name: /Telebirr/ }));
     expect(screen.getByText('+251 00 000 1048')).toBeTruthy();
-    expect(
-      (screen.getByRole('textbox', { name: 'Transaction number' }) as HTMLInputElement).value,
-    ).toBe('');
+    expect((input() as HTMLTextAreaElement).value).toBe('');
     fireEvent.click(screen.getByRole('radio', { name: /CBE/ }));
-    fireEvent.click(sms);
-    expect(
-      (screen.getByRole('textbox', { name: 'Full SMS message' }) as HTMLTextAreaElement).value,
-    ).toBe('Unsent draft');
+    expect((input() as HTMLTextAreaElement).value).toBe('v2-Synthetic_42');
   });
 
   it('copies only the configured values and reports blocked clipboard access', async () => {
@@ -209,19 +191,15 @@ describe('Ethiopian checkout', () => {
 
   it('rejects a foreign receipt URL and explicitly labels a simulated match', async () => {
     const callback = demoCheckout();
-    fireEvent.click(screen.getByRole('tab', { name: 'Receipt URL' }));
-    fireEvent.change(screen.getByRole('textbox', { name: 'Receipt URL' }), {
-      target: { value: demoSamples.telebirr.url },
-    });
+    fill(demoSamples.telebirr.url);
     submit('Submit Payment for Verification');
     await screen.findByRole('alert');
     expect(callback).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('tab', { name: 'Full SMS message' }));
     fireEvent.click(screen.getByRole('button', { name: 'Use sample SMS' }));
     submit('Submit Payment for Verification');
-    await screen.findByText('Simulated match');
-    expect(screen.getByText(/No payment was made/)).toBeTruthy();
+    await screen.findByText('Simulated verification');
+    expect(screen.getByText(/passed the checks against a simulated provider record/)).toBeTruthy();
     submit('Submit Payment for Verification');
-    await screen.findByText('Evidence already submitted');
+    await screen.findByText('Receipt already submitted');
   });
 });

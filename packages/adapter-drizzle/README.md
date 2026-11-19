@@ -38,7 +38,7 @@ await db.transaction(
   async (tx) => {
     const result = await verifier.complete(prepared, drizzlePostgresTransaction(tx));
     // Other host writes on tx follow this same commit or rollback.
-    // Result is receipt-only; independent settlement is still required.
+    // Publish the result after the outer transaction commits.
   },
   { isolationLevel: 'serializable' },
 );
@@ -54,9 +54,8 @@ Every query runs through the provided Drizzle object and its actual transaction;
 there is no hidden direct-SQL connection.
 
 The core owns immutable expectations, exact comparison, global shared-store claims,
-idempotency and atomic evidence/results/events. All results retain settlement
-`UNCONFIRMED`. The host owns authorization, connection lifetime, settlement,
-fulfillment and event consumption.
+idempotency and atomic evidence/results/events. The host owns authorization, connection
+lifetime, fulfillment and event consumption.
 
 ## Schema ownership
 
@@ -77,7 +76,7 @@ schema, retention and upgrade policy.
 Validation uses real engine/client queries, exact caller Drizzle transaction
 rollback and commit, mid-write fault injection, synchronized child-process races,
 process-restart replay, tenant isolation and idempotency. No live provider traffic
-or settlement behavior is tested or claimed.
+is covered by the adapter suite.
 
 Installed consumer API checks use the workspace's TypeScript 7.0.2
 `skipLibCheck: true` policy; no full vendor-declaration compatibility is claimed. Strict API assignments and negative caller-transaction checks pass

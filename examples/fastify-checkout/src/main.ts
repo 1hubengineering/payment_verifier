@@ -12,7 +12,7 @@ import { createCheckoutApp } from './app.ts';
 // Public synthetic local demo credentials. Integrators inject their existing auth.
 const database = new Database(
   ENV.CHECKOUT_DATABASE_FILE ??
-    fileURLToPath(new URL('../../../.receipt-checkout-demo.sqlite', import.meta.url)),
+    fileURLToPath(new URL('../../../.receipt-checkout-demo-v2.sqlite', import.meta.url)),
   { timeout: 5000 },
 );
 let app: ReturnType<typeof createCheckoutApp> | undefined;
@@ -30,6 +30,7 @@ try {
   const storage = sqliteStorage(database);
   await storage.migrate();
   const verifier = createReceiptVerifier({ storage, providers: {} });
+  await verifier.initialize();
   const expectation = createPaymentExpectation({
     tenantId: 'synthetic-merchant',
     paymentId: 'synthetic-payment',
@@ -44,6 +45,7 @@ try {
   });
   const order = Object.freeze({
     orderId: 'synthetic-order',
+    recipientAccount: 'SYNTHETIC-1234',
     ownerId: 'synthetic-customer',
     expectation,
   });
@@ -64,7 +66,7 @@ try {
     },
     findOrder: async (tenantId, orderId) =>
       tenantId === expectation.tenantId && orderId === order.orderId ? order : undefined,
-    readOrderState: async () => ({ settlementStatus: 'UNCONFIRMED', fulfillmentStatus: 'PENDING' }),
+    readOrderState: async () => ({ fulfillmentStatus: 'PENDING' }),
   });
   process.once('SIGINT', stop);
   process.once('SIGTERM', stop);

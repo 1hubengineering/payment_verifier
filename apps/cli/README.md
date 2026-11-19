@@ -28,14 +28,14 @@ Its diagnostic result includes SAVED_HTML provenance and claimCreated=false even
 when fields match. There is no unchecked claim command or diagnostic bypass.
 Help also performs no database or provider work.
 
-The default store is `.receipt-state.sqlite` at the workspace root, shared with
+The default store is `.receipt-state-v2.sqlite` at the workspace root, shared with
 the worker. Set RECEIPT_DATABASE_FILE to an absolute path for another file. These
-apps explicitly own their SQLite handles, enable WAL, migrate the v1 tables and
+apps explicitly own their SQLite handles, enable WAL, initialize the versioned record store and
 close handles on completion. The SDK retains caller connection ownership and
 supports its separately tested nine database/ORM cells.
 
-Provider traffic defaults disabled. `verify` without configured providers returns
-UNABLE_TO_VERIFY and cannot create a claim. Explicit
+Provider traffic defaults disabled. `verify` without configured providers reports the
+`PROVIDER_NOT_CONFIGURED` operation error. Explicit
 RECEIPT_ALLOW_PROVIDER_TRAFFIC=true enables the bounded Telebirr provider;
 RECEIPT_ENABLE_CBE=true additionally enables CBE with matching Chromium installed
 using `pnpm setup:browsers`. No live provider request is needed for validation.
@@ -47,4 +47,4 @@ the same key, timeout and database. Timeout is 1–60000 ms; lease is at least
 30 seconds and 1000 ms longer than that timeout. Other queue bounds use the SDK's
 conservative defaults. See [durable job operations](../../docs/development/durable-jobs.md)
 for retention, event acknowledgment, backup and key rotation responsibilities.
-All receipt-only outcomes keep settlement UNCONFIRMED and never authorize delivery.
+Hosts own fulfillment and repeat-safe handling of verification events.

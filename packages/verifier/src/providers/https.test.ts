@@ -126,9 +126,9 @@ describe('bounded HTTPS with local transport/DNS mocks', () => {
     async (status) => {
       responseStatus = status;
       responseHeaders.location = 'http://127.0.0.1/';
-      expect(await retrieveTelebirr('TEST1234AB')).toEqual({
+      expect(await retrieveTelebirr('TEST1234AB')).toMatchObject({
         kind: 'UNAVAILABLE',
-        code: 'PROVIDER_UNAVAILABLE',
+        code: 'PROVIDER_HTTP_ERROR',
       });
       expect(request).toHaveBeenCalledTimes(1);
     },
@@ -138,32 +138,56 @@ describe('bounded HTTPS with local transport/DNS mocks', () => {
     { 'content-type': 'text/html', 'content-encoding': 'gzip' },
   ])('rejects unexpected response metadata %#', async (headers) => {
     responseHeaders = headers;
-    await expect(retrieveHtml(locator)).rejects.toMatchObject({ code: 'INVALID_RESPONSE' });
+    await expect(retrieveHtml(locator)).rejects.toMatchObject({
+      code: 'INVALID_PROVIDER_RESPONSE',
+    });
+  });
+  it('distinguishes an unexplained 404 from absence and retains bounded rate-limit details', async () => {
+    responseStatus = 404;
+    expect(await retrieveTelebirr('TEST1234AB')).toMatchObject({
+      kind: 'UNAVAILABLE',
+      code: 'PROVIDER_HTTP_ERROR',
+      retryable: false,
+      details: { httpStatus: 404 },
+    });
+    destroyed = false;
+    responseStatus = 429;
+    responseHeaders['retry-after'] = '120';
+    expect(await retrieveTelebirr('TEST1234AB')).toMatchObject({
+      kind: 'UNAVAILABLE',
+      code: 'PROVIDER_RATE_LIMITED',
+      retryable: true,
+      details: { httpStatus: 429, retryAfterMs: 60000 },
+    });
   });
   it('enforces advertised and streamed byte bounds', async () => {
     responseHeaders['content-length'] = '100';
     await expect(retrieveHtml(locator, { maxBytes: 10 })).rejects.toMatchObject({
-      code: 'TOO_LARGE',
+      code: 'RECEIPT_TOO_LARGE',
     });
     delete responseHeaders['content-length'];
     destroyed = false;
     chunks = [Buffer.from('123456'), Buffer.from('78901')];
     await expect(retrieveHtml(locator, { maxBytes: 10 })).rejects.toMatchObject({
-      code: 'TOO_LARGE',
+      code: 'RECEIPT_TOO_LARGE',
     });
   });
   it('rejects empty bodies and invalid UTF-8', async () => {
     chunks = [];
-    await expect(retrieveHtml(locator)).rejects.toMatchObject({ code: 'INVALID_RESPONSE' });
+    await expect(retrieveHtml(locator)).rejects.toMatchObject({
+      code: 'INVALID_PROVIDER_RESPONSE',
+    });
     chunks = [Buffer.from([0xff])];
     destroyed = false;
-    await expect(retrieveHtml(locator)).rejects.toMatchObject({ code: 'INVALID_RESPONSE' });
+    await expect(retrieveHtml(locator)).rejects.toMatchObject({
+      code: 'INVALID_PROVIDER_RESPONSE',
+    });
   });
   it('enforces a total deadline and destroys the request', async () => {
     hang = true;
-    expect(await retrieveTelebirr('TEST1234AB', { timeoutMs: 10 })).toEqual({
+    expect(await retrieveTelebirr('TEST1234AB', { timeoutMs: 10 })).toMatchObject({
       kind: 'UNAVAILABLE',
-      code: 'TIMEOUT',
+      code: 'PROVIDER_TIMEOUT',
     });
     expect(destroyed).toBe(true);
   });
@@ -184,10 +208,13 @@ describe('bounded HTTPS with local transport/DNS mocks', () => {
     vi.mocked(request).mockImplementation((() => {
       throw new Error('private URL or token');
     }) as typeof request);
-    expect(await retrieveTelebirr('TEST1234AB')).toEqual({
-      kind: 'UNAVAILABLE',
-      code: 'PROVIDER_UNAVAILABLE',
-    });
+    try {
+      await retrieveTelebirr('TEST1234AB');
+      throw new Error('Expected the request setup to fail');
+    } catch (error) {
+      expect(error).toMatchObject({ code: 'INTERNAL_ERROR' });
+      expect(JSON.stringify(error)).not.toContain('private URL');
+    }
   });
   it('refuses forged locators and invalid bounds before requests', async () => {
     await expect(retrieveHtml({ ...locator, url: 'https://evil.test/' })).rejects.toMatchObject({
@@ -199,17 +226,21 @@ describe('bounded HTTPS with local transport/DNS mocks', () => {
   });
   it('reports malformed fetched HTML as provider unavailability', async () => {
     chunks = [Buffer.from('<span>unclosed')];
-    expect(await retrieveTelebirr('TEST1234AB')).toEqual({
+    expect(await retrieveTelebirr('TEST1234AB')).toMatchObject({
       kind: 'UNAVAILABLE',
-      code: 'PROVIDER_UNAVAILABLE',
+      code: 'UNSUPPORTED_RECEIPT_FORMAT',
     });
   });
   it('retains retrieved provenance separately from saved HTML', async () => {
-    chunks = [Buffer.from('<html>unrecognized</html>')];
+    chunks = [
+      Buffer.from(
+        '<table><tr><td>Invoice Number</td><td>TEST1234AB</td></tr><tr><td>Settled Amount</td><td>ETB 0.29</td></tr></table>',
+      ),
+    ];
     expect(await retrieveTelebirr('TEST1234AB')).toMatchObject({
       kind: 'EVIDENCE',
-      provenance: { kind: 'OFFICIAL_HTTPS', url: locator.url, parserVersion: '1' },
-      evidence: { transactionId: null },
+      provenance: { kind: 'OFFICIAL_HTTPS', url: locator.url, parserVersion: '2' },
+      evidence: { transactionId: 'TEST1234AB' },
     });
   });
 });

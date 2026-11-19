@@ -6,7 +6,7 @@ import {
   parseEtbAmount,
   storageKey,
 } from '@1hubengineering/verifier';
-import type { ReceiptVerifier, SettlementStatus } from '@1hubengineering/verifier';
+import type { ReceiptVerifier } from '@1hubengineering/verifier';
 import type { ProviderResult } from '@1hubengineering/verifier/providers';
 import { createDurableVerifier } from '@1hubengineering/verifier/jobs';
 import { sqliteStorage } from '@1hubengineering/storage-sql/sqlite';
@@ -82,7 +82,7 @@ function cbeEvidence(url: string): Extract<ProviderResult, { kind: 'EVIDENCE' }>
     },
   };
 }
-let orders: Map<string, HostOrder>, settlement: SettlementStatus;
+let orders: Map<string, HostOrder>;
 const headers = (token = 'alice', key = 'key-a') => ({
   authorization: `Bearer ${token}`,
   'idempotency-key': key,
@@ -112,7 +112,6 @@ beforeEach(async () => {
   await storage.migrate();
   retrieve.mockReset().mockImplementation(async (url) => evidence(url));
   cbeRetrieve.mockReset().mockImplementation(async (url) => cbeEvidence(url));
-  settlement = 'UNCONFIRMED';
   orders = new Map([
     ['tenant-a/order-a', { orderId: 'order-a', ownerId: 'alice', expectation: snapshot() }],
     [
@@ -152,7 +151,7 @@ beforeEach(async () => {
             : undefined,
     admit: async () => true,
     findOrder: async (tenantId, orderId) => orders.get(`${tenantId}/${orderId}`),
-    readOrderState: async () => ({ settlementStatus: settlement, fulfillmentStatus: 'PENDING' }),
+    readOrderState: async () => ({ fulfillmentStatus: 'PENDING' }),
   };
   app = createCheckoutApp(services);
 });
@@ -190,6 +189,7 @@ describe('embedded checkout authority and receipt-only boundaries', () => {
   });
   it.each([
     'amountMinor',
+    'amountPolicy',
     'recipientName',
     'recipientAccountLast4',
     'tenantId',
@@ -217,28 +217,22 @@ describe('embedded checkout authority and receipt-only boundaries', () => {
     expect((await post('alice', 'key', 'https://127.0.0.1/private')).statusCode).toBe(400);
     expect(retrieve).not.toHaveBeenCalled();
   });
-  it('matches a trusted immutable snapshot while leaving settlement and fulfillment independent', async () => {
+  it('verifies a trusted snapshot and leaves fulfillment under host control', async () => {
     const response = await post();
     expect(response.statusCode).toBe(200);
     expect(response.json()).toMatchObject({
       receipt: {
         tenantId: 'tenant-a',
         paymentId: 'payment-a',
-        verificationStatus: 'MATCHED_RECEIPT_ONLY',
-        settlementStatus: 'UNCONFIRMED',
+        status: 'VERIFIED',
       },
     });
     expect(await storage.read(storageKey('claim', 'telebirr', 'SYNTH1234'))).toBeDefined();
     const order = await app.inject({ method: 'GET', url: '/orders/order-a', headers: headers() });
     expect(order.json()).toMatchObject({
       amountMinor: 29,
-      settlementStatus: 'UNCONFIRMED',
       fulfillmentStatus: 'PENDING',
     });
-    settlement = 'SETTLEMENT_CONFIRMED';
-    expect(
-      (await app.inject({ method: 'GET', url: '/orders/order-a', headers: headers() })).json(),
-    ).toMatchObject({ settlementStatus: 'SETTLEMENT_CONFIRMED', fulfillmentStatus: 'PENDING' });
     expect((await post()).json()).toEqual(response.json());
     expect(retrieve).toHaveBeenCalledTimes(1);
   });
@@ -248,28 +242,29 @@ describe('embedded checkout authority and receipt-only boundaries', () => {
     const conflict = await post('alice', 'key-a', 'OTHER1234');
     expect(conflict.statusCode).toBe(409);
     expect(conflict.json()).toMatchObject({
-      receipt: { verificationStatus: 'IDEMPOTENCY_CONFLICT', checks: {} },
+      error: { code: 'IDEMPOTENCY_CONFLICT' },
     });
     expect(retrieve).toHaveBeenCalledTimes(1);
   });
   it('coordinates receipt reuse across separately authenticated tenants', async () => {
-    expect((await post()).json().receipt.verificationStatus).toBe('MATCHED_RECEIPT_ONLY');
+    expect((await post()).json().receipt.status).toBe('VERIFIED');
     const other = await post('bob', 'key-b');
     expect(other.json()).toMatchObject({
-      receipt: {
-        tenantId: 'tenant-b',
-        paymentId: 'payment-b',
-        verificationStatus: 'ALREADY_CLAIMED',
-        settlementStatus: 'UNCONFIRMED',
-      },
+      error: { code: 'RECEIPT_ALREADY_CLAIMED' },
     });
     expect(JSON.stringify(other.json())).not.toContain('tenant-a');
   });
   it('rejects changed host snapshots and keeps provider timeouts unclaimed', async () => {
-    retrieve.mockResolvedValueOnce({ kind: 'UNAVAILABLE', code: 'TIMEOUT' });
+    retrieve.mockResolvedValueOnce({
+      kind: 'UNAVAILABLE',
+      code: 'PROVIDER_TIMEOUT',
+      stage: 'receipt_retrieval',
+      retryable: true,
+      details: { timeoutMs: 500 },
+    });
     const response = await post();
     expect(response.json()).toMatchObject({
-      receipt: { verificationStatus: 'UNABLE_TO_VERIFY', settlementStatus: 'UNCONFIRMED' },
+      receipt: { status: 'UNAVAILABLE' },
     });
     expect(await storage.read(storageKey('claim', 'telebirr', 'SYNTH1234'))).toBeUndefined();
     orders.set('tenant-a/order-a', {
@@ -279,7 +274,7 @@ describe('embedded checkout authority and receipt-only boundaries', () => {
     });
     const changed = await post('alice', 'key-b');
     expect(changed.statusCode).toBe(409);
-    expect(changed.json()).toEqual({ error: 'EXPECTATION_EXISTS' });
+    expect(changed.json()).toMatchObject({ error: { code: 'EXPECTATION_CONFLICT' } });
     expect(retrieve).toHaveBeenCalledTimes(1);
   });
   it('bounds concurrent retrieval and restores capacity after the first request finishes', async () => {
@@ -335,10 +330,10 @@ describe('embedded checkout authority and receipt-only boundaries', () => {
     });
     await jobs.initialize();
     app = createCheckoutApp({ ...services, jobs });
-    const response = await postEvidence({ kind: 'sms', reference: telebirrSms });
+    const response = await postEvidence({ receiptLocator: telebirrSms });
     expect(response.statusCode).toBe(202);
     const jobId = response.json().job.jobId as string;
-    expect(response.json().job).toMatchObject({ state: 'QUEUED', settlementStatus: 'UNCONFIRMED' });
+    expect(response.json().job).toMatchObject({ state: 'QUEUED' });
     expect(retrieve).not.toHaveBeenCalled();
     expect((await post()).json()).toEqual(response.json());
     expect((await post('bob', 'key-b', 'OTHER1234')).statusCode).toBe(429);
@@ -350,41 +345,38 @@ describe('embedded checkout authority and receipt-only boundaries', () => {
     expect((await app.inject({ method: 'GET', url, headers: headers() })).json()).toMatchObject({
       job: {
         state: 'COMPLETED',
-        result: { verificationStatus: 'MATCHED_RECEIPT_ONLY', settlementStatus: 'UNCONFIRMED' },
+        result: { status: 'VERIFIED' },
       },
     });
     expect(
       (await app.inject({ method: 'GET', url: '/orders/order-a', headers: headers() })).json(),
-    ).toMatchObject({ settlementStatus: 'UNCONFIRMED', fulfillmentStatus: 'PENDING' });
+    ).toMatchObject({ fulfillmentStatus: 'PENDING' });
   });
 });
 
 describe('authenticated staging evidence', () => {
   it('normalizes all three Telebirr inputs to one attempt and rejects duplicate claims', async () => {
     const sms = `${telebirrSms.replace(` Receipt: ${telebirrUrl}.`, '')}\nPrivate SMS marker`;
-    const first = await postEvidence({ kind: 'sms', reference: sms });
+    const first = await postEvidence({ receiptLocator: sms });
     expect(first.statusCode).toBe(200);
     expect(first.headers['cache-control']).toBe('no-store');
     expect(first.json()).toMatchObject({
-      receipt: { verificationStatus: 'MATCHED_RECEIPT_ONLY', settlementStatus: 'UNCONFIRMED' },
+      receipt: { status: 'VERIFIED' },
     });
     expect(retrieve.mock.calls.map(([url]) => url)).toEqual([telebirrUrl]);
-    for (const input of [
-      { kind: 'transaction', reference: 'synth1234' },
-      { kind: 'url', reference: telebirrUrl },
-    ]) {
+    for (const input of [{ receiptLocator: 'synth1234' }, { receiptLocator: telebirrUrl }]) {
       expect((await postEvidence(input)).json()).toEqual(first.json());
     }
     expect(retrieve).toHaveBeenCalledTimes(1);
-    const conflict = await postEvidence({ kind: 'transaction', reference: 'OTHER1234' });
+    const conflict = await postEvidence({ receiptLocator: 'OTHER1234' });
     expect(conflict.statusCode).toBe(409);
-    expect(conflict.json().receipt.verificationStatus).toBe('IDEMPOTENCY_CONFLICT');
+    expect(conflict.json().error.code).toBe('IDEMPOTENCY_CONFLICT');
     expect(retrieve).toHaveBeenCalledTimes(1);
     const reused = await postEvidence(
-      { kind: 'url', reference: telebirrUrl },
+      { receiptLocator: telebirrUrl },
       { token: 'bob', key: 'key-b' },
     );
-    expect(reused.json().receipt.verificationStatus).toBe('ALREADY_CLAIMED');
+    expect(reused.json().error.code).toBe('RECEIPT_ALREADY_CLAIMED');
     expect(JSON.stringify(reused.json())).not.toContain('tenant-a');
     const attempt = await storage.read(storageKey('attempt', 'tenant-a', 'key-a'));
     expect(attempt).toBeDefined();
@@ -394,8 +386,7 @@ describe('authenticated staging evidence', () => {
   it('uses the CBE order method and verifies only the receipt link from SMS', async () => {
     const response = await postEvidence(
       {
-        kind: 'sms',
-        reference: `${cbeSms} ${cbeUrl}. for feedback: https://forms.gle/kGNGQpG3mQCCk3iD6`,
+        receiptLocator: `${cbeSms} ${cbeUrl}. for feedback: https://forms.gle/kGNGQpG3mQCCk3iD6`,
       },
       { orderId: 'order-cbe' },
     );
@@ -403,9 +394,15 @@ describe('authenticated staging evidence', () => {
     expect(response.json()).toMatchObject({
       receipt: {
         paymentId: 'payment-cbe',
-        verificationStatus: 'MATCHED_RECEIPT_ONLY',
-        settlementStatus: 'UNCONFIRMED',
-        checks: { amountMinor: 'PASS', recipientName: 'PASS', recipientAccountLast4: 'PASS' },
+        status: 'VERIFIED',
+        checks: expect.arrayContaining([
+          expect.objectContaining({ field: 'amountMinor', status: 'PASS' }),
+          expect.objectContaining({
+            field: 'recipientAccount',
+            rule: 'account_last4',
+            status: 'PASS',
+          }),
+        ]),
       },
     });
     expect(retrieve).not.toHaveBeenCalled();
@@ -421,63 +418,72 @@ describe('authenticated staging evidence', () => {
       provider: 'cbe',
       amountMinor: 4250,
       currency: 'ETB',
-      settlementStatus: 'UNCONFIRMED',
+      recipientName: 'Synthetic CBE Merchant',
+      recipientAccount: null,
+      invoiceReference: 'SYNTHETIC_CBE42',
       fulfillmentStatus: 'PENDING',
     });
   });
 
-  it.each([
-    { kind: 'transaction', reference: 'v2-Synthetic_42' },
-    { kind: 'transaction', reference: 'BANKREF42' },
-    { kind: 'sms', reference: cbeSms },
-    { kind: 'sms', reference: `${cbeSms} https://forms.gle/kGNGQpG3mQCCk3iD6` },
-  ])('asks for the official CBE link for $kind without consuming the key', async (input) => {
+  it('accepts the bare CBE token and replays an equivalent CBE SMS without a link', async () => {
     const orderId = 'order-cbe';
-    const response = await postEvidence(input, { orderId });
-    expect(response.statusCode).toBe(422);
-    expect(response.json()).toEqual({
-      error: 'CBE_RECEIPT_URL_REQUIRED',
-      message: 'Paste the official CBE receipt URL.',
+    const first = await postEvidence({ receiptLocator: 'v2-Synthetic_42' }, { orderId });
+    expect(first.json()).toMatchObject({
+      receipt: { status: 'VERIFIED', receipt: { transactionId: 'SYNTHETICCBE42' } },
     });
     expect(
-      await storage.read(storageKey('expectation', 'tenant-a', 'payment-cbe')),
-    ).toBeUndefined();
-    expect(await storage.read(storageKey('attempt', 'tenant-a', 'key-a'))).toBeUndefined();
-    expect(cbeRetrieve).not.toHaveBeenCalled();
-    const corrected = await postEvidence({ kind: 'url', reference: cbeUrl }, { orderId });
-    expect(corrected.json().receipt.verificationStatus).toBe('MATCHED_RECEIPT_ONLY');
+      (
+        await postEvidence({ receiptLocator: `${cbeSms} Receipt ID: v2-Synthetic_42` }, { orderId })
+      ).json(),
+    ).toEqual(first.json());
+    expect(cbeRetrieve).toHaveBeenCalledExactlyOnceWith(cbeUrl, undefined);
   });
 
   it.each([
-    ['order-a', { kind: 'url', reference: cbeUrl }],
-    ['order-cbe', { kind: 'url', reference: telebirrUrl }],
-    ['order-a', { kind: 'sms', reference: cbeSms + ' Transaction ID: SYNTH1234' }],
-    ['order-cbe', { kind: 'sms', reference: telebirrSms }],
-    ['order-a', { kind: 'sms', reference: telebirrSms.replace('/SYNTH1234.', '/OTHER1234.') }],
-    ['order-cbe', { kind: 'url', reference: 'https://mbreciept.cbe.com.et@wrong.invalid/v2-ABC' }],
-    ['order-a', { kind: 'transaction', reference: 'Transaction ID: SYNTH1234' }],
-    ['order-a', { kind: 'url', reference: 'Receipt ' + telebirrUrl }],
-  ] as const)('refuses wrong-provider or invalid evidence for %s', async (orderId, input) => {
-    const response = await postEvidence(input, { orderId });
+    ['order-a', cbeUrl, 'PROVIDER_MISMATCH'],
+    ['order-cbe', telebirrUrl, 'PROVIDER_MISMATCH'],
+    ['order-cbe', cbeSms, 'UNRECOGNIZED_INPUT'],
+    ['order-cbe', `${cbeSms} v2-Other ${cbeUrl}`, 'AMBIGUOUS_INPUT'],
+    ['order-a', telebirrSms.replace('/SYNTH1234.', '/OTHER1234.'), 'AMBIGUOUS_INPUT'],
+    ['order-cbe', 'https://mbreciept.cbe.com.et@wrong.invalid/v2-ABC', 'UNSUPPORTED_RECEIPT_URL'],
+  ])('rejects conflicting or invalid evidence for %s', async (orderId, receiptLocator, code) => {
+    const response = await postEvidence({ receiptLocator }, { orderId });
     expect(response.statusCode).toBe(400);
-    expect(response.json()).toEqual({ error: 'INVALID_EVIDENCE' });
+    expect(response.json()).toMatchObject({
+      receipt: { status: 'INVALID_INPUT', code, verificationId: null },
+    });
+    expect(await storage.read(storageKey('attempt', 'tenant-a', 'key-a'))).toBeUndefined();
     expect(retrieve).not.toHaveBeenCalled();
     expect(cbeRetrieve).not.toHaveBeenCalled();
   });
 
-  it.each(['amountMinor', 'recipientName', 'recipientAccountLast4', 'provider', 'receiptLocator'])(
-    'rejects %s on the typed request before verification',
-    async (field) => {
-      const response = await postEvidence({
-        kind: 'sms',
-        reference: telebirrSms,
-        [field]: 'untrusted override',
-      });
-      expect(response.statusCode).toBe(400);
-      expect(response.json()).toEqual({ error: 'INVALID_REQUEST' });
-      expect(retrieve).not.toHaveBeenCalled();
-    },
-  );
+  it('rejects a second CBE token for an already claimed official transaction', async () => {
+    const first = await postEvidence(
+      { receiptLocator: 'v2-Synthetic_42' },
+      { orderId: 'order-cbe' },
+    );
+    expect(first.json()).toMatchObject({ receipt: { status: 'VERIFIED' } });
+    const priorOrder = orders.get('tenant-a/order-cbe')!;
+    orders.set('tenant-a/order-cbe-2', {
+      ...priorOrder,
+      orderId: 'order-cbe-2',
+      expectation: { ...priorOrder.expectation, paymentId: 'payment-cbe-2' },
+    });
+    const second = await postEvidence(
+      { receiptLocator: 'v2-OtherToken' },
+      { orderId: 'order-cbe-2', key: 'key-b' },
+    );
+    expect(second.statusCode).toBe(409);
+    expect(second.json()).toMatchObject({ error: { code: 'RECEIPT_ALREADY_CLAIMED' } });
+    expect(cbeRetrieve).toHaveBeenCalledTimes(2);
+  });
+
+  it('rejects the old typed request shape', async () => {
+    const response = await postEvidence({ kind: 'sms', reference: telebirrSms });
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({ error: 'INVALID_REQUEST' });
+    expect(retrieve).not.toHaveBeenCalled();
+  });
 
   it('compares independent receipt fields even when the SMS claims the right amount and recipient', async () => {
     const receipt = cbeEvidence(cbeUrl);
@@ -490,33 +496,43 @@ describe('authenticated staging evidence', () => {
       },
     });
     const response = await postEvidence(
-      { kind: 'sms', reference: `${cbeSms} ${cbeUrl}` },
+      { receiptLocator: `${cbeSms} ${cbeUrl}` },
       { orderId: 'order-cbe' },
     );
     expect(response.json()).toMatchObject({
       receipt: {
-        verificationStatus: 'MISMATCHED',
-        settlementStatus: 'UNCONFIRMED',
-        checks: { amountMinor: 'FAIL', recipientAccountLast4: 'FAIL' },
+        status: 'MISMATCH',
+        checks: expect.arrayContaining([
+          expect.objectContaining({
+            field: 'amountMinor',
+            status: 'FAIL',
+            code: 'AMOUNT_OVERPAID',
+          }),
+          expect.objectContaining({ field: 'recipientAccount', status: 'FAIL' }),
+        ]),
       },
     });
     expect(await storage.read(storageKey('claim', 'cbe', 'SYNTHETICCBE42'))).toBeUndefined();
   });
 
   it('returns a provider timeout as unverified and uses a new key for a deliberate retry', async () => {
-    retrieve.mockResolvedValueOnce({ kind: 'UNAVAILABLE', code: 'TIMEOUT' });
-    const input = { kind: 'url', reference: telebirrUrl };
+    retrieve.mockResolvedValueOnce({
+      kind: 'UNAVAILABLE',
+      code: 'PROVIDER_TIMEOUT',
+      stage: 'receipt_retrieval',
+      retryable: true,
+      details: { timeoutMs: 500 },
+    });
+    const input = { receiptLocator: telebirrUrl };
     const timedOut = await postEvidence(input);
     expect(timedOut.statusCode).toBe(200);
     expect(timedOut.json()).toMatchObject({
-      receipt: { verificationStatus: 'UNABLE_TO_VERIFY', settlementStatus: 'UNCONFIRMED' },
+      receipt: { status: 'UNAVAILABLE' },
     });
     expect(await storage.read(storageKey('claim', 'telebirr', 'SYNTH1234'))).toBeUndefined();
     expect((await postEvidence(input)).json()).toEqual(timedOut.json());
     expect(retrieve).toHaveBeenCalledTimes(1);
-    expect((await postEvidence(input, { key: 'retry-a' })).json().receipt.verificationStatus).toBe(
-      'MATCHED_RECEIPT_ONLY',
-    );
+    expect((await postEvidence(input, { key: 'retry-a' })).json().receipt.status).toBe('VERIFIED');
     expect(retrieve).toHaveBeenCalledTimes(2);
   });
 
@@ -527,7 +543,7 @@ describe('authenticated staging evidence', () => {
       ['mallory', 404],
       ['bob', 404],
     ] as const) {
-      const response = await postEvidence({ kind: 'sms', reference: cbeSms }, { token, orderId });
+      const response = await postEvidence({ receiptLocator: cbeSms }, { token, orderId });
       expect(response.statusCode).toBe(status);
       expect(response.json()).toEqual({ error: status === 401 ? 'UNAUTHENTICATED' : 'NOT_FOUND' });
       const order = await app.inject({

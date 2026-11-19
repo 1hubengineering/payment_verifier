@@ -4,8 +4,11 @@ import type { EtbMinorUnits } from '../money.ts';
 import type { ProviderId } from '../types.ts';
 
 export const RECEIPT_MAX_BYTES: number = 2_000_000;
+export class UnsupportedReceiptHtml extends TypeError {}
+
 export interface ParsedReceipt {
   readonly evidence: ReceiptEvidence;
+  readonly recognized: boolean;
   readonly provenance: {
     readonly kind: 'SAVED_HTML';
     readonly provider: ProviderId;
@@ -60,7 +63,7 @@ function layout(html: string): ReceiptLayout {
     tags = 0,
     cursor = 0;
   function invalid(): never {
-    throw new TypeError('Unsupported receipt HTML structure');
+    throw new UnsupportedReceiptHtml('Unsupported receipt HTML structure');
   }
   const append = (part: string): void => {
     visible.push(part);
@@ -311,11 +314,17 @@ function field(label: string): EvidenceField | undefined {
 }
 function money(value: string): { amount: EtbMinorUnits | null; currency: string | null } {
   const m =
-    /^(?:(ETB|Birr) )?((?:0|[1-9]\d*|[1-9]\d{0,2}(?:,\d{3})+)(?:\.\d{1,2})?)(?: (ETB|Birr))?$/i.exec(
+    /^(?:([A-Z]{3}|Birr) )?((?:0|[1-9]\d*|[1-9]\d{0,2}(?:,\d{3})+)(?:\.\d{1,2})?)(?: ([A-Z]{3}|Birr))?$/i.exec(
       value,
     );
-  if (!m || (!m[1] && !m[3]) || (m[1] && m[3] && m[1].toLowerCase() !== m[3].toLowerCase()))
-    return { amount: null, currency: null };
+  if (!m) return { amount: null, currency: null };
+  const normalize = (code: string | undefined): string | undefined =>
+    code?.toUpperCase() === 'BIRR' ? 'ETB' : code?.toUpperCase();
+  const prefix = normalize(m[1]);
+  const suffix = normalize(m[3]);
+  const currency = prefix ?? suffix ?? null;
+  if (prefix && suffix && prefix !== suffix) return { amount: null, currency: null };
+  if (currency !== 'ETB') return { amount: null, currency };
   try {
     return { amount: parseEtbAmount(m[2]!.replaceAll(',', '')), currency: 'ETB' };
   } catch {
@@ -336,19 +345,13 @@ function status(value: string): ReceiptEvidence['status'] {
 }
 
 /** Offline extraction only; saved HTML cannot establish provider authenticity. */
-export function parseReceiptHtml(
-  provider: ProviderId,
-  html: string,
-  expectedTransactionId?: string,
-): ParsedReceipt {
+export function parseReceiptHtml(provider: ProviderId, html: string): ParsedReceipt {
   if (
     (provider !== 'telebirr' && provider !== 'cbe') ||
     typeof html !== 'string' ||
     Buffer.byteLength(html) > RECEIPT_MAX_BYTES
   )
     throw new TypeError('Invalid or oversized receipt HTML');
-  if (expectedTransactionId !== undefined && !/^[A-Z0-9]{6,32}$/.test(expectedTransactionId))
-    throw new TypeError('Invalid expected transaction ID');
   const { rows, spans, text } = layout(html);
   const values = new Map<EvidenceField, string[]>();
   const add = (f: EvidenceField, value: string): void => {
@@ -405,11 +408,7 @@ export function parseReceiptHtml(
     return candidates[0] || null;
   };
   const idRaw = get('transactionId');
-  let id = idRaw && /^[A-Z0-9_-]{6,40}$/i.test(idRaw) ? idRaw.toUpperCase() : null;
-  if (expectedTransactionId && id !== expectedTransactionId) {
-    if (!ambiguous.includes('transactionId')) ambiguous.push('transactionId');
-    id = null;
-  }
+  const id = idRaw && /^[A-Z0-9_-]{6,40}$/i.test(idRaw) ? idRaw.toUpperCase() : null;
   const rawAmount = get('amountMinor');
   const parsedMoney = rawAmount ? money(rawAmount) : { amount: null, currency: null };
   const rawAccount = get('recipientAccountLast4');
@@ -417,21 +416,34 @@ export function parseReceiptHtml(
     rawAccount && /^(?:\d+[xX*•]{2,})?\d{4}$/.test(rawAccount) ? rawAccount.slice(-4) : null;
   const rawTime = get('transactionAt');
   const rawStatus = get('status');
+  const transactionAt = rawTime ? parseProviderTime(rawTime) : null;
+  const paymentStatus = rawStatus ? status(rawStatus) : null;
+  const invalidFields: EvidenceField[] = [];
+  if (idRaw && id === null) invalidFields.push('transactionId');
+  if (rawAmount && parsedMoney.amount === null) invalidFields.push('amountMinor');
+  if (rawAmount && parsedMoney.currency === null) invalidFields.push('currency');
+  if (rawAccount && account === null) invalidFields.push('recipientAccountLast4');
+  if (rawTime && transactionAt === null) invalidFields.push('transactionAt');
+  if (rawStatus && paymentStatus === null) invalidFields.push('status');
   const evidence: ReceiptEvidence = Object.freeze({
     provider,
     currency: parsedMoney.currency,
     transactionId: id,
-    status: rawStatus ? status(rawStatus) : null,
+    status: paymentStatus,
     amountMinor: parsedMoney.amount,
     recipientName: get('recipientName'),
     recipientAccountLast4: account,
     reference: get('reference'),
-    transactionAt: rawTime ? parseProviderTime(rawTime) : null,
+    transactionAt,
     paymentType: get('paymentType'),
     ambiguousFields: Object.freeze(ambiguous),
+    invalidFields: Object.freeze(invalidFields),
   });
   return Object.freeze({
     evidence,
+    recognized:
+      values.size >= 2 &&
+      (values.has('transactionId') || values.has('amountMinor') || values.has('recipientName')),
     provenance: Object.freeze({ kind: 'SAVED_HTML', provider, parserVersion: '1' }),
   });
 }

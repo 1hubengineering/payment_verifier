@@ -46,8 +46,8 @@ older planning examples may describe superseded conventions.
   submissions never supply authoritative amounts, recipient accounts, or identity.
 - Use exact integer ETB minor units. Missing/ambiguous evidence fails closed;
   provider timeouts remain unavailable, not a false mismatch or payment success.
-- Receipt match, local claim, settlement, and fulfillment are separate states.
-  Receipt evidence alone never authorizes credit or delivery.
+- Official verification requires all configured checks and an atomic receipt claim.
+  Hosts own fulfillment and business effects, which follow the transaction commit boundary.
 - Retrieval happens outside short storage transactions. Claims, evidence,
   idempotency results, and durable events must commit atomically. Caller-owned
   transactions/connections stay caller-owned. Claim scope is one shared store.
@@ -62,6 +62,6 @@ older planning examples may describe superseded conventions.
 
 ## Review guidance
 
-Prioritize false matches, settlement confusion, idempotency/tenant isolation,
+Prioritize false verification, commit-boundary confusion, idempotency/tenant isolation,
 transaction races, recovery, SSRF, and installed-package behavior. Cite concrete
 failures and file locations; do not treat roadmap promises as implemented controls.

@@ -1,7 +1,7 @@
 {
   "name": "@1hubengineering/storage-sql",
-  "version": "0.1.1",
-  "private": false,
+  "version": "0.2.0",
+  "private": true,
   "description": "Atomic receipt verification storage for selected SQL clients",
   "homepage": "https://github.com/1hubengineering/payment_verifier/tree/main/packages/storage-sql",
   "bugs": {

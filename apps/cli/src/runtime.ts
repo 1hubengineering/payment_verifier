@@ -49,7 +49,8 @@ export async function openOperatorRuntime(
   const providers: { telebirr?: ReceiptProvider; cbe?: ReceiptProvider } = {};
   if (config.RECEIPT_ALLOW_PROVIDER_TRAFFIC) {
     providers.telebirr = {
-      retrieve: (url, options) => retrieveTelebirr(url, { ...options, timeoutMs }),
+      retrieve: (url, options) =>
+        retrieveTelebirr(url, { ...options, timeoutMs: options?.timeoutMs ?? timeoutMs }),
     };
     if (config.RECEIPT_ENABLE_CBE) {
       const { createCbeProvider } = await import('@1hubengineering/provider-cbe');
@@ -58,7 +59,7 @@ export async function openOperatorRuntime(
   }
   const filename =
     config.RECEIPT_DATABASE_FILE ??
-    fileURLToPath(new URL('../../../.receipt-state.sqlite', import.meta.url));
+    fileURLToPath(new URL('../../../.receipt-state-v2.sqlite', import.meta.url));
   const database = new Database(filename, { timeout: 5000 });
   try {
     database.pragma('journal_mode = WAL');
@@ -74,6 +75,7 @@ export async function openOperatorRuntime(
         })
       : undefined;
     if (jobs) await jobs.initialize();
+    else await verifier.initialize();
     return { storage, verifier, jobs, close: () => database.close() };
   } catch (error) {
     database.close();

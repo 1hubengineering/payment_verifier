@@ -129,7 +129,13 @@ try {
   const prepared = await verifier.prepare(input);
   process.send({ ready: true });
   await new Promise((resolve) => process.once('message', resolve));
-  const result = await verifier.complete(prepared);
+  let result;
+  try {
+    result = await verifier.complete(prepared);
+  } catch (error) {
+    if (mode !== 'race' || error.code !== 'RECEIPT_ALREADY_CLAIMED') throw error;
+    result = error.toJSON();
+  }
   process.send({ result });
   await close();
   process.disconnect();

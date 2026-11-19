@@ -32,9 +32,12 @@ export async function renderCbeHtml(
   try {
     if (options.signal?.aborted) throw new RetrievalError('CANCELLED');
     const remaining = timeoutMs - (Date.now() - started);
-    if (remaining <= 0) throw new RetrievalError('TIMEOUT');
+    if (remaining <= 0) throw new RetrievalError('RECEIPT_RENDER_TIMEOUT', { timeoutMs }, true);
     const deadline = new Promise<never>((_resolve, reject) => {
-      timer = setTimeout(() => reject(new RetrievalError('TIMEOUT')), remaining);
+      timer = setTimeout(
+        () => reject(new RetrievalError('RECEIPT_RENDER_TIMEOUT', { timeoutMs }, true)),
+        remaining,
+      );
       cancel = () => reject(new RetrievalError('CANCELLED'));
       options.signal?.addEventListener('abort', cancel, { once: true });
     });
@@ -78,9 +81,9 @@ export async function renderCbeHtml(
         .waitFor({ timeout: remaining });
       await page.getByText('Transferred Amount:', { exact: true }).waitFor({ timeout: remaining });
       const length = await page.evaluate<number>('document.documentElement.outerHTML.length');
-      if (length > maxBytes) throw new RetrievalError('TOO_LARGE');
+      if (length > maxBytes) throw new RetrievalError('RECEIPT_TOO_LARGE');
       const rendered = await page.content();
-      if (Buffer.byteLength(rendered) > maxBytes) throw new RetrievalError('TOO_LARGE');
+      if (Buffer.byteLength(rendered) > maxBytes) throw new RetrievalError('RECEIPT_TOO_LARGE');
       return rendered;
     };
     return await Promise.race([work(), deadline]);

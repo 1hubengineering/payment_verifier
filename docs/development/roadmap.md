@@ -21,6 +21,14 @@ publication. Historical examples are not additional compatibility promises.
 | 12. Short npm names             | 0.1.1 published and verified         | Five renamed packages installed from npm with matching hashes; old SQL storage removed, four old versions await npm 2FA approval                       |
 | 13. Staging checkout            | Complete locally                     | Order-scoped number, URL, and SMS intake; canonical replay, CBE receipt-link prompt, synthetic receipts, and independent settlement                    |
 
+The [0.2.0 contract and automatic intake plan](plans/017-verification-contract-0.2.0.md)
+supersedes the historical response vocabulary for the source candidate. Published
+versions retain the contract described in their release guides.
+
+The local 0.2.0 candidate implements shared automatic receipt input, structured
+verification outcomes, and optional host-owned amount tolerance. Local checks
+passed on both supported Node versions. The candidate package manifests are private.
+
 Published 0.1.0 acceptance: **237 fast/application/example/provider cases,
 243 real-engine contract cases (nine cells × 27), and 11 frozen reference cases**,
 plus environment/schema generation, five builds, formatting/lint/strict types,

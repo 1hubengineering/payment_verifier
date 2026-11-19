@@ -56,7 +56,7 @@ try {
 import assert from 'node:assert/strict';
 globalThis.fetch = () => { throw new Error('Unexpected import-time network request'); };
 const core = await import('@1hubengineering/verifier');
-assert.deepEqual(Object.keys(core).sort(), ['StorageConflict', 'VerificationError', 'compareReceipt', 'createPaymentExpectation', 'createReceiptVerifier', 'parseEtbAmount', 'storageKey']);
+assert.deepEqual(Object.keys(core).sort(), ['StorageConflict', 'VerificationOperationError', 'comparePaymentAmount', 'compareReceipt', 'createPaymentExpectation', 'createReceiptVerifier', 'parseEtbAmount', 'storageKey']);
 const expected = core.createPaymentExpectation({
   tenantId: 'synthetic', paymentId: 'synthetic', provider: 'telebirr', currency: 'ETB',
   amountMinor: core.parseEtbAmount('0.29'), recipientName: 'Synthetic Merchant',
@@ -67,21 +67,35 @@ const result = core.compareReceipt(expected, {
   amountMinor: 29, recipientName: 'Synthetic Merchant', recipientAccountLast4: '1234',
   reference: 'ORDER_1234', transactionAt: 1500, paymentType: null, ambiguousFields: [],
 });
-assert.equal(result.verificationStatus, 'MATCHED_RECEIPT_ONLY');
-assert.equal(result.settlementStatus, 'UNCONFIRMED');
-assert.equal(core.compareReceipt(expected, {}).verificationStatus, 'UNABLE_TO_VERIFY');
+assert.equal(result.status, 'MATCH');
+assert.equal('verified' in result, false);
+assert.equal(core.compareReceipt(expected, {}).status, 'INCOMPLETE');
 assert.equal(core.parseEtbAmount('0.29'), 29);
 assert.equal(core.parseEtbAmount('500.00'), 50000);
 assert.throws(() => core.parseEtbAmount('0.001'));
 const jobsModule = await import('@1hubengineering/verifier/jobs');
 const noWorkStorage = { read: async () => { throw new Error('Import/construction performed I/O'); }, transaction: async () => { throw new Error('Import/construction started a transaction'); } };
 assert.equal(typeof jobsModule.createDurableVerifier({ storage: noWorkStorage, providers: {}, encryptionKey: new Uint8Array(32) }).enqueue, 'function');
-assert.throws(() => jobsModule.createDurableVerifier({ storage: { ...noWorkStorage, callerTransaction: true }, providers: {}, encryptionKey: new Uint8Array(32) }), /CONFIGURATION/);
+assert.throws(() => jobsModule.createDurableVerifier({ storage: { ...noWorkStorage, callerTransaction: true }, providers: {}, encryptionKey: new Uint8Array(32) }), {code:'QUEUE_CONFIGURATION'});
+const { detectPaymentInput } = await import('@1hubengineering/verifier/input');
+const browserModule = await import('node:fs/promises');
+const visited = new Set();
+async function verifyBrowserModule(url) {
+  if (visited.has(url.href)) return;
+  visited.add(url.href);
+  const source = await browserModule.readFile(url, 'utf8');
+  for (const [, dependency] of source.matchAll(/(?:from |import )["']([^"']+)["']/g)) {
+    assert.ok(dependency.startsWith('.'), 'Browser parser dependency: ' + dependency);
+    await verifyBrowserModule(new URL(dependency, url));
+  }
+}
+await verifyBrowserModule(new URL(import.meta.resolve('@1hubengineering/verifier/input')));
+assert.equal(detectPaymentInput('v2-Synthetic_42').value.identifier, 'v2-Synthetic_42');
 const providers = await import('@1hubengineering/verifier/providers');
 assert.equal(providers.normalizeReceiptLocator('telebirr', 'TEST1234AB').transactionId, 'TEST1234AB');
 const parsed = providers.parseReceiptHtml('telebirr', '<html>unsupported</html>');
 assert.equal(parsed.provenance.kind, 'SAVED_HTML');
-assert.equal(core.compareReceipt(expected, parsed.evidence).verificationStatus, 'UNABLE_TO_VERIFY');
+assert.equal(core.compareReceipt(expected, parsed.evidence).status, 'INCOMPLETE');
 assert.equal(providers.isPublicDestination('127.0.0.1'), false);
 `,
   );
@@ -90,7 +104,7 @@ assert.equal(providers.isPublicDestination('127.0.0.1'), false);
   writeFileSync(
     join(temporary, 'consumer.ts'),
     `
-import { parseEtbAmount, type EtbMinorUnits, type VerificationStatus, type SettlementStatus, createPaymentExpectation, compareReceipt, type ReceiptComparison, type ReceiptEvidence }  from '@1hubengineering/verifier';
+import { parseEtbAmount, type EtbMinorUnits, type VerificationStatus, type VerificationResult, createPaymentExpectation, compareReceipt, type ReceiptComparison, type ReceiptEvidence }  from '@1hubengineering/verifier';
 import { parseReceiptHtml, normalizeReceiptLocator, type ProviderResult } from '@1hubengineering/verifier/providers';
 import { createDurableVerifier, type VerificationJob } from '@1hubengineering/verifier/jobs';
 import type { VerificationStorage } from '@1hubengineering/verifier';
@@ -102,21 +116,22 @@ jobs.status({paymentId:'synthetic'},'job');
 void accepted;
 const parsed = parseReceiptHtml('telebirr', '');
 const locator = normalizeReceiptLocator('telebirr', 'TEST1234AB');
-const unavailable: ProviderResult = { kind: 'UNAVAILABLE', code: 'TIMEOUT' };
+const unavailable: ProviderResult = { kind: 'UNAVAILABLE', code: 'PROVIDER_TIMEOUT', stage: 'receipt_retrieval', retryable: true, details: { timeoutMs: 1000 } };
 void [parsed, locator, unavailable];
 const amount: EtbMinorUnits = parseEtbAmount('10.00');
-const verification: VerificationStatus = 'MATCHED_RECEIPT_ONLY';
-const settlement: SettlementStatus = 'UNCONFIRMED';
+const verification: VerificationStatus = 'VERIFIED';
+declare const outcome: VerificationResult;
+if (outcome.verified) { const exact: 'VERIFIED' = outcome.status; void exact; }
 // @ts-expect-error A raw number must be validated at the library boundary.
 const invalidAmount: EtbMinorUnits = 1;
-// @ts-expect-error Settlement is not a receipt-verification outcome.
+// @ts-expect-error An unknown verification status is rejected.
 const invalidVerification: VerificationStatus = 'SETTLEMENT_CONFIRMED';
 const expected = createPaymentExpectation({});
 const result: ReceiptComparison = compareReceipt(expected, {});
 const evidence: ReceiptEvidence['amountMinor'] = amount;
-// @ts-expect-error Receipt comparison cannot confirm settlement.
-const settled: 'SETTLEMENT_CONFIRMED' = result.settlementStatus;
-void [amount, verification, settlement, invalidAmount, invalidVerification, result, evidence, settled];
+// @ts-expect-error Pure comparison has no official verification flag.
+const verified = result.verified;
+void [amount, verification, invalidAmount, invalidVerification, result, evidence, verified];
 `,
   );
   run(
@@ -162,7 +177,7 @@ void [amount, verification, settlement, invalidAmount, invalidVerification, resu
     `
 import assert from 'node:assert/strict';
 const { createCbeProvider } = await import('@1hubengineering/provider-cbe');
-assert.deepEqual(await createCbeProvider().retrieve('http://127.0.0.1/'), { kind: 'UNAVAILABLE', code: 'INVALID_LOCATOR' });
+await assert.rejects(createCbeProvider().retrieve('http://127.0.0.1/'), { code: 'INVALID_REQUEST' });
 `,
   );
   run(process.execPath, ['optional.mjs'], temporary);
@@ -208,8 +223,8 @@ const verifier = createReceiptVerifier({ storage, now: () => 1500, providers: { 
 await verifier.registerExpectation(expectation);
 const input = { tenantId: 'synthetic', paymentId: 'synthetic', idempotencyKey: 'synthetic', receiptLocator: 'SYNTH1234' };
 const first = await verifier.submit(input);
-assert.equal(first.verificationStatus, 'MATCHED_RECEIPT_ONLY');
-assert.equal(first.settlementStatus, 'UNCONFIRMED');
+assert.equal(first.status, 'VERIFIED');
+assert.equal(first.verified, true);
 assert.deepEqual(await verifier.submit(input), first);
 assert.equal((await verifier.events()).length, 1);
 const { createDurableVerifier } = await import('@1hubengineering/verifier/jobs');
@@ -219,9 +234,8 @@ await jobs.initialize();
 const jobInput={...input,paymentId:'queued',idempotencyKey:'queued'};
 const accepted = await jobs.enqueue(jobInput);
 assert.equal(accepted.state,'QUEUED');
-assert.equal(await jobs.runOnce(),'COMPLETED');
-assert.equal((await jobs.status(jobInput,accepted.jobId)).result.verificationStatus,'UNABLE_TO_VERIFY');
-assert.equal((await jobs.status(jobInput,accepted.jobId)).result.settlementStatus,'UNCONFIRMED');
+assert.equal(await jobs.runOnce(),'FAILED');
+assert.equal((await jobs.status(jobInput,accepted.jobId)).error.code,'PROVIDER_NOT_CONFIGURED');
 assert.equal(database.open, true);
 database.close();
 `,

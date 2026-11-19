@@ -7,7 +7,7 @@ requesting changes. Check:
   expected recipient, provider, reference, status, and time policy are enforced.
 - Trusted payment expectations come from the host; authorization and tenant
   boundaries are preserved. Public submissions cannot override expected values.
-- Receipt-only outcomes never become settled payments or fulfillment signals.
+- Only checked official evidence can produce a verified result. Publish it and trigger host effects after commit.
 - Same idempotency key and input return the same committed result; conflicting
   reuse is explicit. Provider transaction and payment claims are atomic under
   races, rollback, and process failure. Network retrieval stays outside locks.

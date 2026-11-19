@@ -36,7 +36,7 @@ it('runs the loopback Varlock demo without providers and closes its owned databa
     const headers = { authorization: 'Bearer synthetic-customer-a' };
     const order = await fetch(`http://127.0.0.1:${port}/orders/synthetic-order`, { headers });
     expect(await order.json()).toMatchObject({
-      settlementStatus: 'UNCONFIRMED',
+      invoiceReference: 'SYNTHETIC_1234',
       fulfillmentStatus: 'PENDING',
     });
     const response = await fetch(
@@ -48,11 +48,11 @@ it('runs the loopback Varlock demo without providers and closes its owned databa
           'content-type': 'application/json',
           'idempotency-key': 'synthetic-test',
         },
-        body: JSON.stringify({ kind: 'transaction', reference: 'SYNTH1234' }),
+        body: JSON.stringify({ receiptLocator: 'SYNTH1234' }),
       },
     );
     expect(await response.json()).toMatchObject({
-      receipt: { verificationStatus: 'UNABLE_TO_VERIFY', settlementStatus: 'UNCONFIRMED' },
+      error: { code: 'PROVIDER_NOT_CONFIGURED' },
     });
     child.kill('SIGTERM');
     expect(await exited).toEqual([0, null]);

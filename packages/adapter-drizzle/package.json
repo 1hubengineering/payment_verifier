@@ -1,8 +1,8 @@
 {
   "name": "@1hubengineering/adapter-drizzle",
-  "version": "0.1.1",
-  "private": false,
-  "description": "Versioned Drizzle storage integration for receipt-only verification",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Versioned Drizzle storage integration for payment verification",
   "homepage": "https://github.com/1hubengineering/payment_verifier/tree/main/packages/adapter-drizzle",
   "bugs": {
     "url": "https://github.com/1hubengineering/payment_verifier/issues"

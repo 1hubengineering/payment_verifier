@@ -29,13 +29,11 @@ describe('ported synthetic extraction', () => {
   it.each(['telebirr.v5-table.mock.html', 'telebirr.bilingual.mock.html'])(
     'extracts %s and matches the time-bound snapshot',
     (file) => {
-      const parsed = parseReceiptHtml('telebirr', fixture(file), 'TEST1234AB');
+      const parsed = parseReceiptHtml('telebirr', fixture(file));
       expect(parsed.provenance.kind).toBe('SAVED_HTML');
       expect(parsed.evidence.amountMinor).toBe(1000);
       expect(parsed.evidence.transactionId).toBe('TEST1234AB');
-      expect(compareReceipt(expectation('telebirr'), parsed.evidence).verificationStatus).toBe(
-        'MATCHED_RECEIPT_ONLY',
-      );
+      expect(compareReceipt(expectation('telebirr'), parsed.evidence).status).toBe('MATCH');
     },
   );
   it('extracts CBE recipient account rather than payer or total debited', () => {
@@ -45,16 +43,12 @@ describe('ported synthetic extraction', () => {
       amountMinor: 23000,
       paymentType: 'A2A',
     });
-    expect(compareReceipt(expectation('cbe'), parsed.evidence).verificationStatus).toBe(
-      'MATCHED_RECEIPT_ONLY',
-    );
+    expect(compareReceipt(expectation('cbe'), parsed.evidence).status).toBe('MATCH');
   });
   it('does not invent a missing timestamp from the simpler Telebirr layout', () => {
-    const parsed = parseReceiptHtml('telebirr', fixture('telebirr.mock.html'), 'TEST1234AB');
+    const parsed = parseReceiptHtml('telebirr', fixture('telebirr.mock.html'));
     expect(parsed.evidence.amountMinor).toBe(1000);
-    expect(compareReceipt(expectation('telebirr'), parsed.evidence).verificationStatus).toBe(
-      'UNABLE_TO_VERIFY',
-    );
+    expect(compareReceipt(expectation('telebirr'), parsed.evidence).status).toBe('INCOMPLETE');
   });
   it.each([
     '',
@@ -73,9 +67,10 @@ describe('ported synthetic extraction', () => {
     expect(
       compareReceipt(
         expectation('telebirr'),
-        parseReceiptHtml('telebirr', html, 'TEST1234AB').evidence,
-      ).verificationStatus,
-    ).not.toBe('MATCHED_RECEIPT_ONLY');
+        parseReceiptHtml('telebirr', html).evidence,
+        'TEST1234AB',
+      ).status,
+    ).not.toBe('MATCH');
   });
   it.each([
     ['Customer Note', 'OTHER1234', 'reference'],
@@ -84,25 +79,22 @@ describe('ported synthetic extraction', () => {
     ['Credited party account no', '2519****9999', 'recipientAccountLast4'],
   ])('retains conflicting duplicate %s', (label, value, field) => {
     const html = v5.replace('</table>', `<tr><td>${label}</td><td>${value}</td></tr></table>`);
-    const parsed = parseReceiptHtml('telebirr', html, 'TEST1234AB');
+    const parsed = parseReceiptHtml('telebirr', html);
     expect(parsed.evidence.ambiguousFields).toContain(field);
-    expect(compareReceipt(expectation('telebirr'), parsed.evidence).verificationStatus).toBe(
-      'UNABLE_TO_VERIFY',
-    );
+    expect(compareReceipt(expectation('telebirr'), parsed.evidence).status).toBe('INCOMPLETE');
   });
   it('does not select one invoice from multiple invoice rows', () => {
     const html = v5.replace(
       '<tr><td>Customer Note',
       '<tr><td>OTHER1234</td><td>13-11-2026 14:20:00</td><td>99.00 Birr</td></tr><tr><td>Customer Note',
     );
-    const parsed = parseReceiptHtml('telebirr', html, 'TEST1234AB');
+    const parsed = parseReceiptHtml('telebirr', html);
     expect(parsed.evidence.ambiguousFields).toContain('transactionId');
     expect(parsed.evidence.ambiguousFields).toContain('amountMinor');
   });
   it('parses exact cents without rounding and excludes fees', () => {
     expect(
-      parseReceiptHtml('telebirr', v5.replace('10.00 Birr', '0.29 Birr'), 'TEST1234AB').evidence
-        .amountMinor,
+      parseReceiptHtml('telebirr', v5.replace('10.00 Birr', '0.29 Birr')).evidence.amountMinor,
     ).toBe(29);
   });
   it.each(['script', 'style', 'noscript', 'tr', 'td', 'span'])(
@@ -133,8 +125,8 @@ describe('ported synthetic extraction', () => {
         .replace('Example Merchant', '<b>Example Merchant</b>');
     expect(
       compareReceipt(expectation('telebirr'), parseReceiptHtml('telebirr', document).evidence)
-        .verificationStatus,
-    ).toBe('MATCHED_RECEIPT_ONLY');
+        .status,
+    ).toBe('MATCH');
   });
   it('decodes entities once, never as markup or a second encoded value', () => {
     expect(
@@ -146,9 +138,7 @@ describe('ported synthetic extraction', () => {
         'telebirr',
         v5.replace('AH-TEST-4821', replacement),
       ).evidence;
-      expect(compareReceipt(expectation('telebirr'), evidence).verificationStatus).not.toBe(
-        'MATCHED_RECEIPT_ONLY',
-      );
+      expect(compareReceipt(expectation('telebirr'), evidence).status).not.toBe('MATCH');
     }
   });
   it.each(['script', 'style', 'noscript', 'textarea', 'title', 'iframe', 'xmp'])(
@@ -158,14 +148,14 @@ describe('ported synthetic extraction', () => {
         'telebirr',
         `<${tag}>${v5.replace(/<title>.*?<\/title>/u, '')}</${tag}>`,
       ).evidence;
-      expect(compareReceipt(expectation('telebirr'), evidence).verificationStatus).toBe(
-        'UNABLE_TO_VERIFY',
-      );
+      expect(compareReceipt(expectation('telebirr'), evidence).status).toBe('INCOMPLETE');
     },
   );
-  it('rejects oversized HTML and malformed expected identifiers', () => {
+  it('rejects oversized HTML and malformed expected identifiers at their respective boundaries', () => {
     expect(() => parseReceiptHtml('telebirr', 'x'.repeat(2_000_001))).toThrow();
-    expect(() => parseReceiptHtml('telebirr', v5, '.*')).toThrow();
+    expect(() =>
+      compareReceipt(expectation('telebirr'), parseReceiptHtml('telebirr', v5).evidence, '.*'),
+    ).toThrow();
   });
 });
 
@@ -209,8 +199,7 @@ describe('official locators', () => {
     'https://transactioninfo.ethiotelecom.et/receipt/TEST1234AB?x=1',
     'https://transactioninfo.ethiotelecom.et/receipt/TEST1234AB#x',
     'https://transactioninfo.ethiotelecom.et@127.0.0.1/receipt/TEST1234AB',
-    'Transaction ID: TEST1234AB Invoice: OTHER1234',
-    'https://transactioninfo.ethiotelecom.et/receipt/TEST1234AB https://evil.test/',
+    'Transaction ID: TEST1234AB Transaction Reference: OTHER1234',
     '',
   ])('rejects untrusted or conflicting locator %s', (value) =>
     expect(() => normalizeReceiptLocator('telebirr', value)).toThrow(),

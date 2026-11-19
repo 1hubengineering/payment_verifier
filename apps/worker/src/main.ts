@@ -1,6 +1,6 @@
 import { ENV } from '../env.ts';
 import { openOperatorRuntime, OperatorError } from '../../cli/src/runtime.ts';
-import { safeErrorCode } from '../../cli/src/cli.ts';
+import { safeError } from '../../cli/src/cli.ts';
 import { runWorker } from './loop.ts';
 const args = process.argv.slice(2),
   controller = new AbortController();
@@ -27,7 +27,7 @@ try {
     }
   }
 } catch (error) {
-  process.stderr.write(JSON.stringify({ error: safeErrorCode(error) }) + '\n');
+  process.stderr.write(JSON.stringify({ error: safeError(error) }) + '\n');
   process.exitCode = 1;
 } finally {
   process.removeListener('SIGINT', stop);

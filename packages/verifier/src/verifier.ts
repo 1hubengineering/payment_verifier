@@ -1,48 +1,49 @@
-import { createHash } from 'node:crypto';
 import { compareReceipt, createPaymentExpectation } from './comparison.ts';
-import type {
-  PaymentExpectation,
-  ReceiptComparison,
-  EvidenceField,
-  ReceiptEvidence,
-} from './comparison.ts';
+import type { PaymentExpectation } from './comparison.ts';
+import { providerMessages, VerificationOperationError } from './outcomes.ts';
+import type { InvalidInputResult, VerificationResult } from './outcomes.ts';
+import type { DetectedPaymentInput, InputType } from './input.ts';
 import type { ProviderId } from './types.ts';
 import type { RecordTransaction, StoredRecord, VerificationStorage } from './storage.ts';
-import { normalizeReceiptLocator } from './providers/locator.ts';
+import { officialLocator } from './providers/locator.ts';
 import type { ProviderResult } from './providers/index.ts';
 import type { RetrievalOptions } from './providers/https.ts';
+import {
+  attemptRecord,
+  canonicalFingerprint,
+  detectSubmission,
+  ensureStore,
+  expectationRecord,
+  normalizeProviderResult,
+  operation,
+  payloadVersion,
+  readRecord,
+  receiptSnapshot,
+  replayAttempt,
+  replayJobBinding,
+  requireOpen,
+  resultRecord,
+  scopeKey,
+  storageKey,
+  submission,
+  transact,
+} from './verification-records.ts';
+import type { PaymentScope, VerificationSubmission } from './verification-records.ts';
 
-export interface PaymentScope {
-  readonly tenantId: string;
-  readonly paymentId: string;
-}
-export interface VerificationSubmission extends PaymentScope {
-  readonly idempotencyKey: string;
-  readonly receiptLocator: string;
-}
+export { storageKey } from './verification-records.ts';
+export type { PaymentScope, VerificationSubmission } from './verification-records.ts';
+export type { VerificationResult } from './outcomes.ts';
+
 export interface ReceiptProvider {
-  retrieve(
-    locator: string,
-    options?: RetrievalOptions,
-  ): Promise<ProviderResult | { readonly kind: 'UNAVAILABLE'; readonly code: 'BUSY' }>;
+  retrieve(locator: string, options?: RetrievalOptions): Promise<ProviderResult>;
 }
-export interface VerificationResult extends PaymentScope {
-  readonly verificationId: string;
-  readonly verificationStatus:
-    | ReceiptComparison['verificationStatus']
-    | 'ALREADY_CLAIMED'
-    | 'CANCELLED'
-    | 'EXPIRED'
-    | 'NEEDS_REVIEW'
-    | 'IDEMPOTENCY_CONFLICT';
-  readonly settlementStatus: 'UNCONFIRMED';
-  readonly checks: ReceiptComparison['checks'];
-}
+
 declare const preparedBrand: unique symbol;
 export interface PreparedVerification {
   readonly [preparedBrand]: true;
 }
 export interface ReceiptVerifier {
+  initialize(): Promise<void>;
   registerExpectation(expectation: PaymentExpectation): Promise<void>;
   cancelExpectation(scope: PaymentScope): Promise<void>;
   prepare(input: VerificationSubmission, options?: RetrievalOptions): Promise<PreparedVerification>;
@@ -54,354 +55,311 @@ export interface ReceiptVerifier {
   events(limit?: number): Promise<readonly StoredRecord[]>;
   acknowledgeEvent(key: string): Promise<void>;
 }
-interface ExpectationRecord {
-  expectation: PaymentExpectation;
-  state: 'OPEN' | 'CANCELLED' | 'RECEIPT_CLAIMED';
+
+interface PreparedAttempt {
+  readonly input: VerificationSubmission;
+  readonly detected: DetectedPaymentInput;
+  readonly fingerprint: string;
+  readonly snapshot: string;
+  readonly signal: AbortSignal | undefined;
+  readonly outcome: ProviderResult | undefined;
+  readonly workerJobId: string | undefined;
 }
-interface Attempt {
-  fingerprint: string;
-  result: VerificationResult;
-}
-interface Preparation {
-  input: VerificationSubmission;
-  fingerprint: string;
-  snapshot: string;
-  url: string;
-  provider: ProviderId;
-  retrieved: Awaited<ReturnType<ReceiptProvider['retrieve']>> | undefined;
-}
-const preparations = new WeakMap<PreparedVerification, Preparation>();
-export class VerificationError extends Error {
-  readonly code:
-    | 'NOT_FOUND'
-    | 'INVALID_INPUT'
-    | 'CORRUPT_STATE'
-    | 'EXPECTATION_EXISTS'
-    | 'INVALID_PREPARATION';
-  constructor(code: VerificationError['code']) {
-    super(code);
-    this.name = 'VerificationError';
-    this.code = code;
-  }
-}
-export function storageKey(kind: string, ...parts: string[]): string {
-  if (!/^[a-z]{1,12}$/.test(kind)) throw new TypeError('Invalid record kind');
-  return `rv1:${kind}:${createHash('sha256').update(JSON.stringify(parts)).digest('hex')}`;
-}
-function object(value: unknown): Record<string, unknown> {
-  if (!value || typeof value !== 'object' || Array.isArray(value))
-    throw new VerificationError('CORRUPT_STATE');
-  return value as Record<string, unknown>;
-}
-function identifier(value: unknown): value is string {
-  return (
-    typeof value === 'string' &&
-    value.length >= 1 &&
-    value.length <= 128 &&
-    value.trim() === value &&
-    Array.from(value).every((char) => char.charCodeAt(0) >= 32 && char.charCodeAt(0) !== 127)
+
+function observed(data: PreparedAttempt, expectation: PaymentExpectation): VerificationResult {
+  const outcome = data.outcome;
+  if (outcome === undefined) throw operation('CORRUPT_STATE', 'storage');
+  const base = {
+    tenantId: data.input.tenantId,
+    paymentId: data.input.paymentId,
+    expectedProvider: expectation.provider,
+    verificationId: storageKey('verification', data.input.tenantId, data.input.idempotencyKey),
+    input: data.detected,
+    details: {},
+  };
+  if (outcome.kind === 'UNAVAILABLE')
+    return {
+      ...base,
+      verified: false,
+      status: 'UNAVAILABLE',
+      code: outcome.code,
+      stage: outcome.stage,
+      retryable: outcome.retryable,
+      message: providerMessages[outcome.code],
+      details: outcome.details,
+      checks: [],
+      receipt: null,
+      source: null,
+    };
+  if (outcome.kind === 'NOT_FOUND')
+    return {
+      ...base,
+      verified: false,
+      status: 'NOT_FOUND',
+      code: 'RECEIPT_NOT_FOUND',
+      stage: 'receipt_retrieval',
+      retryable: outcome.retryable ?? false,
+      message: 'The provider confirmed the receipt was not found.',
+      details: outcome.details ?? {},
+      checks: [],
+      receipt: null,
+      source: null,
+    };
+  const { evidence, provenance } = outcome;
+  const compared = compareReceipt(
+    expectation,
+    evidence,
+    data.detected.provider === 'telebirr' ? data.detected.identifier : undefined,
   );
-}
-function scopeKey(scope: PaymentScope): string {
-  if (!identifier(scope.tenantId) || !identifier(scope.paymentId))
-    throw new VerificationError('INVALID_INPUT');
-  return storageKey('expectation', scope.tenantId, scope.paymentId);
-}
-function expectationRecord(value: unknown, scope: PaymentScope): ExpectationRecord {
-  if (value === undefined) throw new VerificationError('NOT_FOUND');
-  const v = object(value);
-  let expectation: PaymentExpectation;
-  try {
-    expectation = createPaymentExpectation(v.expectation);
-  } catch {
-    throw new VerificationError('CORRUPT_STATE');
-  }
+  const receipt = receiptSnapshot(evidence);
+  const source = {
+    kind: 'OFFICIAL_RECEIPT' as const,
+    retrievedAt: new Date(provenance.retrievedAt).toISOString(),
+    parserVersion: provenance.parserVersion,
+    contentHash: provenance.sha256,
+  };
+  const found = { ...base, checks: compared.checks, receipt, source };
+  if (compared.status === 'MISMATCH')
+    return {
+      ...found,
+      verified: false,
+      status: 'MISMATCH',
+      code: compared.code,
+      stage: 'comparison',
+      retryable:
+        compared.code === 'PAYMENT_PENDING' &&
+        outcome.pendingRetryable === true &&
+        compared.checks.every(
+          (check) =>
+            check.status === 'PASS' ||
+            check.status === 'SKIPPED' ||
+            check.code === 'PAYMENT_PENDING',
+        ),
+      message:
+        compared.code === 'AMOUNT_UNDERPAID' || compared.code === 'AMOUNT_OVERPAID'
+          ? 'The transferred amount is outside the accepted range.'
+          : compared.code === 'PAYMENT_PENDING'
+            ? 'The official receipt reports a pending payment.'
+            : 'One or more required checks failed against the official receipt.',
+    };
+  if (compared.status === 'INCOMPLETE')
+    return {
+      ...found,
+      verified: false,
+      status: 'UNAVAILABLE',
+      code: compared.code,
+      stage: 'comparison',
+      retryable: false,
+      message: 'The official receipt lacks usable evidence for one or more required checks.',
+    };
   if (
-    expectation.tenantId !== scope.tenantId ||
-    expectation.paymentId !== scope.paymentId ||
-    (v.state !== 'OPEN' && v.state !== 'CANCELLED' && v.state !== 'RECEIPT_CLAIMED')
+    receipt.provider === null ||
+    receipt.transactionId === null ||
+    receipt.paymentStatus !== 'SUCCESSFUL' ||
+    receipt.amountMinor === null ||
+    receipt.currency !== 'ETB'
   )
-    throw new VerificationError('CORRUPT_STATE');
-  return { expectation, state: v.state };
-}
-function attempt(value: unknown, tenantId: string, idempotencyKey: string): Attempt | undefined {
-  if (value === undefined) return undefined;
-  const v = object(value),
-    result = object(v.result);
-  if (
-    typeof v.fingerprint !== 'string' ||
-    result.settlementStatus !== 'UNCONFIRMED' ||
-    typeof result.verificationStatus !== 'string' ||
-    ![
-      'MATCHED_RECEIPT_ONLY',
-      'MISMATCHED',
-      'UNABLE_TO_VERIFY',
-      'ALREADY_CLAIMED',
-      'CANCELLED',
-      'EXPIRED',
-      'NEEDS_REVIEW',
-    ].includes(result.verificationStatus) ||
-    result.tenantId !== tenantId ||
-    !identifier(result.paymentId) ||
-    result.verificationId !== storageKey('verification', tenantId, idempotencyKey)
-  )
-    throw new VerificationError('CORRUPT_STATE');
-  const rawChecks = object(result.checks);
-  if (
-    Object.values(rawChecks).some(
-      (c) => !['PASS', 'FAIL', 'MISSING', 'INVALID', 'AMBIGUOUS'].includes(c as string),
-    )
-  )
-    throw new VerificationError('CORRUPT_STATE');
+    throw operation('INVALID_ADAPTER_RESULT', 'adapter');
   return {
-    fingerprint: v.fingerprint,
-    result: {
-      tenantId,
-      paymentId: result.paymentId,
-      verificationId: result.verificationId,
-      verificationStatus: result.verificationStatus as VerificationResult['verificationStatus'],
-      settlementStatus: 'UNCONFIRMED',
-      checks: rawChecks as VerificationResult['checks'],
+    ...found,
+    verified: true,
+    status: 'VERIFIED',
+    code: 'PAYMENT_VERIFIED',
+    stage: 'completion',
+    retryable: false,
+    message: 'The official receipt passed all required payment checks.',
+    receipt: {
+      ...receipt,
+      provider: receipt.provider,
+      transactionId: receipt.transactionId,
+      paymentStatus: receipt.paymentStatus,
+      amountMinor: receipt.amountMinor,
+      currency: receipt.currency,
     },
   };
 }
 
-/** Providers are trusted host configuration. Public submissions supply only a locator and IDs. */
-/** Persist known bounded primitives only, even when a host plugin returns extra/raw fields. */
-function storedEvidence(source: ReceiptEvidence): Record<string, unknown> {
-  const input = object(source);
-  const stringFields = [
-    'currency',
-    'transactionId',
-    'recipientName',
-    'recipientAccountLast4',
-    'reference',
-    'paymentType',
-  ] as const;
-  const fields: EvidenceField[] = [
-    'provider',
-    'status',
-    'amountMinor',
-    'transactionAt',
-    ...stringFields,
-  ];
-  const evidence: Record<string, unknown> = {
-    provider: input.provider === 'telebirr' || input.provider === 'cbe' ? input.provider : null,
-    status: ['SUCCESSFUL', 'PENDING', 'FAILED', 'REVERSED', 'CANCELLED'].includes(
-      input.status as string,
-    )
-      ? input.status
-      : null,
-    ambiguousFields: Array.isArray(input.ambiguousFields)
-      ? [
-          ...new Set(
-            input.ambiguousFields.filter((value) => fields.includes(value as EvidenceField)),
-          ),
-        ]
-      : [],
-  };
-  for (const field of stringFields) {
-    const value = input[field];
-    evidence[field] = typeof value === 'string' && value.length <= 256 ? value : null;
-  }
-  for (const field of ['amountMinor', 'transactionAt']) {
-    const value = input[field];
-    evidence[field] = Number.isSafeInteger(value) && (value as number) >= 0 ? value : null;
-  }
-  return evidence;
+interface WorkerReceiptVerifier extends ReceiptVerifier {
+  prepare(
+    input: VerificationSubmission,
+    options?: RetrievalOptions,
+    worker?: { inputType: InputType; jobId: string },
+  ): Promise<PreparedVerification>;
 }
 
-export function createReceiptVerifier(config: {
+export function createReceiptVerifier(config: VerifierConfig): ReceiptVerifier {
+  return createWorkerReceiptVerifier(config);
+}
+
+interface VerifierConfig {
   readonly storage: VerificationStorage;
   readonly providers: Readonly<Partial<Record<ProviderId, ReceiptProvider>>>;
   readonly now?: () => number;
-}): ReceiptVerifier {
+}
+
+export function createWorkerReceiptVerifier(config: VerifierConfig): WorkerReceiptVerifier {
   const { storage } = config;
+  const preparations = new WeakMap<PreparedVerification, PreparedAttempt | InvalidInputResult>();
   const now = (): number => {
     const value = (config.now ?? Date.now)();
-    if (!Number.isSafeInteger(value) || value < 0) throw new VerificationError('INVALID_INPUT');
+    if (!Number.isSafeInteger(value) || value < 0) throw operation('INVALID_REQUEST', 'request');
     return value;
   };
-  const verifier: ReceiptVerifier = {
+  function prepareToken(data: PreparedAttempt | InvalidInputResult): PreparedVerification {
+    const token = Object.freeze({}) as PreparedVerification;
+    preparations.set(token, data);
+    return token;
+  }
+  const verifier: WorkerReceiptVerifier = {
+    async initialize() {
+      await transact(storage, ensureStore);
+    },
     async registerExpectation(value) {
-      const expectation = createPaymentExpectation(value),
-        key = scopeKey(expectation);
-      await storage.transaction(async (tx) => {
+      let expectation: PaymentExpectation;
+      try {
+        expectation = createPaymentExpectation(value);
+      } catch (cause) {
+        if (cause instanceof VerificationOperationError) throw cause;
+        throw operation('INVALID_EXPECTATION', 'expectation', cause);
+      }
+      const key = scopeKey(expectation);
+      await transact(storage, async (tx) => {
+        await ensureStore(tx);
         const existing = await tx.get(key);
         if (existing !== undefined) {
           if (
             JSON.stringify(expectationRecord(existing, expectation).expectation) !==
             JSON.stringify(expectation)
           )
-            throw new VerificationError('EXPECTATION_EXISTS');
+            throw operation('EXPECTATION_CONFLICT', 'expectation');
           return;
         }
-        await tx.insert(key, { expectation, state: 'OPEN' });
+        await tx.insert(key, { version: payloadVersion, expectation, state: 'OPEN' });
       });
     },
     async cancelExpectation(scope) {
       const key = scopeKey(scope);
-      await storage.transaction(async (tx) => {
+      await transact(storage, async (tx) => {
         const stored = expectationRecord(await tx.get(key), scope);
         if (stored.state === 'OPEN') await tx.set(key, { ...stored, state: 'CANCELLED' });
       });
     },
-    async prepare(source, options) {
-      if (storage.callerTransaction) throw new VerificationError('INVALID_INPUT');
-      const input = {
-        tenantId: source.tenantId,
-        paymentId: source.paymentId,
-        idempotencyKey: source.idempotencyKey,
-        receiptLocator: source.receiptLocator,
-      };
-      if (!identifier(input.idempotencyKey)) throw new VerificationError('INVALID_INPUT');
-      const stored = expectationRecord(await storage.read(scopeKey(input)), input);
-      let locator: ReturnType<typeof normalizeReceiptLocator>;
-      try {
-        locator = normalizeReceiptLocator(stored.expectation.provider, input.receiptLocator);
-      } catch {
-        throw new VerificationError('INVALID_INPUT');
-      }
-      const fingerprint = storageKey('input', input.paymentId, locator.provider, locator.url);
-      const existing = attempt(
-        await storage.read(storageKey('attempt', input.tenantId, input.idempotencyKey)),
-        input.tenantId,
-        input.idempotencyKey,
+    async prepare(source, options, worker) {
+      if (storage.callerTransaction) throw operation('INVALID_REQUEST', 'request');
+      if (options?.signal?.aborted) throw operation('OPERATION_CANCELLED', 'request');
+      const input = submission(source);
+      const stored = expectationRecord(await readRecord(storage, scopeKey(input)), input);
+      const parsed = detectSubmission(input, stored.expectation.provider);
+      if ('status' in parsed) return prepareToken(parsed);
+      const detected = worker === undefined ? parsed : { ...parsed, inputType: worker.inputType };
+      const locator = officialLocator(detected);
+      const fingerprint = canonicalFingerprint(input, detected);
+      const existing = attemptRecord(
+        await readRecord(storage, storageKey('attempt', input.tenantId, input.idempotencyKey)),
+        input,
       );
-      let retrieved: Preparation['retrieved'];
-      if (!existing && stored.state === 'OPEN' && now() <= stored.expectation.validUntil) {
-        const provider = config.providers[locator.provider];
-        try {
-          retrieved = provider
-            ? await provider.retrieve(locator.url, options)
-            : { kind: 'UNAVAILABLE', code: 'PROVIDER_UNAVAILABLE' };
-        } catch {
-          retrieved = { kind: 'UNAVAILABLE', code: 'PROVIDER_UNAVAILABLE' };
-        }
-      }
-      if (retrieved) {
-        try {
-          const serialized = JSON.stringify(retrieved);
-          if (Buffer.byteLength(serialized) > 16_000) throw new Error('Oversized evidence');
-          retrieved = JSON.parse(serialized) as Preparation['retrieved'];
-          if (retrieved?.kind === 'EVIDENCE') {
-            const p = object(retrieved.provenance);
-            object(retrieved.evidence);
-            if (
-              p.kind !== 'OFFICIAL_HTTPS' ||
-              p.url !== locator.url ||
-              typeof p.sha256 !== 'string' ||
-              !/^[a-f0-9]{64}$/.test(p.sha256) ||
-              !Number.isSafeInteger(p.retrievedAt) ||
-              p.parserVersion !== '1'
-            )
-              throw new Error('Invalid provenance');
-          } else if (retrieved?.kind !== 'UNAVAILABLE') throw new Error('Invalid provider result');
-        } catch {
-          retrieved = { kind: 'UNAVAILABLE', code: 'INVALID_RESPONSE' };
-        }
-      }
-      const token = Object.freeze({}) as PreparedVerification;
-      preparations.set(token, {
+      let outcome: ProviderResult | undefined;
+      const queued = await replayJobBinding(
+        (key) => readRecord(storage, key),
         input,
         fingerprint,
+        worker?.jobId,
+      );
+      if (existing) replayAttempt(existing, input, fingerprint);
+      else if (!queued) {
+        requireOpen(stored, now());
+        const provider = config.providers[detected.provider];
+        if (!provider) throw operation('PROVIDER_NOT_CONFIGURED', 'provider_configuration');
+        if (options?.signal?.aborted) throw operation('OPERATION_CANCELLED', 'request');
+        let called: unknown;
+        try {
+          called = await provider.retrieve(locator.url, options);
+        } catch (cause) {
+          if (cause instanceof VerificationOperationError) throw cause;
+          throw operation('INTERNAL_ERROR', 'adapter', cause);
+        }
+        if (options?.signal?.aborted) throw operation('OPERATION_CANCELLED', 'request');
+        outcome = normalizeProviderResult(called, locator.url);
+      }
+      return prepareToken({
+        input: { ...input, receiptLocator: detected.identifier },
+        detected,
+        fingerprint,
         snapshot: JSON.stringify(stored.expectation),
-        url: locator.url,
-        provider: locator.provider,
-        retrieved,
+        signal: options?.signal,
+        outcome,
+        workerJobId: worker?.jobId,
       });
-      return token;
     },
     async complete(prepared, target = storage) {
       const data = preparations.get(prepared);
-      if (!data) throw new VerificationError('INVALID_PREPARATION');
+      if (!data) throw operation('INVALID_PREPARATION', 'completion');
+      if ('status' in data) return data;
       const { input } = data;
-      return target.transaction(async (tx: RecordTransaction) => {
-        const key = scopeKey(input),
-          stored = expectationRecord(await tx.get(key), input);
+      const work = async (tx: RecordTransaction): Promise<VerificationResult> => {
+        const key = scopeKey(input);
+        const stored = expectationRecord(await tx.get(key), input);
         const attemptKey = storageKey('attempt', input.tenantId, input.idempotencyKey);
-        const previous = attempt(await tx.get(attemptKey), input.tenantId, input.idempotencyKey);
-        const base = {
-          tenantId: input.tenantId,
-          paymentId: input.paymentId,
-          verificationId: storageKey('verification', input.tenantId, input.idempotencyKey),
-          settlementStatus: 'UNCONFIRMED' as const,
-        };
-        if (previous) {
-          if (previous.fingerprint === data.fingerprint) {
-            if (previous.result.paymentId !== input.paymentId)
-              throw new VerificationError('CORRUPT_STATE');
-            return previous.result;
-          }
-          return { ...base, verificationStatus: 'IDEMPOTENCY_CONFLICT', checks: {} };
-        }
-        let verificationStatus: VerificationResult['verificationStatus'] = 'UNABLE_TO_VERIFY';
-        let checks: VerificationResult['checks'] = {};
-        const fetched = data.retrieved;
+        const previous = attemptRecord(await tx.get(attemptKey), input);
+        if (previous) return replayAttempt(previous, input, data.fingerprint);
+        const queued = await replayJobBinding(
+          (key) => tx.get(key),
+          input,
+          data.fingerprint,
+          data.workerJobId,
+        );
+        if (queued) return queued;
+        if (data.signal?.aborted) throw operation('OPERATION_CANCELLED', 'request');
         if (JSON.stringify(stored.expectation) !== data.snapshot)
-          verificationStatus = 'NEEDS_REVIEW';
-        else if (stored.state === 'CANCELLED') verificationStatus = 'CANCELLED';
-        else if (now() > stored.expectation.validUntil) verificationStatus = 'EXPIRED';
-        else if (now() < stored.expectation.validFrom) verificationStatus = 'UNABLE_TO_VERIFY';
-        else if (stored.state === 'RECEIPT_CLAIMED') verificationStatus = 'ALREADY_CLAIMED';
-        else if (
-          fetched?.kind === 'EVIDENCE' &&
-          fetched.provenance.kind === 'OFFICIAL_HTTPS' &&
-          fetched.provenance.url === data.url &&
-          /^[a-f0-9]{64}$/.test(fetched.provenance.sha256)
-        ) {
-          const compared = compareReceipt(stored.expectation, fetched.evidence);
-          verificationStatus = compared.verificationStatus;
-          checks = compared.checks;
-          if (verificationStatus === 'MATCHED_RECEIPT_ONLY') {
-            const claimKey = storageKey('claim', data.provider, fetched.evidence.transactionId!);
-            if ((await tx.get(claimKey)) !== undefined) verificationStatus = 'ALREADY_CLAIMED';
-            else {
-              await tx.insert(claimKey, {
-                tenantId: input.tenantId,
-                paymentId: input.paymentId,
-                verificationId: base.verificationId,
-              });
-              await tx.set(key, { ...stored, state: 'RECEIPT_CLAIMED' });
-            }
-          }
+          throw operation('EXPECTATION_CHANGED', 'expectation');
+        requireOpen(stored, now());
+        const result = resultRecord(observed(data, stored.expectation), input);
+        if (result.status === 'VERIFIED') {
+          const claimKey = storageKey(
+            'claim',
+            result.expectedProvider,
+            result.receipt.transactionId,
+          );
+          if ((await tx.get(claimKey)) !== undefined)
+            throw operation('RECEIPT_ALREADY_CLAIMED', 'completion');
+          await tx.insert(claimKey, {
+            tenantId: input.tenantId,
+            paymentId: input.paymentId,
+            verificationId: result.verificationId,
+          });
+          await tx.set(key, { ...stored, state: 'RECEIPT_CLAIMED' });
         }
-        const result: VerificationResult = { ...base, verificationStatus, checks };
-        // Store normalized fields and a source hash, never raw HTML or the receipt URL.
-        const evidence = fetched?.kind === 'EVIDENCE' ? storedEvidence(fetched.evidence) : null;
-        const provenance =
-          fetched?.kind === 'EVIDENCE'
-            ? {
-                sha256: fetched.provenance.sha256,
-                retrievedAt: fetched.provenance.retrievedAt,
-                parserVersion: fetched.provenance.parserVersion,
-              }
-            : null;
         await tx.insert(attemptKey, {
+          version: payloadVersion,
           fingerprint: data.fingerprint,
           result,
-          evidence,
-          provenance,
         });
-        await tx.insert(storageKey('event', base.verificationId), {
+        await tx.insert(storageKey('event', result.verificationId!), {
           type: 'receipt.verification.completed',
           result,
           createdAt: now(),
         });
         return result;
-      });
+      };
+      return data.workerJobId === undefined ? transact(target, work) : target.transaction(work);
     },
     async submit(input, options) {
       return verifier.complete(await verifier.prepare(input, options));
     },
     async events(limit = 100) {
       if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000)
-        throw new VerificationError('INVALID_INPUT');
-      return storage.transaction((tx) => tx.scan('rv1:event:', limit));
+        throw operation('INVALID_REQUEST', 'request');
+      return transact(storage, async (tx) => {
+        await ensureStore(tx);
+        return tx.scan('rv1:event:', limit);
+      });
     },
     async acknowledgeEvent(key) {
-      if (!/^rv1:event:[a-f0-9]{64}$/.test(key)) throw new VerificationError('INVALID_INPUT');
-      await storage.transaction((tx) => tx.delete(key));
+      if (!/^rv1:event:[a-f0-9]{64}$/.test(key)) throw operation('INVALID_REQUEST', 'request');
+      await transact(storage, async (tx) => {
+        await ensureStore(tx);
+        await tx.delete(key);
+      });
     },
   };
   return verifier;

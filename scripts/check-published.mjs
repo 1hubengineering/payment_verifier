@@ -79,12 +79,12 @@ try{
  const expected=createPaymentExpectation({tenantId:'synthetic',paymentId:'first',provider:'telebirr',currency:'ETB',amountMinor:parseEtbAmount('0.29'),recipientName:'Synthetic Merchant',recipientAccountLast4:'1234',reference:'ORDER_1234',validFrom:1000,validUntil:2000});
  await verifier.registerExpectation(expected);
  const input={tenantId:'synthetic',paymentId:'first',idempotencyKey:'first',receiptLocator:'SYNTH1234'};
- const first=await verifier.submit(input);assert.equal(first.verificationStatus,'MATCHED_RECEIPT_ONLY');assert.equal(first.settlementStatus,'UNCONFIRMED');assert.deepEqual(await verifier.submit(input),first);
+ const first=await verifier.submit(input);assert.equal(first.status,'VERIFIED');assert.equal(first.verified,true);assert.deepEqual(await verifier.submit(input),first);
  await verifier.registerExpectation({...expected,paymentId:'queued'});
  const jobs=createDurableVerifier({storage,providers,encryptionKey:new Uint8Array(32).fill(1),policy:{maxAttempts:1},now:()=>1500});await jobs.initialize();
  const queued={...input,paymentId:'queued',idempotencyKey:'queued',receiptLocator:'OTHER1234'};
  const accepted=await jobs.enqueue(queued);assert.equal(accepted.state,'QUEUED');assert.equal(await jobs.runOnce(),'COMPLETED');
- const status=await jobs.status(queued,accepted.jobId);assert.equal(status.result.verificationStatus,'MATCHED_RECEIPT_ONLY');assert.equal(status.result.settlementStatus,'UNCONFIRMED');assert.equal((await verifier.events()).length,2);assert.equal(db.open,true);
+ const status=await jobs.status(queued,accepted.jobId);assert.equal(status.result.status,'VERIFIED');assert.equal(status.result.verified,true);assert.equal((await verifier.events()).length,2);assert.equal(db.open,true);
 }finally{db.close();}
 `,
   );

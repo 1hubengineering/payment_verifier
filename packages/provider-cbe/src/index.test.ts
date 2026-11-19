@@ -41,9 +41,7 @@ describe('optional CBE execution with real Chromium and mocked provider transpor
     const result = await createCbeProvider().retrieve(url);
     expect(result.kind).toBe('EVIDENCE');
     if (result.kind !== 'EVIDENCE') throw new Error(JSON.stringify(result));
-    expect(compareReceipt(expected, result.evidence).verificationStatus).toBe(
-      'MATCHED_RECEIPT_ONLY',
-    );
+    expect(compareReceipt(expected, result.evidence).status).toBe('MATCH');
     expect(result.provenance).toMatchObject({ kind: 'OFFICIAL_HTTPS', url });
     expect(retrieveHtml).toHaveBeenCalledTimes(1);
   }, 20_000);
@@ -81,17 +79,17 @@ describe('optional CBE execution with real Chromium and mocked provider transpor
       ),
       bytes: Buffer.byteLength(html),
     });
-    expect(await createCbeProvider().retrieve(url, { maxBytes: 5000 })).toEqual({
+    expect(await createCbeProvider().retrieve(url, { maxBytes: 5000 })).toMatchObject({
       kind: 'UNAVAILABLE',
-      code: 'TOO_LARGE',
+      code: 'RECEIPT_TOO_LARGE',
     });
   }, 20_000);
   it('times out missing rendered fields and releases admission', async () => {
     const provider = createCbeProvider();
     vi.mocked(retrieveHtml).mockResolvedValue({ html: '<html>unsupported</html>', bytes: 24 });
-    expect(await provider.retrieve(url, { timeoutMs: 1000 })).toEqual({
+    expect(await provider.retrieve(url, { timeoutMs: 1000 })).toMatchObject({
       kind: 'UNAVAILABLE',
-      code: 'TIMEOUT',
+      code: 'RECEIPT_RENDER_TIMEOUT',
     });
     vi.mocked(retrieveHtml).mockResolvedValue({ html, bytes: Buffer.byteLength(html) });
     expect((await provider.retrieve(url)).kind).toBe('EVIDENCE');
@@ -102,9 +100,9 @@ describe('optional CBE execution with real Chromium and mocked provider transpor
       html: '<html><body><script>while (true) {}</script></body></html>',
       bytes: 64,
     });
-    expect(await provider.retrieve(url, { timeoutMs: 1500 })).toEqual({
+    expect(await provider.retrieve(url, { timeoutMs: 1500 })).toMatchObject({
       kind: 'UNAVAILABLE',
-      code: 'TIMEOUT',
+      code: 'RECEIPT_RENDER_TIMEOUT',
     });
     vi.mocked(retrieveHtml).mockResolvedValue({ html, bytes: Buffer.byteLength(html) });
     expect((await provider.retrieve(url)).kind).toBe('EVIDENCE');
@@ -119,20 +117,22 @@ describe('optional CBE execution with real Chromium and mocked provider transpor
     );
     const provider = createCbeProvider();
     const first = provider.retrieve(url);
-    expect(await provider.retrieve(url)).toEqual({ kind: 'UNAVAILABLE', code: 'BUSY' });
+    expect(await provider.retrieve(url)).toMatchObject({
+      kind: 'UNAVAILABLE',
+      code: 'PROVIDER_BUSY',
+    });
     release({ html, bytes: Buffer.byteLength(html) });
     expect((await first).kind).toBe('EVIDENCE');
     expect((await provider.retrieve(url)).kind).toBe('EVIDENCE');
   }, 20_000);
   it('preserves provider unavailability and refuses invalid locators before transport', async () => {
     const provider = createCbeProvider();
-    expect(await provider.retrieve('http://127.0.0.1/')).toEqual({
-      kind: 'UNAVAILABLE',
-      code: 'INVALID_LOCATOR',
+    await expect(provider.retrieve('http://127.0.0.1/')).rejects.toMatchObject({
+      code: 'INVALID_REQUEST',
     });
     expect(retrieveHtml).not.toHaveBeenCalled();
     vi.mocked(retrieveHtml).mockRejectedValue(new RetrievalError('DESTINATION_BLOCKED'));
-    expect(await provider.retrieve(url)).toEqual({
+    expect(await provider.retrieve(url)).toMatchObject({
       kind: 'UNAVAILABLE',
       code: 'DESTINATION_BLOCKED',
     });
@@ -142,9 +142,9 @@ describe('optional CBE execution with real Chromium and mocked provider transpor
       html: '<div></div>'.repeat(4097) + html,
       bytes: 50000,
     });
-    expect(await createCbeProvider().retrieve(url)).toEqual({
+    expect(await createCbeProvider().retrieve(url)).toMatchObject({
       kind: 'UNAVAILABLE',
-      code: 'PROVIDER_UNAVAILABLE',
+      code: 'UNSUPPORTED_RECEIPT_FORMAT',
     });
   }, 20_000);
   it('uses the real Chromium OS sandbox and excludes inherited host secrets', async () => {
@@ -239,9 +239,7 @@ describe('optional CBE execution with real Chromium and mocked provider transpor
     expect(result.kind).toBe('EVIDENCE');
     if (result.kind !== 'EVIDENCE') throw new Error('Synthetic date rendering unavailable');
     expect(result.evidence.transactionAt).toBe(Date.parse('2026-11-13T11:20:00Z'));
-    expect(compareReceipt(expected, result.evidence).verificationStatus).toBe(
-      'MATCHED_RECEIPT_ONLY',
-    );
+    expect(compareReceipt(expected, result.evidence).status).toBe('MATCH');
   }, 20_000);
   it('fails unavailable when the OS sandbox cannot launch, with no unsafe fallback', async () => {
     const spy = vi
@@ -249,10 +247,7 @@ describe('optional CBE execution with real Chromium and mocked provider transpor
       .mockRejectedValue(new Error('synthetic private sandbox detail'));
     const provider = createCbeProvider();
     try {
-      expect(await provider.retrieve(url)).toEqual({
-        kind: 'UNAVAILABLE',
-        code: 'PROVIDER_UNAVAILABLE',
-      });
+      await expect(provider.retrieve(url)).rejects.toMatchObject({ code: 'INTERNAL_ERROR' });
       expect(spy).toHaveBeenCalledTimes(1);
     } finally {
       spy.mockRestore();

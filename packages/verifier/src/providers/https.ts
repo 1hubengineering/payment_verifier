@@ -3,23 +3,21 @@ import { request } from 'node:https';
 import { BlockList, isIPv4 } from 'node:net';
 import type { LookupFunction } from 'node:net';
 import { RECEIPT_MAX_BYTES } from './extraction.ts';
-import { normalizeReceiptLocator } from './locator.ts';
+import { outboundLocator } from './locator.ts';
 import type { ReceiptLocator } from './locator.ts';
 
-export type RetrievalErrorCode =
-  | 'INVALID_LOCATOR'
-  | 'TIMEOUT'
-  | 'CANCELLED'
-  | 'DESTINATION_BLOCKED'
-  | 'PROVIDER_UNAVAILABLE'
-  | 'INVALID_RESPONSE'
-  | 'TOO_LARGE';
+import type { DiagnosticDetails, ProviderFailureCode } from '../outcomes.ts';
+
+export type RetrievalErrorCode = ProviderFailureCode | 'INVALID_LOCATOR' | 'CANCELLED';
 export class RetrievalError extends Error {
-  readonly code: RetrievalErrorCode;
-  constructor(code: RetrievalErrorCode) {
-    super(code);
+  constructor(
+    readonly code: RetrievalErrorCode,
+    readonly details: DiagnosticDetails = {},
+    readonly retryable = false,
+    options?: ErrorOptions,
+  ) {
+    super(code, options);
     this.name = 'RetrievalError';
-    this.code = code;
   }
 }
 export interface RetrievalOptions {
@@ -58,7 +56,16 @@ export function isPublicDestination(address: string): boolean {
 const publicLookup: LookupFunction = (hostname, _options, callback) => {
   lookup(hostname, { family: 4, all: true, verbatim: true }, (error, addresses) => {
     if (error) {
-      callback(new RetrievalError('PROVIDER_UNAVAILABLE'), '', 4);
+      callback(
+        new RetrievalError(
+          'PROVIDER_DNS_ERROR',
+          transportDetails(error.code),
+          error.code === 'EAI_AGAIN',
+          { cause: error },
+        ),
+        '',
+        4,
+      );
       return;
     }
     if (!addresses.length || addresses.some((a) => !isPublicDestination(a.address))) {
@@ -69,6 +76,50 @@ const publicLookup: LookupFunction = (hostname, _options, callback) => {
   });
 };
 
+const transientNetworkCodes = new Set([
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'EPIPE',
+  'ETIMEDOUT',
+  'EHOSTUNREACH',
+  'ENETUNREACH',
+]);
+const tlsCodes = new Set([
+  'CERT_HAS_EXPIRED',
+  'CERT_NOT_YET_VALID',
+  'DEPTH_ZERO_SELF_SIGNED_CERT',
+  'SELF_SIGNED_CERT_IN_CHAIN',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+  'UNABLE_TO_GET_ISSUER_CERT',
+  'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
+]);
+function transportDetails(code: unknown): DiagnosticDetails {
+  return typeof code === 'string' && /^[A-Z][A-Z0-9_]{1,47}$/.test(code)
+    ? { transportCode: code }
+    : {};
+}
+function transportFailure(error: Error): RetrievalError {
+  if (error instanceof RetrievalError) return error;
+  const code = (error as NodeJS.ErrnoException).code;
+  const tls = code !== undefined && (tlsCodes.has(code) || /^ERR_(?:TLS|SSL)_/.test(code));
+  return new RetrievalError(
+    tls ? 'PROVIDER_TLS_ERROR' : 'PROVIDER_NETWORK_ERROR',
+    transportDetails(code),
+    code !== undefined && transientNetworkCodes.has(code),
+    { cause: error },
+  );
+}
+
+function retryAfter(value: string | undefined): number | undefined {
+  if (!value || value.length > 64) return undefined;
+  const delay = /^\d{1,10}$/.test(value)
+    ? Number(value) * 1000
+    : /^[A-Z][a-z]{2}, \d{2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(value)
+      ? Date.parse(value) - Date.now()
+      : NaN;
+  return Number.isFinite(delay) && delay >= 0 ? Math.min(delay, 60_000) : undefined;
+}
+
 /** HTTPS only, with DNS checked in the socket lookup, TLS verification and no redirects/proxies. */
 export async function retrieveHtml(
   locator: ReceiptLocator,
@@ -76,7 +127,7 @@ export async function retrieveHtml(
 ): Promise<RetrievedHtml> {
   let normalized: ReceiptLocator;
   try {
-    normalized = normalizeReceiptLocator(locator.provider, locator.url);
+    normalized = outboundLocator(locator.provider, locator.url);
   } catch {
     throw new RetrievalError('INVALID_LOCATOR');
   }
@@ -115,25 +166,39 @@ export async function retrieveHtml(
         headers: { accept: 'text/html', 'accept-encoding': 'identity' },
       },
       (res) => {
-        const fail = (code: RetrievalErrorCode): void => {
-          finish(new RetrievalError(code));
+        const fail = (
+          code: RetrievalErrorCode,
+          details: DiagnosticDetails = {},
+          retryable = false,
+        ): void => {
+          finish(new RetrievalError(code, details, retryable));
           res.destroy();
           req.destroy();
         };
         if (res.statusCode !== 200) {
-          fail('PROVIDER_UNAVAILABLE');
+          const httpStatus = res.statusCode;
+          if (httpStatus === undefined) fail('INVALID_PROVIDER_RESPONSE');
+          else if (httpStatus === 429) {
+            const retryAfterMs = retryAfter(res.headers['retry-after']);
+            fail(
+              'PROVIDER_RATE_LIMITED',
+              { httpStatus, ...(retryAfterMs === undefined ? {} : { retryAfterMs }) },
+              true,
+            );
+          } else
+            fail('PROVIDER_HTTP_ERROR', { httpStatus }, [408, 502, 503, 504].includes(httpStatus));
           return;
         }
         if (
           !/^text\/html(?:\s*;|\s*$)/i.test(res.headers['content-type'] ?? '') ||
           (res.headers['content-encoding'] && res.headers['content-encoding'] !== 'identity')
         ) {
-          fail('INVALID_RESPONSE');
+          fail('INVALID_PROVIDER_RESPONSE');
           return;
         }
         const length = res.headers['content-length'];
         if (length !== undefined && (!/^\d+$/.test(length) || Number(length) > maxBytes)) {
-          fail('TOO_LARGE');
+          fail('RECEIPT_TOO_LARGE');
           return;
         }
         const chunks: Buffer[] = [];
@@ -142,22 +207,22 @@ export async function retrieveHtml(
           if (completed) return;
           total += chunk.length;
           if (total > maxBytes) {
-            fail('TOO_LARGE');
+            fail('RECEIPT_TOO_LARGE');
             return;
           }
           chunks.push(chunk);
         });
-        res.on('error', () => finish(new RetrievalError('PROVIDER_UNAVAILABLE')));
+        res.on('error', (error) => finish(transportFailure(error)));
         res.on('end', () => {
           if (total === 0) {
-            fail('INVALID_RESPONSE');
+            fail('INVALID_PROVIDER_RESPONSE');
             return;
           }
           try {
             const html = new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks));
             finish(undefined, { html, bytes: total });
           } catch {
-            fail('INVALID_RESPONSE');
+            fail('INVALID_PROVIDER_RESPONSE');
           }
         });
       },
@@ -167,13 +232,11 @@ export async function retrieveHtml(
       req.destroy();
     };
     const timer = setTimeout(() => {
-      finish(new RetrievalError('TIMEOUT'));
+      finish(new RetrievalError('PROVIDER_TIMEOUT', { timeoutMs }, true));
       req.destroy();
     }, timeoutMs);
     options.signal?.addEventListener('abort', cancel, { once: true });
-    req.on('error', (error: Error) =>
-      finish(error instanceof RetrievalError ? error : new RetrievalError('PROVIDER_UNAVAILABLE')),
-    );
+    req.on('error', (error: Error) => finish(transportFailure(error)));
     req.end();
   });
 }

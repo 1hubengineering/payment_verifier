@@ -10,6 +10,7 @@ import {
   time,
   jobTestKey,
   jobTestPolicy,
+  timedOut,
 } from './fixtures.ts';
 import type { AdapterHarness } from './suite.ts';
 
@@ -51,7 +52,6 @@ export function jobContract(getHarness: () => AdapterHarness): void {
     expect(accepted).toMatchObject({
       state: 'QUEUED',
       attempts: 0,
-      settlementStatus: 'UNCONFIRMED',
     });
     expect(retrieve).not.toHaveBeenCalled();
     const replay = await jobs.enqueue(
@@ -68,18 +68,16 @@ export function jobContract(getHarness: () => AdapterHarness): void {
     ).rejects.toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
     await expect(
       jobs.status({ tenantId: 'tenant-b', paymentId: 'payment-a' }, accepted.jobId),
-    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    ).rejects.toMatchObject({ code: 'JOB_NOT_FOUND' });
     await expect(
       jobs.status({ tenantId: 'tenant-a', paymentId: 'payment-b' }, accepted.jobId),
-    ).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    ).rejects.toMatchObject({ code: 'JOB_NOT_FOUND' });
     const saved = JSON.stringify(await storage.transaction((tx) => tx.scan('rv1:job:', 10)));
     for (const secret of ['SYNTH1234', 'key-a', 'another-key', 'ethiotelecom'])
       expect(saved).not.toContain(secret);
     expect(JSON.stringify(accepted)).not.toMatch(/encrypted|aliases|snapshot|lease/);
     expect(await jobs.runOnce()).toBe('COMPLETED');
-    expect((await jobs.status(submission(), accepted.jobId)).result?.verificationStatus).toBe(
-      'MATCHED_RECEIPT_ONLY',
-    );
+    expect((await jobs.status(submission(), accepted.jobId)).result?.status).toBe('VERIFIED');
   });
   it('bounds concurrent admission, pending/retained jobs and alias growth', async () => {
     const { jobs, verifier, retrieve, storage } = await setup({ maxPending: 1, maxRetained: 2 });
@@ -100,7 +98,7 @@ export function jobContract(getHarness: () => AdapterHarness): void {
       await jobs.enqueue(submission('tenant-a', 'payment-a', `alias-${i}`, successfulId));
     await expect(
       jobs.enqueue(submission('tenant-a', 'payment-a', 'excess-alias', successfulId)),
-    ).rejects.toMatchObject({ code: 'CAPACITY' });
+    ).rejects.toMatchObject({ code: 'QUEUE_CAPACITY' });
     expect(retrieve).not.toHaveBeenCalled();
     await jobs.runOnce();
     await verifier.registerExpectation(expectation('tenant-a', 'payment-b'));
@@ -109,12 +107,12 @@ export function jobContract(getHarness: () => AdapterHarness): void {
     await verifier.registerExpectation(expectation('tenant-a', 'payment-c'));
     await expect(
       jobs.enqueue(submission('tenant-a', 'payment-c', 'key-c', 'FOURTH1234')),
-    ).rejects.toMatchObject({ code: 'CAPACITY' });
+    ).rejects.toMatchObject({ code: 'QUEUE_CAPACITY' });
   });
   it('rolls back unavailable attempts, retries after persisted backoff, and stops at the attempt bound', async () => {
     const { jobs, retrieve, verifier, storage, tick } = await setup();
     const accepted = await jobs.enqueue(submission());
-    retrieve.mockResolvedValueOnce({ kind: 'UNAVAILABLE', code: 'TIMEOUT' });
+    retrieve.mockResolvedValueOnce(timedOut);
     expect(await jobs.runOnce()).toBe('RETRY_WAIT');
     expect(await storage.read(storageKey('attempt', 'tenant-a', 'key-a'))).toBeUndefined();
     expect(await verifier.events()).toHaveLength(0);
@@ -124,11 +122,11 @@ export function jobContract(getHarness: () => AdapterHarness): void {
     expect(await jobs.status(submission(), accepted.jobId)).toMatchObject({
       state: 'COMPLETED',
       attempts: 2,
-      result: { verificationStatus: 'MATCHED_RECEIPT_ONLY', settlementStatus: 'UNCONFIRMED' },
+      result: { status: 'VERIFIED' },
     });
     await verifier.registerExpectation(expectation('tenant-a', 'payment-b'));
     const second = await jobs.enqueue(submission('tenant-a', 'payment-b', 'key-b', 'OTHER1234'));
-    retrieve.mockResolvedValue({ kind: 'UNAVAILABLE', code: 'PROVIDER_UNAVAILABLE' });
+    retrieve.mockResolvedValue(timedOut);
     expect(await jobs.runOnce()).toBe('RETRY_WAIT');
     tick();
     expect(await jobs.runOnce()).toBe('RETRY_WAIT');
@@ -136,10 +134,44 @@ export function jobContract(getHarness: () => AdapterHarness): void {
     expect(await jobs.runOnce()).toBe('COMPLETED');
     expect(await jobs.status(submission('tenant-a', 'payment-b'), second.jobId)).toMatchObject({
       attempts: 3,
-      result: { verificationStatus: 'UNABLE_TO_VERIFY' },
+      result: { status: 'UNAVAILABLE' },
     });
     expect(await jobs.runOnce()).toBe('IDLE');
     expect(await verifier.events()).toHaveLength(2);
+  });
+  it('replays coalesced aliases after pruning and allows a fresh key after a completed outcome', async () => {
+    const { verifier, jobs, retrieve, clock, tick } = await setup();
+    const original = submission();
+    const alias = submission('tenant-a', 'payment-a', 'alias', 'Transaction ID: SYNTH1234');
+    const accepted = await jobs.enqueue(original);
+    expect(await jobs.enqueue(alias)).toEqual(accepted);
+    await expect(verifier.submit(alias)).rejects.toMatchObject({ code: 'JOB_IN_PROGRESS' });
+    retrieve.mockResolvedValueOnce({ kind: 'NOT_FOUND' });
+    expect(await jobs.runOnce()).toBe('COMPLETED');
+    const completed = await jobs.status(original, accepted.jobId);
+    expect(completed.result?.status).toBe('NOT_FOUND');
+    for (const event of await verifier.events()) await verifier.acknowledgeEvent(event.key);
+    tick();
+    expect(await jobs.pruneCompleted(clock())).toBe(1);
+    expect(await jobs.enqueue(alias)).toEqual(completed);
+    expect(await verifier.submit(alias)).toEqual(completed.result);
+    const fresh = await jobs.enqueue(submission('tenant-a', 'payment-a', 'fresh'));
+    expect(fresh.jobId).not.toBe(accepted.jobId);
+    expect(fresh.state).toBe('QUEUED');
+    expect(await jobs.runOnce()).toBe('COMPLETED');
+    expect(retrieve).toHaveBeenCalledTimes(2);
+  });
+  it('completes invalid queued inputs without retrieving or storing the raw message', async () => {
+    const { jobs, storage, retrieve } = await setup();
+    const raw = 'Synthetic malformed message with no receipt';
+    const job = await jobs.enqueue(submission('tenant-a', 'payment-a', 'key-a', raw));
+    expect(job).toMatchObject({
+      state: 'COMPLETED',
+      attempts: 0,
+      result: { status: 'INVALID_INPUT', code: 'UNRECOGNIZED_INPUT' },
+    });
+    expect(JSON.stringify(await storage.read(job.jobId))).not.toContain(raw);
+    expect(retrieve).not.toHaveBeenCalled();
   });
   it('fences expired owners and recovers a lease through an independent adapter', async () => {
     const { jobs, queue, harness, retrieve, tick, verifier } = await setup();
@@ -192,7 +224,7 @@ export function jobContract(getHarness: () => AdapterHarness): void {
     const { jobs, queue, storage, verifier, tick } = await setup({}, fault);
     const accepted = await jobs.enqueue(submission());
     fail = true;
-    await expect(jobs.runOnce()).rejects.toThrow('synthetic terminal fault');
+    await expect(jobs.runOnce()).rejects.toMatchObject({ code: 'STORAGE_FAILURE' });
     expect(await storage.read(storageKey('claim', 'telebirr', 'SYNTH1234'))).toBeUndefined();
     expect(await storage.read(storageKey('attempt', 'tenant-a', 'key-a'))).toBeUndefined();
     expect(await verifier.events()).toHaveLength(0);
@@ -208,13 +240,14 @@ export function jobContract(getHarness: () => AdapterHarness): void {
     await storage.transaction(async (tx) => {
       const key = storageKey('expectation', 'tenant-a', 'payment-a');
       await tx.set(key, {
+        version: 2,
         expectation: { ...expectation(), amountMinor: parseEtbAmount('99') },
         state: 'OPEN',
       });
     });
-    expect(await jobs.runOnce()).toBe('COMPLETED');
-    expect((await jobs.status(submission(), accepted.jobId)).result?.verificationStatus).toBe(
-      'NEEDS_REVIEW',
+    expect(await jobs.runOnce()).toBe('FAILED');
+    expect((await jobs.status(submission(), accepted.jobId)).error?.code).toBe(
+      'EXPECTATION_CHANGED',
     );
     expect(retrieve).not.toHaveBeenCalled();
     await verifier.registerExpectation(expectation('tenant-b', 'payment-b'));
@@ -224,11 +257,10 @@ export function jobContract(getHarness: () => AdapterHarness): void {
       job.encrypted = 'AAAA';
       await tx.set(damaged.jobId, job);
     });
-    expect(await jobs.runOnce()).toBe('COMPLETED');
+    expect(await jobs.runOnce()).toBe('FAILED');
     expect(
-      (await jobs.status(submission('tenant-b', 'payment-b'), damaged.jobId)).result
-        ?.verificationStatus,
-    ).toBe('NEEDS_REVIEW');
+      (await jobs.status(submission('tenant-b', 'payment-b'), damaged.jobId)).error?.code,
+    ).toBe('CORRUPT_STATE');
     expect(await storage.transaction((tx) => tx.scan('rv1:claim:', 10))).toHaveLength(0);
     expect(await verifier.events()).toHaveLength(2);
   });
@@ -244,12 +276,12 @@ export function jobContract(getHarness: () => AdapterHarness): void {
     for (const event of await verifier.events()) await verifier.acknowledgeEvent(event.key);
     expect(await jobs.pruneCompleted(clock())).toBe(1);
     await expect(jobs.status(submission(), accepted.jobId)).rejects.toMatchObject({
-      code: 'NOT_FOUND',
+      code: 'JOB_NOT_FOUND',
     });
     expect(await storage.read(storageKey('claim', 'telebirr', 'SYNTH1234'))).toBeDefined();
     expect(await storage.read(storageKey('attempt', 'tenant-a', 'key-a'))).toBeDefined();
     await expect(queue(storage, new Uint8Array(32).fill(99)).initialize()).rejects.toMatchObject({
-      code: 'CONFIGURATION',
+      code: 'QUEUE_CONFIGURATION',
     });
     await verifier.registerExpectation(expectation('tenant-a', 'payment-b'));
     await jobs.enqueue(submission('tenant-a', 'payment-b', 'key-b', 'OTHER1234'));
@@ -265,9 +297,7 @@ export function jobContract(getHarness: () => AdapterHarness): void {
     expect(await verifier.events()).toHaveLength(0);
     tick();
     expect(await queue(harness.fork()).runOnce()).toBe('COMPLETED');
-    expect((await jobs.status(submission(), accepted.jobId)).result?.verificationStatus).toBe(
-      'MATCHED_RECEIPT_ONLY',
-    );
+    expect((await jobs.status(submission(), accepted.jobId)).result?.status).toBe('VERIFIED');
     await verifier.registerExpectation(expectation('tenant-b', 'payment-b'));
     const input = submission('tenant-b', 'payment-b', 'key-b', 'OTHER1234');
     const repeated = await jobs.enqueue(input);
@@ -276,11 +306,11 @@ export function jobContract(getHarness: () => AdapterHarness): void {
       tick();
     }
     retrieve.mockClear();
-    expect(await queue(harness.fork()).runOnce()).toBe('COMPLETED');
+    expect(await queue(harness.fork()).runOnce()).toBe('FAILED');
     expect(retrieve).not.toHaveBeenCalled();
     expect(await jobs.status(input, repeated.jobId)).toMatchObject({
       attempts: 3,
-      result: { verificationStatus: 'UNABLE_TO_VERIFY', settlementStatus: 'UNCONFIRMED' },
+      error: { code: 'QUEUE_ATTEMPTS_EXHAUSTED' },
     });
     expect(await verifier.events()).toHaveLength(2);
   });
@@ -288,9 +318,9 @@ export function jobContract(getHarness: () => AdapterHarness): void {
     const { jobs, verifier, storage, retrieve } = await setup();
     const cancelled = await jobs.enqueue(submission());
     await verifier.cancelExpectation(submission());
-    expect(await jobs.runOnce()).toBe('COMPLETED');
-    expect((await jobs.status(submission(), cancelled.jobId)).result?.verificationStatus).toBe(
-      'CANCELLED',
+    expect(await jobs.runOnce()).toBe('FAILED');
+    expect((await jobs.status(submission(), cancelled.jobId)).error?.code).toBe(
+      'EXPECTATION_CANCELLED',
     );
     expect(retrieve).not.toHaveBeenCalled();
     await verifier.registerExpectation(expectation('tenant-b', 'payment-b'));
@@ -299,21 +329,20 @@ export function jobContract(getHarness: () => AdapterHarness): void {
     retrieve.mockImplementationOnce(async (url) => {
       await storage.transaction((tx) =>
         tx.set(storageKey('expectation', 'tenant-b', 'payment-b'), {
+          version: 2,
           expectation: { ...expectation('tenant-b', 'payment-b'), reference: 'CHANGED_1234' },
           state: 'OPEN',
         }),
       );
       return providerResult(url);
     });
-    expect(await jobs.runOnce()).toBe('COMPLETED');
-    expect((await jobs.status(input, changed.jobId)).result?.verificationStatus).toBe(
-      'NEEDS_REVIEW',
-    );
+    expect(await jobs.runOnce()).toBe('FAILED');
+    expect((await jobs.status(input, changed.jobId)).error?.code).toBe('EXPECTATION_CHANGED');
     expect(await storage.transaction((tx) => tx.scan('rv1:claim:', 10))).toHaveLength(0);
   });
   it('persists a provider pause across workers after repeated unavailability', async () => {
     const { jobs, queue, harness, verifier, retrieve, tick } = await setup({ maxPending: 4 });
-    retrieve.mockResolvedValue({ kind: 'UNAVAILABLE', code: 'TIMEOUT' });
+    retrieve.mockResolvedValue(timedOut);
     for (let i = 0; i < 3; i++) {
       await verifier.registerExpectation(expectation('tenant-a', `circuit-${i}`));
       await jobs.enqueue(submission('tenant-a', `circuit-${i}`, `key-${i}`, `SYNTH123${i}`));
@@ -338,14 +367,14 @@ export function jobContract(getHarness: () => AdapterHarness): void {
     ])
       await expect(
         createDurableVerifier({ ...config, providers: {} }).initialize(),
-      ).rejects.toMatchObject({ code: 'CONFIGURATION' });
+      ).rejects.toMatchObject({ code: 'QUEUE_CONFIGURATION' });
     expect(() =>
       createDurableVerifier({
         storage: { ...storage, callerTransaction: true },
         encryptionKey: jobTestKey,
         providers: {},
       }),
-    ).toThrow('CONFIGURATION');
+    ).toThrow(expect.objectContaining({ code: 'QUEUE_CONFIGURATION' }));
     expect(() =>
       createDurableVerifier({
         storage,
@@ -353,6 +382,6 @@ export function jobContract(getHarness: () => AdapterHarness): void {
         providers: {},
         policy: { timeoutMs: 3000, leaseMs: 3000 },
       }),
-    ).toThrow('CONFIGURATION');
+    ).toThrow(expect.objectContaining({ code: 'QUEUE_CONFIGURATION' }));
   });
 }

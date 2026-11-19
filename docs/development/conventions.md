@@ -138,7 +138,7 @@ contract suite. CI starts the same pinned services and stops them on completion.
 
 Storage uses one versioned typed record schema, not separate ORM-owned shadow
 stores. A single migration owner maintains its primary keys and version metadata.
-Hosts retain all connection, transaction, settlement and fulfillment ownership.
+Hosts retain all connection, transaction and fulfillment ownership.
 
 ## ORM compatibility
 
@@ -182,7 +182,7 @@ outcome classes and handles SIGINT/SIGTERM with abort and owned-handle cleanup.
 
 The private `examples/fastify-checkout` package pins stable Fastify 5.12.8
 (registry next 6.0.0-alpha.6 is excluded). Its factory receives host-owned auth,
-orders, admission and independent settlement/fulfillment state. Additional body
+orders, admission and fulfillment state. Additional body
 fields are rejected by explicit AJV configuration. The loopback-only Varlock
 demo selects SQLite directly and has no providers. `pnpm checkout` starts it;
 its public synthetic session token is documented solely for local demonstration.

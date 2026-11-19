@@ -76,7 +76,7 @@ describe('trusted operator CLI and durable worker', () => {
       diagnostic: true,
       claimCreated: false,
       provenance: { kind: 'SAVED_HTML' },
-      result: { verificationStatus: 'MATCHED_RECEIPT_ONLY', settlementStatus: 'UNCONFIRMED' },
+      result: { status: 'MATCH' },
     });
     expect(existsSync(configuration.RECEIPT_DATABASE_FILE!)).toBe(false);
     expect(retrieveTelebirr).not.toHaveBeenCalled();
@@ -108,11 +108,9 @@ describe('trusted operator CLI and durable worker', () => {
     ).rejects.toMatchObject({ code: 'QUEUE_KEY_REQUIRED' });
     expect(existsSync(configuration.RECEIPT_DATABASE_FILE!)).toBe(false);
     await runCli(['register', file('expectation.json', expected)], configuration);
-    const result = await runCli(['verify', file('submission.json', input)], configuration);
-    expect(result).toMatchObject({
-      verificationStatus: 'UNABLE_TO_VERIFY',
-      settlementStatus: 'UNCONFIRMED',
-    });
+    await expect(
+      runCli(['verify', file('submission.json', input)], configuration),
+    ).rejects.toMatchObject({ code: 'PROVIDER_NOT_CONFIGURED' });
     expect(retrieveTelebirr).not.toHaveBeenCalled();
     const db = new Database(configuration.RECEIPT_DATABASE_FILE!);
     try {
@@ -148,13 +146,13 @@ describe('trusted operator CLI and durable worker', () => {
     } finally {
       runtime.close();
     }
-    expect(outcomes).toEqual(['RETRY_WAIT']);
+    expect(outcomes).toEqual(['FAILED']);
     const restarted = await openOperatorRuntime(configuration, true);
     try {
       expect(await restarted.jobs!.status(input, accepted.jobId)).toMatchObject({
-        state: 'RETRY_WAIT',
+        state: 'FAILED',
         attempts: 1,
-        settlementStatus: 'UNCONFIRMED',
+        error: { code: 'PROVIDER_NOT_CONFIGURED' },
       });
     } finally {
       restarted.close();
@@ -185,7 +183,7 @@ describe('trusted operator CLI and durable worker', () => {
     expect(acceptance.stdout).not.toContain('TEST1234AB');
     expect(acceptance.stdout).not.toContain(syntheticKey);
     const worked = await command('worker', ['--once']);
-    expect(worked.stdout).toContain('RETRY_WAIT');
+    expect(worked.stdout).toContain('FAILED');
     const status = await command('cli', [
       'status',
       file('status.json', {
@@ -196,7 +194,7 @@ describe('trusted operator CLI and durable worker', () => {
     ]);
     expect(
       JSON.parse(status.stdout.split('\n').find((line) => line.startsWith('{'))!),
-    ).toMatchObject({ state: 'RETRY_WAIT', attempts: 1, settlementStatus: 'UNCONFIRMED' });
+    ).toMatchObject({ state: 'FAILED', attempts: 1, error: { code: 'PROVIDER_NOT_CONFIGURED' } });
     const wrong = await command('cli', [
       'status',
       file('wrong.json', { tenantId: 'wrong', paymentId: input.paymentId, jobId: accepted.jobId }),
