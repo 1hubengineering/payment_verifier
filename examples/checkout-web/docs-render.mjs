@@ -33,6 +33,9 @@ function navigation(prefix, current) {
     ['Guide', 'docs/'],
     ['API', 'api/'],
     ['Checkout demo', 'demo/'],
+    ['Playground', 'playground/'],
+    ['Benchmarks', 'benchmarks/'],
+    ['0.2.0 candidate', 'candidate/'],
   ];
   return `<a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header"><nav class="site-shell site-nav" aria-label="Main">
@@ -49,7 +52,7 @@ export function documentation() {
     async transformIndexHtml(html, context) {
       if (!html.includes('<!-- developer-nav -->')) return html;
       const route =
-        ['docs/', 'api/', 'demo/'].find((path) =>
+        ['docs/', 'api/', 'demo/', 'playground/', 'benchmarks/', 'candidate/'].find((path) =>
           context.filename.split(sep).join('/').endsWith(`/${path}index.html`),
         ) ?? './';
       const page = html.replace('<!-- developer-nav -->', () =>

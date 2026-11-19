@@ -2,13 +2,14 @@ import { defineConfig } from 'vite-plus';
 
 export default defineConfig({
   pack: {
-    entry: [
-      'src/index.ts',
-      'src/providers/index.ts',
-      'src/storage.ts',
-      'src/jobs.ts',
-      'src/input.ts',
-    ],
+    entry: {
+      index: 'src/index.ts',
+      'providers/index': 'src/providers/index.ts',
+      storage: 'src/storage.ts',
+      jobs: 'src/jobs.ts',
+      input: 'src/input.ts',
+      comparison: 'src/comparison-entry.ts',
+    },
     format: ['esm'],
     dts: { generator: 'oxc' },
     target: 'node24.22.3',

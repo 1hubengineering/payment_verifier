@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0 candidate
+
+- Support receipt identifiers, official receipt URLs, and SMS through a shared
+  browser-safe parser. Report structured verification outcomes and check details.
+- Match exact ETB amounts by default and support optional host-configured tolerance.
+- Reject changed evidence on bound idempotency keys, including malformed evidence.
+- Report Chromium startup failures as `RECEIPT_BROWSER_UNAVAILABLE` at the rendering stage.
+- Initialize a fresh verifier store for new installations. Keep active 0.1.1
+  stores on 0.1.1 until a supported cutover preserves their existing claims.
+  See the [development cutover plan](docs/development/plans/017-verification-contract-0.2.0.md#development-and-testing-store-cutover).
+
 ## 0.1.1
 
 - Publish the core as `@1hubengineering/verifier` and shorten its four

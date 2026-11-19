@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Benchmarks · Payment Verifier</title>
+    <link rel="stylesheet" href="../src/site.css" />
+  </head>
+  <body class="developer-site">
+    <!-- developer-nav -->
+    <main id="main" class="site-shell docs-main" tabindex="-1">
+      <article class="docs-content">
+        <h1>Benchmark observations</h1>
+        <p>
+          Measured on 19 November 2026 using SDK 0.2.0 source candidate <code>f441981</code>. Each
+          row came from one bounded run on a shared VPS.
+        </p>
+        <h2>Tested environment</h2>
+        <p>
+          Four AMD EPYC virtual CPUs, 7.75 GiB host RAM, Ubuntu 26.04.1 LTS, Linux 7.0.0, Docker
+          29.1.3 and Compose 2.40.3. The backend container was capped at two vCPUs and 768 MiB. The
+          workload used Node.js 26.13.1 and SQLite 3.54.1 through the direct SQL adapter on an
+          ext4-backed Docker volume.
+        </p>
+        <h2>Synthetic workload results</h2>
+        <div class="doc-table" role="region" tabindex="0" aria-label="Benchmark measurements">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Workload</th>
+                <th scope="col">Concurrency</th>
+                <th scope="col">Scenarios</th>
+                <th scope="col">Attempts</th>
+                <th scope="col">Attempts/s</th>
+                <th scope="col">p50 (ms)</th>
+                <th scope="col">p95 (ms)</th>
+                <th scope="col">p99 (ms)</th>
+                <th scope="col">Peak RSS (MiB)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Successful receipts</th>
+                <td>1</td>
+                <td>60</td>
+                <td>60</td>
+                <td>130.3</td>
+                <td>6.04</td>
+                <td>7.81</td>
+                <td>52.56</td>
+                <td>88.9</td>
+              </tr>
+              <tr>
+                <th scope="row">Successful receipts</th>
+                <td>1</td>
+                <td>300</td>
+                <td>300</td>
+                <td>131.6</td>
+                <td>5.77</td>
+                <td>9.69</td>
+                <td>59.81</td>
+                <td>96.0</td>
+              </tr>
+              <tr>
+                <th scope="row">Successful receipts</th>
+                <td>4</td>
+                <td>300</td>
+                <td>300</td>
+                <td>322.6</td>
+                <td>7.54</td>
+                <td>52.32</td>
+                <td>75.14</td>
+                <td>97.9</td>
+              </tr>
+              <tr>
+                <th scope="row">Mixed outcomes</th>
+                <td>4</td>
+                <td>300</td>
+                <td>300</td>
+                <td>516.1</td>
+                <td>5.89</td>
+                <td>18.02</td>
+                <td>28.54</td>
+                <td>98.0</td>
+              </tr>
+              <tr>
+                <th scope="row">Recovery</th>
+                <td>4</td>
+                <td>300</td>
+                <td>800</td>
+                <td>362.4</td>
+                <td>5.02</td>
+                <td>53.14</td>
+                <td>81.10</td>
+                <td>101.9</td>
+              </tr>
+              <tr>
+                <th scope="row">Claim contention</th>
+                <td>4</td>
+                <td>300</td>
+                <td>300</td>
+                <td>184.7</td>
+                <td>9.02</td>
+                <td>76.90</td>
+                <td>91.40</td>
+                <td>97.6</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Each workload used 10 warm-up scenarios, 3 ms mock provider delay and a 50 ms timeout
+          budget. Attempt latency uses nearest-rank percentiles after warm-up. The recovery workload
+          intentionally produced provider timeouts in 25% of attempts and exercised replay and
+          lost-commit-response recovery. Every row completed its expected outcome assertions.
+          Process CPU averaged 0.64 to 1.12 cores across the rows.
+        </p>
+        <h2>Chromium and hosting</h2>
+        <p>
+          A separate sandbox check measured about 1.20 seconds to launch Chromium 159.0.8154.6
+          (Playwright 1.65.1) and 0.36 seconds to render a small local page. Container memory
+          increased from about 136 MiB to 295 MiB during that probe.
+        </p>
+        <p>
+          For a similar internal trial, start with concurrency 1 within the tested container
+          allocation and measure on the target volume before raising concurrency. At concurrency 4,
+          successful receipts had higher throughput and a higher p95 than at concurrency 1. These
+          trials cover synthetic SDK work and a local browser probe. Live provider latency,
+          production capacity and minimum hardware requirements remain unmeasured.
+        </p>
+      </article>
+    </main>
+  </body>
+</html>

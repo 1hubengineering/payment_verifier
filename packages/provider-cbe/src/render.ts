@@ -12,21 +12,27 @@ export async function renderCbeHtml(
     maxBytes = options.maxBytes ?? 2_000_000;
   if (options.signal?.aborted) throw new RetrievalError('CANCELLED');
   const started = Date.now();
-  const browser = await chromium.launch({
-    headless: true,
-    chromiumSandbox: true,
-    env: { LANG: 'C.UTF-8', TZ: 'UTC' },
-    timeout: timeoutMs,
-    args: [
-      '--disable-background-networking',
-      '--disable-component-update',
-      '--disable-sync',
-      '--host-resolver-rules=MAP * ~NOTFOUND',
-      '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
-      '--js-flags=--max-old-space-size=128',
-    ],
-    proxy: { server: 'http://127.0.0.1:9', bypass: '<-loopback>' },
-  });
+  const browser = await chromium
+    .launch({
+      headless: true,
+      chromiumSandbox: true,
+      env: { LANG: 'C.UTF-8', TZ: 'UTC' },
+      timeout: timeoutMs,
+      args: [
+        '--disable-background-networking',
+        '--disable-component-update',
+        '--disable-sync',
+        '--host-resolver-rules=MAP * ~NOTFOUND',
+        '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
+        '--js-flags=--max-old-space-size=128',
+      ],
+      proxy: { server: 'http://127.0.0.1:9', bypass: '<-loopback>' },
+    })
+    .catch((cause: unknown) => {
+      if (options.signal?.aborted) throw new RetrievalError('CANCELLED', {}, false, { cause });
+      if (cause instanceof Error && cause.name === 'TimeoutError') throw cause;
+      throw new RetrievalError('RECEIPT_BROWSER_UNAVAILABLE', {}, false, { cause });
+    });
   let timer: ReturnType<typeof setTimeout> | undefined;
   let cancel: (() => void) | undefined;
   try {

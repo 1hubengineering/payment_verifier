@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SDK 0.2.0 candidate · Payment Verifier</title>
+    <link rel="stylesheet" href="../src/site.css" />
+  </head>
+  <body class="developer-site">
+    <!-- developer-nav -->
+    <main id="main" class="site-shell docs-main" tabindex="-1">
+      <article class="docs-content">
+        <h1>SDK 0.2.0 candidate</h1>
+        <p>
+          Preview from source. The <a href="../docs/">published guide</a> and
+          <a href="../api/">API reference</a> cover SDK 0.1.1.
+        </p>
+        <h2>Install the published SDK</h2>
+        <pre><code>npm install @1hubengineering/verifier@0.1.1</code></pre>
+        <p>
+          To test 0.2.0 from source, run <code>vp env install</code>,
+          <code>pnpm install --frozen-lockfile</code>, then <code>pnpm build</code> in a reviewed
+          checkout. Use the workspace packages and a fresh test database. See the
+          <a
+            href="https://github.com/1hubengineering/payment_verifier/tree/main/packages/verifier#readme"
+            >candidate integration example and API usage</a
+          >.
+        </p>
+        <h2>Receipt input and outcomes</h2>
+        <p>
+          For local candidate testing, use the workspace packages from a reviewed checkout. Hosts
+          register an immutable ETB expectation before submitting an official receipt. Automatic
+          input detection accepts Telebirr transaction IDs and CBE <code>v2-</code> receipt IDs,
+          official receipt URLs, and SMS with an unambiguous identifier.
+        </p>
+        <p>
+          Results include <code>VERIFIED</code>, <code>MISMATCH</code>, <code>NOT_FOUND</code>,
+          <code>UNAVAILABLE</code>, or <code>INVALID_INPUT</code>, plus a diagnostic code, stage,
+          retryability and individual checks. An official receipt match leaves settlement and
+          fulfillment with the host.
+        </p>
+        <p>
+          Browser interfaces can import <code>detectPaymentInput</code> from
+          <code>@1hubengineering/verifier/input</code> and use pure SDK comparison and ETB functions
+          from <code>@1hubengineering/verifier/comparison</code>. Official retrieval and atomic
+          claims run on the backend.
+        </p>
+        <h2>Amount and replay</h2>
+        <p>
+          Amounts use integer ETB minor units. Exact matching is the default. Host expectations can
+          set separate fixed or percentage allowances for underpayment and overpayment. The SDK
+          reports the accepted range and difference.
+        </p>
+        <p>
+          Replaying the original committed evidence returns the stored outcome without a provider
+          lookup. A bound key used with different or malformed evidence returns
+          <code>IDEMPOTENCY_CONFLICT</code>. A provider timeout is <code>UNAVAILABLE</code> with
+          <code>PROVIDER_TIMEOUT</code>. A missing or blocked Chromium runtime is
+          <code>RECEIPT_BROWSER_UNAVAILABLE</code> at <code>receipt_rendering</code>.
+        </p>
+        <h2>Storage and validation</h2>
+        <p>
+          Use a fresh store for this candidate. PostgreSQL, MySQL and local SQLite use the existing
+          SQL, Drizzle and Prisma adapter contracts. See the
+          <a
+            href="https://github.com/1hubengineering/payment_verifier/blob/main/docs/development/compatibility.md"
+            >tested database and adapter matrix</a
+          >. Existing stores require a tested claim-preserving cutover. Use the
+          <a href="../playground/">synthetic playground</a> to exercise comparisons and see the
+          <a href="../benchmarks/">benchmark observations</a> for measured workload scope.
+        </p>
+        <h2>Troubleshooting</h2>
+        <p>
+          Check the provider, input format and immutable order when input is rejected. For CBE, use
+          the pinned Playwright Chromium and a working OS sandbox. See the
+          <a
+            href="https://github.com/1hubengineering/payment_verifier/tree/main/packages/provider-cbe#readme"
+            >CBE runtime requirements</a
+          >
+          and the
+          <a href="https://github.com/1hubengineering/payment_verifier/blob/main/CHANGELOG.md"
+            >candidate changelog</a
+          >.
+        </p>
+      </article>
+    </main>
+  </body>
+</html>

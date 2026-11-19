@@ -241,19 +241,64 @@ describe('optional CBE execution with real Chromium and mocked provider transpor
     expect(result.evidence.transactionAt).toBe(Date.parse('2026-11-13T11:20:00Z'));
     expect(compareReceipt(expected, result.evidence).status).toBe('MATCH');
   }, 20_000);
-  it('fails unavailable when the OS sandbox cannot launch, with no unsafe fallback', async () => {
+  it.each(['sandbox startup failed', 'Chromium executable is missing'])(
+    'reports a safe browser startup failure and releases admission when %s',
+    async (message) => {
+      const privateDetail = `synthetic private path: ${message}`;
+      const spy = vi.spyOn(chromium, 'launch').mockRejectedValue(new Error(privateDetail));
+      const provider = createCbeProvider();
+      try {
+        const result = await provider.retrieve(url);
+        expect(result).toEqual({
+          kind: 'UNAVAILABLE',
+          code: 'RECEIPT_BROWSER_UNAVAILABLE',
+          stage: 'receipt_rendering',
+          retryable: false,
+          details: {},
+        });
+        expect(JSON.stringify(result)).not.toContain(privateDetail);
+        expect(spy).toHaveBeenCalledTimes(1);
+        expect(spy).toHaveBeenCalledWith(expect.objectContaining({ chromiumSandbox: true }));
+      } finally {
+        spy.mockRestore();
+      }
+      expect((await provider.retrieve(url)).kind).toBe('EVIDENCE');
+    },
+    20_000,
+  );
+  it('preserves the timeout outcome and retryability when Chromium launch times out', async () => {
     const spy = vi
       .spyOn(chromium, 'launch')
-      .mockRejectedValue(new Error('synthetic private sandbox detail'));
-    const provider = createCbeProvider();
+      .mockRejectedValue(Object.assign(new Error('synthetic timeout'), { name: 'TimeoutError' }));
     try {
-      await expect(provider.retrieve(url)).rejects.toMatchObject({ code: 'INTERNAL_ERROR' });
-      expect(spy).toHaveBeenCalledTimes(1);
+      expect(await createCbeProvider().retrieve(url, { timeoutMs: 1000 })).toEqual({
+        kind: 'UNAVAILABLE',
+        code: 'RECEIPT_RENDER_TIMEOUT',
+        stage: 'receipt_rendering',
+        retryable: true,
+        details: { timeoutMs: 1000 },
+      });
     } finally {
       spy.mockRestore();
     }
-    expect((await provider.retrieve(url)).kind).toBe('EVIDENCE');
-  }, 20_000);
+  });
+  it('preserves caller cancellation when Chromium startup is interrupted', async () => {
+    const controller = new AbortController();
+    const spy = vi.spyOn(chromium, 'launch').mockImplementation(async () => {
+      controller.abort();
+      throw new Error('synthetic interrupted launch');
+    });
+    try {
+      await expect(
+        createCbeProvider().retrieve(url, { signal: controller.signal }),
+      ).rejects.toMatchObject({
+        code: 'OPERATION_CANCELLED',
+        stage: 'request',
+      });
+    } finally {
+      spy.mockRestore();
+    }
+  });
   it('rejects invalid concurrency', () => {
     expect(() => createCbeProvider({ maxConcurrency: 0 })).toThrow();
     expect(() => createCbeProvider({ maxConcurrency: 1.5 })).toThrow();
