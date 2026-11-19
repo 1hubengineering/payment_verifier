@@ -1,7 +1,7 @@
 {
   "name": "@1hubengineering/provider-cbe",
   "version": "0.2.0",
-  "private": true,
+  "private": false,
   "description": "Optional isolated Chromium execution for CBE receipt evidence",
   "homepage": "https://github.com/1hubengineering/payment_verifier/tree/main/packages/provider-cbe",
   "bugs": {

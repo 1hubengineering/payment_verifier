@@ -1,7 +1,7 @@
 {
   "name": "@1hubengineering/verifier",
   "version": "0.2.0",
-  "private": true,
+  "private": false,
   "description": "Ethiopian payment verification and exact ETB domain primitives",
   "homepage": "https://github.com/1hubengineering/payment_verifier/tree/main/packages/verifier",
   "bugs": {
