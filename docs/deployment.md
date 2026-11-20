@@ -7,7 +7,7 @@ can differ from the user's phone or browser connection.
 
 ## Quick start
 
-1. Use Node `^24.22.3` or `^26.13.1` and follow the [SDK quickstart](0.3.0/quickstart.md).
+1. Use Node `^24.22.3` or `^26.13.1` with ESM and follow the [persistent checkout](0.3.0/checkout.md).
    Use one shared [claim store](0.3.0/storage.md) for processes that handle the
    same payments. Follow the storage guide when upgrading an existing store.
 2. Register `retrieveTelebirr` from `@1hubengineering/verifier/providers` for
@@ -18,6 +18,9 @@ can differ from the user's phone or browser connection.
    Test the application and store with synthetic evidence, then perform a
    controlled, authorized live smoke test before accepting payments.
 
+[Testing modes](0.3.0/testing.md) · [Security and privacy](0.3.0/security.md) ·
+[Troubleshooting](0.3.0/troubleshooting.md)
+
 Telebirr needs outbound HTTPS to `transactioninfo.ethiotelecom.et`. The current
 CBE adapter needs `mbreciept.cbe.com.et` and `mb.cbe.com.et`. Direct connections
 require public IPv4 DNS answers and verified TLS. Node retrieves the CBE page
@@ -26,26 +29,36 @@ layout. A foreign server can use direct retrieval if its outbound connection
 reaches the provider. A region, static IP, or cloud NAT offers no assurance of
 Telebirr access.
 
+Set verification deadlines below the host's request or job deadline. Limit
+concurrent receipt retrievals, especially CBE browser work, and monitor
+queue depth and structured failure codes. Test your bounds with synthetic
+workloads. A container needs the matching Chromium and Linux dependencies
+in its image and OS support for the browser sandbox at runtime. Validate
+as the configured service user with the deployment's actual filesystem,
+network, memory and process policy.
+
 ## Check the actual deployment
 
-From a source checkout, prepare the workspace and run the command as the
-deployment user. For Docker, run the check inside the verifier container with
-its DNS, egress and sandbox policy. Use the exported functions below if the
-runtime image contains only the SDK packages.
+From a source checkout with the deployment readiness CLI, prepare the workspace
+and run the command as the deployment user. The repository CLI command was
+added after the 0.3.0 release. Use the exported SDK functions below in a
+release-only application. For Docker, run the check inside the verifier
+container with its DNS, egress and sandbox policy.
 
 ```sh
 vp env install
 pnpm install --frozen-lockfile
 pnpm build
-pnpm check:deployment --provider telebirr --network
-pnpm check:deployment --provider cbe --network
+pnpm check:deployment --provider telebirr
+pnpm check:deployment --provider cbe
 ```
 
-Run without `--network` for an offline check. CBE launches the same sandbox as
+These are offline checks. CBE launches the same sandbox as
 the adapter and renders synthetic HTML. If Chromium is missing, run
-`pnpm setup:browsers` and install its OS libraries as needed. With `--network`,
-the command performs bounded TLS handshakes with the official hosts and sends
-no HTTP requests. It needs no receipt or database. JSON includes the checks,
+`pnpm setup:browsers` and install its OS libraries as needed. Add `--network`
+when authorized to test provider connectivity. That option performs bounded
+TLS handshakes with the official hosts without sending HTTP requests. The
+diagnostic needs no receipt or database. JSON includes the checks,
 next steps and `readyForSmokeTest`. Exit code `1` means a check failed, and `2`
 means the inputs were invalid.
 
@@ -135,5 +148,4 @@ The workstation approach was tested from WSL to a Linux VPS.
    ```
 
 The backend owns the environment variable and routing choice. The SDK takes
-the explicit socket option. See the [SSH manual](https://man.openbsd.org/ssh.1)
-and the [admin portal override](../apps/verification-playground/README.md#telebirr-over-ethio-telecom).
+the explicit socket option. See the [SSH manual](https://man.openbsd.org/ssh.1).

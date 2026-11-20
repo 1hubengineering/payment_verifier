@@ -56,6 +56,11 @@ try {
   assert.match(comparison.body, /compareReceipt/);
   const [example] = content(await invoke('search_docs', { query: 'runnable', kind: 'example' }));
   assert.match(content(await invoke('get_doc', { id: example.id })).body, /assert\.equal/);
+  const checkout = content(await invoke('get_doc', { id: 'persistent-checkout' }));
+  assert.equal(checkout.kind, 'example');
+  assert.match(checkout.body, /RECEIPT_ALREADY_CLAIMED/);
+  const recovery = content(await invoke('get_doc', { id: 'retries' }));
+  assert.match(recovery.body, /IDEMPOTENCY_CONFLICT/);
   assert.ok((await invoke('get_doc', { id: '../../.env' })).isError);
   assert.ok((await invoke('search_docs', { query: 'prisma', version: '9.9.9' })).isError);
   console.log(

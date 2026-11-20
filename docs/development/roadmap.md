@@ -36,6 +36,11 @@ The [deployment guide](../deployment.md) covers provider connectivity checks
 and runtime requirements. The [deployment readiness plan](plans/029-deployment-readiness.md)
 records local diagnostics and validation.
 
+The [0.3.0 integration documentation](../0.3.0/checkout.md) is validated locally
+against the published packages, including the independent checkout and replay
+exercise. The [documentation validation report](reports/0.3.0-documentation-validation.md)
+records the checks and the pending Pages deployment.
+
 The [0.2.0 hardening plan](plans/020-verification-release-hardening-0.2.0.md)
 records bound-key conflict handling, typed Chromium startup failures, and
 fresh-install release scope. Active 0.1.1 stores require a claim-preserving cutover.

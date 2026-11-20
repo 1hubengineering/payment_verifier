@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { sep } from 'node:path';
 import { Marked } from 'marked';
-import { repository, version } from '../../scripts/docs-catalog.mjs';
+import { pages, repository, version } from '../../scripts/docs-catalog.mjs';
 
 const corpus = new URL('../../.cache/payment-verifier-docs/corpus.json', import.meta.url);
 const escape = (text) =>
@@ -10,17 +10,39 @@ const escape = (text) =>
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
-const markdown = new Marked();
-markdown.use({
-  renderer: {
-    code(token) {
-      return `<pre tabindex="0" aria-label="Code example"><code>${escape(token.text)}</code></pre>`;
+function renderGuide({ id, body, source }, guideIds) {
+  return new Marked({
+    renderer: {
+      code(token) {
+        return `<pre tabindex="0" aria-label="Code example"><code>${escape(token.text)}</code></pre>`;
+      },
+      table(token) {
+        return `<div class="doc-table" role="region" tabindex="0" aria-label="Reference table">${renderTable.call(this, token)}</div>`;
+      },
+      heading({ depth, text, tokens }) {
+        const slug = text
+          .toLowerCase()
+          .replace(/[^a-z0-9 -]/g, '')
+          .replaceAll(' ', '-');
+        const level = Math.min(depth + 1, 6);
+        return `<h${level} id="${id}--${escape(slug)}">${this.parser.parseInline(tokens)}</h${level}>`;
+      },
     },
-    table(token) {
-      return `<div class="doc-table" role="region" tabindex="0" aria-label="Reference table">${renderTable.call(this, token)}</div>`;
+    walkTokens(token) {
+      if (token.type !== 'link') return;
+      const { href } = token;
+      const [file, fragment] = href.split('#');
+      const targetId = file.endsWith('.md') ? file.slice(0, -3) : '';
+      if (guideIds.has(targetId)) {
+        token.href = fragment ? `#${targetId}--${fragment}` : `#${targetId}`;
+      } else if (href.startsWith(pages)) {
+        token.href = '../' + href.slice(pages.length);
+      } else {
+        token.href = new URL(href, source).href;
+      }
     },
-  },
-});
+  }).parse(body);
+}
 
 function renderTable(token) {
   const row = (cells, tag) =>
@@ -64,14 +86,15 @@ export function documentation() {
       );
       if (route === 'docs/') {
         const guides = entries.filter(({ kind }) => kind === 'guide');
+        const guideIds = new Set(guides.map(({ id }) => id));
         const links = guides
           .map(({ id, title }) => `<a href="#${escape(id)}">${escape(title)}</a>`)
           .join('');
         const sections = await Promise.all(
           guides.map(
-            async ({ id, title, body, source }) =>
-              `<section id="${escape(id)}"><h2>${escape(title)}</h2>${await markdown.parse(body)}
-           <a class="doc-source" href="${escape(source)}">View guide source</a></section>`,
+            async (guide) =>
+              `<section id="${escape(guide.id)}"><h2>${escape(guide.title)}</h2>${await renderGuide(guide, guideIds)}
+           <a class="doc-source" href="${escape(guide.source)}">View guide source</a></section>`,
           ),
         );
         return page

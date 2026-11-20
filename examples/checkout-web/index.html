@@ -20,8 +20,9 @@
             <p class="ui-label">TypeScript SDK · v0.3.0</p>
             <h1 id="hero-title">Verify Ethiopian payment receipts.</h1>
             <p>
-              Compare official Telebirr and CBE receipts with your orders. Your backend owns
-              settlement and fulfillment decisions.
+              Customers pay your bank account or wallet directly. Your Node.js backend accepts a
+              Telebirr or CBE identifier, receipt link, or SMS. The SDK checks the official receipt
+              against your order and records a claim in your shared store when it verifies.
             </p>
             <div class="hero-actions">
               <a class="primary-cta" href="./docs/#quickstart"
@@ -29,7 +30,9 @@
               >
               <a class="secondary-cta" href="./demo/">Try the checkout demo</a>
             </div>
-            <code class="install-line">npm install @1hubengineering/verifier@0.3.0</code>
+            <code class="install-line"
+              >npm install --save-exact @1hubengineering/verifier@0.3.0</code
+            >
           </div>
           <figure class="receipt-preview">
             <figcaption><span>Receipt verification</span><span>Sample result</span></figcaption>
@@ -59,7 +62,7 @@
                     <td>Matched</td>
                   </tr>
                   <tr>
-                    <th scope="row">Invoice</th>
+                    <th scope="row">Receipt note</th>
                     <td>INV-DEMO-1048</td>
                     <td>Matched</td>
                   </tr>

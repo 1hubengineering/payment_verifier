@@ -5,11 +5,10 @@ import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import ts from 'typescript-docs-parser';
 import {
-  guides,
+  guidesForRelease,
   releases,
   pages,
   repository,
-  sdkPackages,
   sourceRefs,
   version as currentVersion,
 } from './docs-catalog.mjs';
@@ -23,11 +22,11 @@ const entries = [];
 
 async function prepareRelease(version, packages) {
   const current = version === currentVersion;
-  const names = current ? sdkPackages : Object.keys(packages);
+  const names = Object.keys(packages);
   const core = names.includes('verifier') ? 'verifier' : 'receipt-verifier';
   const examplePath = `docs/${version}/examples/compare-receipt.mjs`;
   const example = await readFile(join(root, examplePath), 'utf8');
-  for (const [id, title] of guides) {
+  for (const [id, title] of guidesForRelease(version)) {
     const path = `docs/${version}/${id}.md`;
     const markdown = await readFile(join(root, path), 'utf8');
     const body = markdown.replace('<!-- runnable-example -->', () => '```js\n' + example + '```');
@@ -53,10 +52,29 @@ async function prepareRelease(version, packages) {
     url: current ? `${pages}docs/#quickstart` : `${repository}/blob/main/${examplePath}`,
     source: `${repository}/blob/main/${examplePath}`,
   });
+  if (current) {
+    for (const [id, title, guide] of [
+      ['persistent-checkout', 'Runnable persistent checkout', 'checkout'],
+      ['custom-storage', 'Custom SQLite storage adapter', 'storage'],
+      ['check-custom-storage', 'Runnable custom storage check', 'storage'],
+    ]) {
+      const path = `docs/${version}/examples/${id}.mjs`;
+      entries.push({
+        id,
+        title,
+        kind: 'example',
+        version,
+        summary: title,
+        body: await readFile(join(root, path), 'utf8'),
+        url: `${pages}docs/#${guide}`,
+        source: `${repository}/blob/main/${path}`,
+      });
+    }
+  }
 
   const scope = join(scratch, version, 'node_modules', '@1hubengineering');
   await mkdir(scope, { recursive: true });
-  for (const [name, hash] of Object.entries(packages ?? {})) {
+  for (const [name, hash] of Object.entries(packages)) {
     const archiveName = `${name}-${version}.tgz`;
     const archive = join(cache, archiveName);
     const saved = await readFile(archive).catch((error) => {
@@ -97,7 +115,7 @@ async function prepareRelease(version, packages) {
     ]);
   }
   for (const name of names) {
-    const packageRoot = current ? join(root, 'packages', name) : join(scope, name);
+    const packageRoot = join(scope, name);
     const manifest = JSON.parse(await readFile(join(packageRoot, 'package.json'), 'utf8'));
     if (manifest.version !== version || manifest.name !== `@1hubengineering/${name}`)
       throw new Error(`Unexpected archive: ${name}`);
@@ -167,14 +185,13 @@ try {
   for (const [version, packages] of Object.entries(releases)) {
     await prepareRelease(version, packages);
   }
-  await prepareRelease(currentVersion);
   if (new Set(entries.map(({ id, version }) => `${version}:${id}`)).size !== entries.length)
     throw new Error('Duplicate documentation IDs');
   const built = join(scratch, 'corpus.json');
   await writeFile(built, JSON.stringify(entries));
   await rename(built, join(cache, 'corpus.json'));
   console.log(
-    `Prepared ${entries.length} documentation entries across ${[...Object.keys(releases), currentVersion].join(', ')}`,
+    `Prepared ${entries.length} documentation entries across ${Object.keys(releases).join(', ')}`,
   );
 } finally {
   await rm(scratch, { recursive: true, force: true });
