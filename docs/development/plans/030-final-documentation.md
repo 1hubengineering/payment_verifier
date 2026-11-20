@@ -39,4 +39,7 @@ separately. Keep 0.1.0 through 0.2.0 guide bodies intact.
 
 The [validation report](../reports/0.3.0-documentation-validation.md) records
 the installed examples, local checks, independent exercise and remaining gaps.
-The revised Pages site awaits deployment and a post-deploy check.
+The [Pages workflow](https://github.com/1hubengineering/payment_verifier/actions/runs/44740204396)
+published the revised site. Live checks covered all seven public routes.
+The report records the VPS connectivity and browser preflight separately from
+the receipt checks that still require approved fixtures and a working route.
