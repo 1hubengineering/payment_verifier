@@ -11,3 +11,5 @@ Install `@1hubengineering/storage-sql@0.3.0` and the selected driver:
 Run `await storage.migrate()` from your deployment's migration process. Pass that storage boundary to the core. Your host owns closing the underlying pool or connection.
 
 For shared transactions use `postgresTransaction`, `mysqlTransaction`, or `sqliteTransaction` on the exact started driver connection. Select Serializable for PostgreSQL/MySQL and keep the enclosing transaction active until completion. See the [0.3.0 migration and transaction examples](https://github.com/1hubengineering/payment_verifier/blob/v0.3.0/packages/storage-sql/README.md).
+
+[Storage contract](storage.md) · [Security and privacy](security.md)

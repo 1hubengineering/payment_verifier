@@ -17,3 +17,5 @@ with a local fixture. Run `checkProviderConnectivity('cbe')` from
 Use the receipt's **Reason / Type of service** as the expected note. The provider
 also verifies the official transaction ID, A2A payment and transaction time.
 See the [CBE provider source](https://github.com/1hubengineering/payment_verifier/tree/v0.3.0/packages/provider-cbe).
+
+[Evidence formats](evidence.md) · [Deployment](../deployment.md) · [Security and privacy](security.md)

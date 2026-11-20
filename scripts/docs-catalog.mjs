@@ -1,15 +1,8 @@
 export const version = '0.3.0';
-export const sdkPackages = [
-  'verifier',
-  'storage-sql',
-  'adapter-drizzle',
-  'adapter-prisma',
-  'provider-cbe',
-];
 export const repository = 'https://github.com/1hubengineering/payment_verifier';
 export const pages = 'https://1hubengineering.github.io/payment_verifier/';
 
-export const guides = [
+const historicalGuides = [
   ['quickstart', 'Quickstart'],
   ['configuration', 'Configuration and outcomes'],
   ['storage', 'Storage and transactions'],
@@ -21,6 +14,30 @@ export const guides = [
   ['retries', 'Retries and durable jobs'],
   ['agents', 'Agent skills and MCP'],
 ];
+
+export function guidesForRelease(release) {
+  if (release !== version) return historicalGuides;
+  return [
+    ['questions', 'Common questions'],
+    ['quickstart', 'Getting started'],
+    ['checkout', 'Persistent checkout'],
+    ['evidence', 'Evidence and identifiers'],
+    ['configuration', 'Results and operation errors'],
+    ['retries', 'Recovery and idempotency'],
+    ['troubleshooting', 'Troubleshooting'],
+    ['storage', 'Storage and transactions'],
+    ['direct-sql', 'Direct SQL'],
+    ['drizzle', 'Drizzle'],
+    ['prisma', 'Prisma'],
+    ['telebirr', 'Telebirr'],
+    ['cbe', 'CBE'],
+    ['amounts', 'Amount policies'],
+    ['security', 'Security and privacy'],
+    ['testing', 'Testing and deployment'],
+    ['api', 'Public API'],
+    ['agents', 'AI integration guide'],
+  ];
+}
 
 export const packages = {
   'receipt-verifier': 'db9ed367631a7005af9360589f0d50743c86aed3716a0ebe0308c5b0b3928990',
@@ -51,6 +68,13 @@ export const releases = {
     'adapter-drizzle': '3cc9ebf3f9b270bb6327e5dbe84f6b02ebd47fee048f46fe41fa1c0a579c2d63',
     'adapter-prisma': '87f296ae931542eabdeafd842dc4c6868fa423fd43ddee9f1ff614cd25088a7c',
     'provider-cbe': 'ac70697ec425c9ee2bcb255df21174f35e421a4e8e593362966039e4703bbbd5',
+  },
+  '0.3.0': {
+    verifier: '9023152d9f8b4cbd3a62398374fefcdf3d9dcad96d0f73358d903034a9b1a34a',
+    'storage-sql': 'd0ff67adafa5992e58852790acba1d5cb9e19e1138aef83e4ed302270dd48169',
+    'adapter-drizzle': '46d27235582554f6d55dd6dffcf0517690a6679345e22c2a8d457fe17d3650c7',
+    'adapter-prisma': '43c77f8c31dcf1ee3bc27bbc220ecf1a89f9bb64aad727d0929f3ed4b0137dca',
+    'provider-cbe': '01f77ce1ddd21ee2493c2ba1edd5fb44f9663f6252aa8fbe37f7036484359d97',
   },
 };
 

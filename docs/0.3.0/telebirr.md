@@ -12,3 +12,5 @@ Use **Customer Note** as the host-owned expected reference. The invoice number
 and provider transaction ID are separate. Where Telebirr connectivity requires a
 host-managed SSH tunnel, pass its private Unix socket as `telebirrTunnelSocket`
 in the provider retrieval options.
+
+[Evidence formats](evidence.md) · [Deployment](../deployment.md) · [Security and privacy](security.md)

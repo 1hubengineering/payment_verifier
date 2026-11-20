@@ -23,19 +23,20 @@ v1 migration. For ORM SQLite using another native build, run that owner in a
 separate process; never hold both native implementations against one file in the
 same process. The shared tests exercise exactly this separation.
 
-There is no prior released schema to upgrade. A future schema version must include
-an explicit upgrade and data/recovery tests before being supported. Do not edit
-version metadata to bypass compatibility checks. Back up the store with the engine's
-supported consistent backup method, verify restoration and stop work during host
-maintenance as needed. File copies of an active SQLite/WAL database are not a
-backup procedure supplied by this library.
+The SQL schema version and the SDK payload version have different lifecycles.
+Release 0.3.0 retains the 0.2.0 SQL schema and payload format. Active 0.1.1
+stores require a tested claim-preserving cutover. See the
+[0.3.0 upgrade and rollback instructions](releases/0.3.0.md#upgrade-and-rollback).
+Preserve version metadata. Use the database engine's consistent backup method,
+verify restoration, and pause traffic during maintenance as required. An
+active SQLite/WAL database requires a consistent SQLite backup.
 
 Optional jobs use v1 records and require no second queue/database. They have an
 explicit policy/key fingerprint and bounded retention; read durable-jobs.md before
 initializing, rotating keys or pruning. Financial claims and committed verifier
 results are never removed by queue pruning. Events remain at-least-once and must
-be acknowledged only after the host's repeat-safe consumer succeeds. Receipt events
-never authorize credit, settlement confirmation or delivery.
+be acknowledged only after the host's repeat-safe consumer succeeds. The host
+uses committed results in its own payment and fulfillment workflow.
 
 Caller-scoped completion must use the actual active host transaction after provider
 preparation finishes. The result is provisional until host commit. Raw pg/mysql2

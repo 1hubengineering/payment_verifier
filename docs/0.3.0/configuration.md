@@ -1,39 +1,103 @@
-Create one server-side verifier with `createReceiptVerifier({ storage, providers })`.
-Initialize a fresh store, authenticate the caller, and load the authorized order.
-Register an immutable expectation with the trusted provider, ETB amount in integer
-minor units, recipient, account suffix, receipt note, and validity window. The
-reference is case-sensitive and accepts up to 255 characters. An empty reference
-requires `referenceRequired: false` and matches an empty or absent note.
+Use `createReceiptVerifier({ storage, providers })` after migrating the
+[store](storage.md). Call `initialize()` to check or establish its record
+format. The provider map can contain `telebirr`, `cbe`, or both. An optional
+`now` clock returns integer epoch milliseconds. Supply a fixed clock only
+when your test requires one.
 
-```ts
-const result = await verifier.submit({
-  tenantId: order.tenantId,
-  paymentId: order.id,
-  idempotencyKey,
-  receiptLocator: buyerInput,
-});
-```
+## Expected-payment fields
 
-The SDK accepts a Telebirr transaction ID, CBE `v2-` token, official receipt URL, or
-SMS with a recognizable locator. Use the browser-safe
-`@1hubengineering/verifier/input` export for input feedback. The server validates
-the locator against the registered provider and performs official retrieval.
-Exact amount matching is the default. A trusted expectation can set fixed or
-percentage allowances for underpayment and overpayment. The amount check
-includes the accepted range and signed difference.
+Build the snapshot with `createPaymentExpectation(input)` and register it with
+`registerExpectation(expectation)`. A repeat of the identical expectation is
+safe. Changes to registered values require a new application-owned payment
+identity. Use `cancelExpectation({ tenantId, paymentId })` to close an open
+expectation.
 
-| Result          | Meaning                                                                       |
-| --------------- | ----------------------------------------------------------------------------- |
-| `VERIFIED`      | The official receipt passed the required checks and the claim committed.      |
-| `MISMATCH`      | A required check found a definite disagreement.                               |
-| `NOT_FOUND`     | A provider adapter recognized a confirmed absence response.                   |
-| `UNAVAILABLE`   | Retrieval, rendering, parsing, or incomplete evidence prevented verification. |
-| `INVALID_INPUT` | Input detection or expected-provider validation failed.                       |
+| Field                                    | Value from the application                                                                                                                                                                                                                                  |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tenantId`, `paymentId`                  | Authorized tenant and payment scope. Use stable nonempty strings up to 128 characters without surrounding whitespace or ASCII control characters.                                                                                                           |
+| `provider`, `currency`                   | `telebirr` or `cbe`, and `ETB`.                                                                                                                                                                                                                             |
+| `amountMinor`, `amountPolicy`            | Positive safe integer ETB minor units from `parseEtbAmount` and the optional exact or tolerance policy. See [amounts](amounts.md).                                                                                                                          |
+| `recipientName`, `recipientAccountLast4` | Merchant's account name (nonblank, up to 256 characters) and exactly four digits as a string.                                                                                                                                                               |
+| `reference`, `referenceRequired`         | Case-sensitive provider receipt note, up to 255 characters. An empty string requires `referenceRequired: false` and matches only a blank or absent note. A nonempty reference still has to match with that flag. Whitespace-only expectations are rejected. |
+| `validFrom`, `validUntil`                | Inclusive bounds in integer epoch milliseconds, from zero to `8.64e15`, in chronological order. With a new attempt, the SDK clock must also be in the window before retrieval and when completing it.                                                       |
 
-Use `status` and `code` to handle outcomes. Results also carry the stage,
-retryability, individual checks, and a receipt snapshot and provenance when
-available. Operation failures reject with `VerificationOperationError`, including
-duplicate claims and conflicting idempotency keys. Use `toJSON()` for structured
-diagnostics. Settlement and fulfillment remain host decisions.
+`submit({ tenantId, paymentId, idempotencyKey, receiptLocator }, options?)`
+accepts the customer's locator with the host's authorized scope. Use a stable,
+nonempty key up to 128 characters without surrounding whitespace or ASCII
+control characters. The optional retrieval options include `signal`, `timeoutMs`
+(default 15 seconds, up to 60 seconds for HTTP transport) and `maxBytes`
+(up to 2,000,000). Provider options and browser bounds have separate settings.
+[Evidence](evidence.md) · [Checkout example](checkout.md)
 
-See the [published SDK source and usage example](https://github.com/1hubengineering/payment_verifier/blob/v0.3.0/packages/verifier/README.md).
+## Results and claim guarantees
+
+| `status`        | Trigger and stage                                                                                                                                                                                                                                                                                                                       | Application handling                                                                                                                                                                 |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `VERIFIED`      | `PAYMENT_VERIFIED` at `completion`. Required checks passed and the receipt claim, attempt and event were written. `verified` is true, `retryable` is false, and receipt and source are present.                                                                                                                                         | Wait for the outer commit if composing in a caller-owned transaction. Apply the committed outcome with a repeat-safe host update.                                                    |
+| `MISMATCH`      | At `comparison`, at least one definite check failed. For example, `AMOUNT_UNDERPAID` or `MULTIPLE_MISMATCHES`. Receipt, source and findings are present.                                                                                                                                                                                | Review differences. Retry a pending receipt only if the adapter explicitly recommends retry, pending status is the only issue, and the order permits a fresh attempt.                |
+| `NOT_FOUND`     | `RECEIPT_NOT_FOUND` at `receipt_retrieval` when an adapter recognizes a provider-confirmed absence. No receipt or source. Retryability is adapter-supplied and defaults to false.                                                                                                                                                       | Check the identifier or review manually. An unexplained 404 from the built-in transport is `UNAVAILABLE`.                                                                            |
+| `UNAVAILABLE`   | At `receipt_retrieval`, `receipt_rendering`, `receipt_parsing` or `comparison`. Examples include `PROVIDER_TIMEOUT`, browser startup failure and `REQUIRED_FIELD_MISSING`. Transport/renderer/parser failures have no receipt or source. Incomplete comparisons include their snapshot, findings and source and set `retryable: false`. | Keep the order pending. For a known completed attempt with `retryable: true`, start a bounded fresh attempt if appropriate. Review nonretryable evidence and configuration problems. |
+| `INVALID_INPUT` | At `input_parsing` for malformed or unsupported input, or `input_validation` for a different provider, such as `PROVIDER_MISMATCH`. A synchronous rejection has no attempt ID. A durable rejected admission can have a verification ID. Neither has a receipt or source. `retryable` is false.                                          | Ask the buyer to correct the evidence. An already bound key with invalid or changed evidence instead raises `IDEMPOTENCY_CONFLICT`.                                                  |
+
+Every result includes `status`, `code`, `verified`, `stage`, `retryable`,
+`tenantId`, `paymentId`, `expectedProvider`, `verificationId`, `input`,
+`message`, `checks`, `details`, `receipt` and `source`. Invalid input can
+have a recognized `input` when the provider differs. Diagnostic fields are
+bounded and can still contain sensitive data. Return selected customer-safe
+fields and use structured codes in application logic.
+[Recovery](retries.md) · [Safe logging](security.md)
+
+The comparison checks provider, successful status, the actual ETB transfer
+principal and currency, normalized recipient name, account suffix, exact note,
+and provider transaction time. Telebirr also compares the official transaction
+ID with the lookup ID. CBE requires a valid official transaction ID distinct
+from its lookup token and type `A2A`. Missing, ambiguous or invalid fields
+prevent verification. Definite failed checks produce `MISMATCH` even if
+other fields are incomplete. At completion the SDK rechecks expectation state
+and atomically claims the provider transaction ID once in the shared store.
+The observation describes that receipt and retrieval time. It cannot establish
+irreversible funds, permanent account credit, or events after retrieval.
+Additional reconciliation or release-of-goods checks are application policy.
+
+## Operation errors
+
+A rejected operation can raise `VerificationOperationError`. Read its
+`code`, `stage`, `retryable` and `details`. Its `toJSON()` returns those
+fields with `type: 'VERIFICATION_OPERATION_ERROR'` and `message`. Error
+causes stay out of that representation. Business-facing responses should be
+selected by the host. Retryability defaults to false. In particular,
+`STORAGE_OUTCOME_UNKNOWN` calls for original-key recovery even with that flag.
+
+| Code                        | Stage and cause                                                                                                                                                                                                                                                                                                       | Response                                                                                                                                    |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `INVALID_REQUEST`           | `request` for invalid method inputs, scope, clock or use of a scoped store for preparation. Job-specific parameter checks can use `queue`. Provider locator/transport validation can also fail at `adapter`.                                                                                                          | Correct the call or configuration before retrying.                                                                                          |
+| `INVALID_AMOUNT_POLICY`     | `expectation`, invalid or out-of-range trusted tolerance.                                                                                                                                                                                                                                                             | Correct the order policy.                                                                                                                   |
+| `INVALID_EXPECTATION`       | `expectation`, invalid trusted fields.                                                                                                                                                                                                                                                                                | Fix server-side order mapping.                                                                                                              |
+| `EXPECTATION_NOT_FOUND`     | `expectation`, no registered snapshot.                                                                                                                                                                                                                                                                                | Verify authorization and registration.                                                                                                      |
+| `EXPECTATION_CONFLICT`      | `expectation`, different snapshot for the same scope.                                                                                                                                                                                                                                                                 | Keep the existing snapshot or use the host's new-payment workflow.                                                                          |
+| `EXPECTATION_CANCELLED`     | `expectation`, closed by the merchant.                                                                                                                                                                                                                                                                                | Resolve against the order's state.                                                                                                          |
+| `EXPECTATION_EXPIRED`       | `expectation`, SDK time is after the window.                                                                                                                                                                                                                                                                          | Review the order and any reported transfer. Preserve claims and history.                                                                    |
+| `EXPECTATION_NOT_YET_VALID` | `expectation`, SDK time is before the window.                                                                                                                                                                                                                                                                         | Check the window and clock before trying again.                                                                                             |
+| `EXPECTATION_CHANGED`       | `expectation`, snapshot changed between retrieval/preparation and writing.                                                                                                                                                                                                                                            | Reload authorized state and investigate.                                                                                                    |
+| `IDEMPOTENCY_CONFLICT`      | `idempotency` for synchronous operations, or `queue` during job admission. The key is bound to another payment or the incoming evidence does not match the binding. A synchronous submission with malformed evidence on a bound key raises this error. Durable admission can replay a matching rejection fingerprint. | Resume with the original request. Correct the host's key handling.                                                                          |
+| `RECEIPT_ALREADY_CLAIMED`   | `completion`, the payment already has a claim or the same provider transaction is claimed in the store. Can occur before retrieval for an already claimed payment.                                                                                                                                                    | Recover the original key on a lost response. Escalate conflicting ownership for private merchant review.                                    |
+| `PROVIDER_NOT_CONFIGURED`   | `provider_configuration`, expected provider absent from the map.                                                                                                                                                                                                                                                      | Fix backend wiring.                                                                                                                         |
+| `INVALID_ADAPTER_RESULT`    | `adapter`, configured provider violated its outcome contract.                                                                                                                                                                                                                                                         | Inspect the adapter and normalized response using redacted fixtures.                                                                        |
+| `INVALID_PREPARATION`       | `completion`, token was not prepared by this verifier.                                                                                                                                                                                                                                                                | Prepare again before starting the write transaction.                                                                                        |
+| `OPERATION_CANCELLED`       | `request`, signal aborted.                                                                                                                                                                                                                                                                                            | Resume only if the host still authorizes the attempt. Use original-key recovery if the client did not observe the actual operation outcome. |
+| `STORAGE_FAILURE`           | `storage`, storage read/write fails. A transaction conflict can set `retryable: true`.                                                                                                                                                                                                                                | Inspect database health. Retry scoped conflicts by rolling back and retrying the entire caller transaction.                                 |
+| `STORAGE_OUTCOME_UNKNOWN`   | `storage`, work reached the owned commit boundary and success was not observed.                                                                                                                                                                                                                                       | Recover with the original approved submission and key.                                                                                      |
+| `CORRUPT_STATE`             | `storage` for invalid persisted data. The `queue` stage can report invalid job records.                                                                                                                                                                                                                               | Stop affected work and investigate format, migrations, or corruption without clearing claims.                                               |
+| `INCOMPATIBLE_STORE`        | `storage`, incompatible SDK record format. An incompatible job record can use `queue`.                                                                                                                                                                                                                                | Use the supported version or a claim-preserving migration.                                                                                  |
+| `INTERNAL_ERROR`            | `adapter` on an unexpected provider exception. The `queue` stage can record an unexpected worker error.                                                                                                                                                                                                               | Inspect operational telemetry privately. Leave the order unresolved.                                                                        |
+| `JOB_NOT_FOUND`             | `queue`, no job in the supplied scope.                                                                                                                                                                                                                                                                                | Check authorization, scope and job identity.                                                                                                |
+| `JOB_IN_PROGRESS`           | `idempotency`, synchronous key belongs to a pending durable job.                                                                                                                                                                                                                                                      | Check its authorized job status.                                                                                                            |
+| `QUEUE_CAPACITY`            | `queue`, admission, retention or alias bound was reached.                                                                                                                                                                                                                                                             | Apply backpressure and check admission or maintenance before retrying.                                                                      |
+| `QUEUE_CONFIGURATION`       | `queue`, invalid or inconsistent policy or encryption key.                                                                                                                                                                                                                                                            | Correct the deployment and keep all workers consistent.                                                                                     |
+| `QUEUE_ATTEMPTS_EXHAUSTED`  | `queue`, execution budget used without a completed observation.                                                                                                                                                                                                                                                       | Escalate. Keep the order unresolved.                                                                                                        |
+
+The [persistent example](checkout.md) exercises a success, a timeout, a
+mismatch, invalid input, conflicting keys and duplicate claims. The
+[troubleshooting guide](troubleshooting.md) maps provider failure codes to
+operational checks. For declarations of all result and error codes, use the
+[public API reference](api.md).

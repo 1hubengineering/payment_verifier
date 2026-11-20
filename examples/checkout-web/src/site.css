@@ -242,13 +242,18 @@ main:focus {
   gap: clamp(1.3rem, 4vw, 3.6rem);
   align-items: start;
 }
+.docs-intro {
+  grid-column: 1 / -1;
+}
+.docs-intro p {
+  margin-top: 0.65rem;
+}
 .docs-sidebar {
   position: sticky;
   top: 1rem;
   display: grid;
   gap: 0.15rem;
   min-width: 0;
-  margin-top: 2.6rem;
   padding: 0.8rem;
   background: var(--card);
   max-height: calc(100vh - 2rem);
@@ -290,7 +295,8 @@ main:focus {
 .docs-prose h3 {
   margin-top: 1.5rem;
 }
-.docs-prose section {
+.docs-prose section,
+.docs-prose section :is(h3, h4) {
   scroll-margin-top: 1rem;
 }
 .docs-prose ul,
@@ -693,8 +699,11 @@ main:focus {
   }
   .docs-sidebar {
     position: static;
-    margin-top: 1.3rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     max-height: none;
+  }
+  .docs-sidebar .ui-label {
+    grid-column: 1 / -1;
   }
   .developer-docs {
     gap: 0;
